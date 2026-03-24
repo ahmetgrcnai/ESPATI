@@ -19,14 +19,65 @@ dependencies:
   geolocator: ^13.0.2
   http: ^1.2.0
   flutter_dotenv: ^5.2.1
+  google_generative_ai: ^0.4.6
+  flutter_markdown: ^0.7.4
+  lottie: ^3.1.2
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.2
+  shared_preferences: ^2.2.3
+  firebase_core: ^3.1.1
+  firebase_auth: ^5.1.1
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
   assets:
     - .env
     - assets/images/
+    - assets/animations/
+
+flutter_native_splash:
+  # ── Logo ──────────────────────────────────────────────────────────────────
+  # Centered, never stretched. PNG with transparency so the bg color shows.
+  image: assets/images/splash_logo.png
+
+  # ── Covers full screen (hides status/nav bars during splash on Android) ──
+  fullscreen: true
+
+  # ── Light mode ────────────────────────────────────────────────────────────
+  color: "#FFCBA4"               # Deep Peach (AppColors.splashPeach)
+
+  # ── Dark mode ─────────────────────────────────────────────────────────────
+  color_dark: "#1E1E1E"          # AppTheme._darkSurf — AMOLED-safe dark grey
+  image_dark: assets/images/splash_logo.png
+
+  # ── Android 12+ native splash (windowSplashScreenAnimatedIcon) ────────────
+  # Icon safe zone: 768×768 px centered in a 1152×1152 px canvas.
+  android_12:
+    image: assets/images/splash_logo_android12.png
+    icon_background_color: "#FFCBA4"
+    icon_background_color_dark: "#1E1E1E"
+    color: "#FFCBA4"
+    color_dark: "#1E1E1E"
+
+flutter_launcher_icons:
+  # ── Source image ──────────────────────────────────────────────────────────
+  # Place your logo at assets/images/app_icon.png (1024×1024 px, PNG, no padding)
+  image_path: "assets/images/app_icon.png"
+
+  # ── Android ───────────────────────────────────────────────────────────────
+  android: true
+  min_sdk_android: 21          # Android 5.0+ (covers Samsung A53)
+  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
+  adaptive_icon_background: "#FFEEBD"   # AppColors.background (peach-cream)
+
+  # ── iOS ───────────────────────────────────────────────────────────────────
+  ios: true
+  remove_alpha_ios: true       # Apple requires no alpha channel in App Store icons

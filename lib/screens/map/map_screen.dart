@@ -64,17 +64,21 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           'Eskişehir Pet Map',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
           ),
         ),
         actions: [
@@ -82,11 +86,11 @@ class _MapScreenState extends State<MapScreen> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.peachLight,
+                color: isDark ? cs.surface : AppColors.peachLight,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.my_location_rounded,
-                  color: AppColors.textPrimary, size: 20),
+                  color: cs.onSurface, size: 20),
             ),
             onPressed: () {
               context.read<MapViewModel>().animateToCenter();
@@ -113,7 +117,7 @@ class _MapScreenState extends State<MapScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15,
-                        color: AppColors.textPrimary.withValues(alpha: 0.7),
+                        color: cs.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -172,6 +176,7 @@ class _MapScreenState extends State<MapScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       _buildFilterChip(
+                        context: context,
                         label: 'All',
                         isSelected: viewModel.selectedCategory == null,
                         icon: Icons.pets_rounded,
@@ -179,6 +184,7 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       ...MapPointCategory.values.map((cat) {
                         return _buildFilterChip(
+                          context: context,
                           label: cat.label,
                           isSelected: viewModel.selectedCategory == cat,
                           icon: MapViewModel.categoryIcons[cat] ??
@@ -200,7 +206,7 @@ class _MapScreenState extends State<MapScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
@@ -221,7 +227,7 @@ class _MapScreenState extends State<MapScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: cs.onSurface,
                         ),
                       ),
                     ],
@@ -248,12 +254,16 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildFilterChip({
+    required BuildContext context,
     required String label,
     required bool isSelected,
     required IconData icon,
     Color? color,
     required VoidCallback onSelected,
   }) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Material(
@@ -267,8 +277,9 @@ class _MapScreenState extends State<MapScreen> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color:
-                  isSelected ? (color ?? AppColors.primary) : AppColors.surface,
+              color: isSelected
+                  ? (color ?? AppColors.primary)
+                  : (isDark ? cs.surface : Colors.white),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -279,7 +290,7 @@ class _MapScreenState extends State<MapScreen> {
                   size: 16,
                   color: isSelected
                       ? Colors.white
-                      : (color ?? AppColors.textPrimary),
+                      : (color ?? cs.onSurface),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -287,7 +298,7 @@ class _MapScreenState extends State<MapScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    color: isSelected ? Colors.white : cs.onSurface,
                   ),
                 ),
               ],
@@ -308,9 +319,12 @@ class _PointDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: cs.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
@@ -332,7 +346,7 @@ class _PointDetailSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: theme.dividerColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -367,7 +381,7 @@ class _PointDetailSheet extends StatelessWidget {
                   point.description,
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textPrimary.withValues(alpha: 0.6),
+                    color: cs.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -402,8 +416,8 @@ class _PointDetailSheet extends StatelessWidget {
                       icon: const Icon(Icons.close_rounded, size: 18),
                       label: const Text('Close'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textPrimary,
-                        side: BorderSide(color: AppColors.divider),
+                        foregroundColor: cs.onSurface,
+                        side: BorderSide(color: theme.dividerColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

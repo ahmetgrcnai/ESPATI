@@ -1,0 +1,19 @@
+{
+  "_comment": "PLACEHOLDER — Replace with a real paw-stamp Lottie animation.",
+  "_sources": [
+    "LottieFiles.com: search 'paw', 'stamp', or 'pet like' → export JSON",
+    "Rive.app: create paw animation → export as Lottie JSON",
+    "Adobe After Effects + Bodymovin plugin → export JSON"
+  ],
+  "_color_note": "The code applies a colorFilter (BlendMode.srcIn) in LottieDelegates, so any single-color Lottie paw asset will automatically pick up AppColors.softTeal (#4DB6AC) when liked and grey when unliked. No manual color editing needed.",
+  "v": "5.9.0",
+  "fr": 60,
+  "ip": 0,
+  "op": 60,
+  "w": 100,
+  "h": 100,
+  "nm": "paw_like_placeholder",
+  "ddd": 0,
+  "assets": [],
+  "layers": []
+}

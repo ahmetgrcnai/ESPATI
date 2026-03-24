@@ -8,13 +8,13 @@ import '../interfaces/i_social_repository.dart';
 class MockSocialRepository implements ISocialRepository {
   static const _delay = Duration(seconds: 1);
 
-  // Track like counts per post
-  final Map<String, int> _likeCounts = {};
+  // In-memory pati (like) counts keyed by postId
+  final Map<String, int> _patiSayilari = {};
 
-  // Track comment counts per post
-  final Map<String, int> _commentCounts = {};
+  // In-memory yorum (comment) counts keyed by postId
+  final Map<String, int> _yorumSayilari = {};
 
-  // Track attendee counts per event
+  // In-memory attendee counts keyed by eventId
   final Map<String, int> _attendeeCounts = {
     'event_1': 24,
     'event_2': 18,
@@ -22,35 +22,36 @@ class MockSocialRepository implements ISocialRepository {
   };
 
   @override
-  Future<Result<int>> likePost(String postId) async {
+  Future<Result<int>> patiVer(String postId) async {
     try {
       await Future.delayed(_delay);
-      _likeCounts[postId] = (_likeCounts[postId] ?? 0) + 1;
-      return Success(_likeCounts[postId]!);
+      _patiSayilari[postId] = (_patiSayilari[postId] ?? 0) + 1;
+      return Success(_patiSayilari[postId]!);
     } on Exception catch (e) {
-      return Failure('Failed to like post', exception: e);
+      return Failure('Pati gönderilemedi. Lütfen tekrar deneyin.', exception: e);
     }
   }
 
   @override
-  Future<Result<int>> unlikePost(String postId) async {
+  Future<Result<int>> patiGeri(String postId) async {
     try {
       await Future.delayed(_delay);
-      _likeCounts[postId] = ((_likeCounts[postId] ?? 1) - 1).clamp(0, 999999);
-      return Success(_likeCounts[postId]!);
+      _patiSayilari[postId] =
+          ((_patiSayilari[postId] ?? 1) - 1).clamp(0, 999999);
+      return Success(_patiSayilari[postId]!);
     } on Exception catch (e) {
-      return Failure('Failed to unlike post', exception: e);
+      return Failure('Pati geri alınamadı. Lütfen tekrar deneyin.', exception: e);
     }
   }
 
   @override
-  Future<Result<int>> addComment(String postId, String comment) async {
+  Future<Result<int>> addYorum(String postId, String yorum) async {
     try {
       await Future.delayed(_delay);
-      _commentCounts[postId] = (_commentCounts[postId] ?? 0) + 1;
-      return Success(_commentCounts[postId]!);
+      _yorumSayilari[postId] = (_yorumSayilari[postId] ?? 0) + 1;
+      return Success(_yorumSayilari[postId]!);
     } on Exception catch (e) {
-      return Failure('Failed to add comment', exception: e);
+      return Failure('Yorum eklenemedi. Lütfen tekrar deneyin.', exception: e);
     }
   }
 
@@ -60,7 +61,7 @@ class MockSocialRepository implements ISocialRepository {
       await Future.delayed(_delay);
       return const Success(true);
     } on Exception catch (e) {
-      return Failure('Failed to follow user', exception: e);
+      return Failure('Takip edilemedi.', exception: e);
     }
   }
 
@@ -70,7 +71,7 @@ class MockSocialRepository implements ISocialRepository {
       await Future.delayed(_delay);
       return const Success(true);
     } on Exception catch (e) {
-      return Failure('Failed to unfollow user', exception: e);
+      return Failure('Takip bırakılamadı.', exception: e);
     }
   }
 
@@ -80,7 +81,7 @@ class MockSocialRepository implements ISocialRepository {
       await Future.delayed(_delay);
       return Success(_eskisehirEvents);
     } on Exception catch (e) {
-      return Failure('Failed to load events', exception: e);
+      return Failure('Etkinlikler yüklenemedi.', exception: e);
     }
   }
 
@@ -91,7 +92,7 @@ class MockSocialRepository implements ISocialRepository {
       _attendeeCounts[eventId] = (_attendeeCounts[eventId] ?? 0) + 1;
       return Success(_attendeeCounts[eventId]!);
     } on Exception catch (e) {
-      return Failure('Failed to join event', exception: e);
+      return Failure('Etkinliğe katılınamadı.', exception: e);
     }
   }
 

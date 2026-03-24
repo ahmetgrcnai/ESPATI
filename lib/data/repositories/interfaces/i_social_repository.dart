@@ -2,15 +2,19 @@ import '../../../core/result.dart';
 import '../../models/event_model.dart';
 
 /// Abstract interface for social interaction operations.
+///
+/// Method naming follows the ESPATI brand language:
+///   • "Pati" (paw) — the like interaction (formerly "Yala")
+///   • "Yorum"      — the comment interaction (formerly "Havla")
 abstract class ISocialRepository {
-  /// Likes a post. Returns updated like count.
-  Future<Result<int>> likePost(String postId);
+  /// Registers a "Pati" (like) on a post. Returns the updated pati count.
+  Future<Result<int>> patiVer(String postId);
 
-  /// Unlikes a post. Returns updated like count.
-  Future<Result<int>> unlikePost(String postId);
+  /// Removes a "Pati" (like) from a post. Returns the updated pati count.
+  Future<Result<int>> patiGeri(String postId);
 
-  /// Adds a comment to a post. Returns updated comment count.
-  Future<Result<int>> addComment(String postId, String comment);
+  /// Adds a "Yorum" (comment) to a post. Returns the updated yorum count.
+  Future<Result<int>> addYorum(String postId, String yorum);
 
   /// Follows a user. Returns true on success.
   Future<Result<bool>> followUser(String userId);

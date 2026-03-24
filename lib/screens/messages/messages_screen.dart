@@ -12,7 +12,8 @@ class MessagesScreen extends StatefulWidget {
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProviderStateMixin {
+class _MessagesScreenState extends State<MessagesScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
@@ -37,17 +38,21 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           'Messages',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
           ),
         ),
         actions: [
@@ -55,10 +60,10 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.peachLight,
+                color: isDark ? cs.surface : AppColors.peachLight,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.edit_rounded, color: AppColors.textPrimary, size: 20),
+              child: Icon(Icons.edit_rounded, color: cs.onSurface, size: 20),
             ),
             onPressed: () {},
           ),
@@ -74,10 +79,12 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search conversations...',
-                prefixIcon: Icon(Icons.search, color: AppColors.textPrimary.withOpacity(0.4)),
+                prefixIcon: Icon(Icons.search,
+                    color: cs.onSurface.withValues(alpha: 0.4)),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: Icon(Icons.clear, color: AppColors.textPrimary.withOpacity(0.4)),
+                        icon: Icon(Icons.clear,
+                            color: cs.onSurface.withValues(alpha: 0.4)),
                         onPressed: () {
                           _searchController.clear();
                           setState(() {});
@@ -93,22 +100,26 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.peachLight.withOpacity(0.5),
+              color: isDark
+                  ? cs.surface
+                  : AppColors.peachLight.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: AppColors.peach,
+                color: isDark ? cs.primary : AppColors.peach,
                 borderRadius: BorderRadius.circular(14),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: AppColors.textPrimary,
-              unselectedLabelColor: AppColors.textPrimary.withOpacity(0.5),
-              labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              labelColor: cs.onSurface,
+              unselectedLabelColor: cs.onSurface.withValues(alpha: 0.5),
+              labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 14),
+              unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500, fontSize: 14),
               dividerColor: Colors.transparent,
-              tabs: [
+              tabs: const [
                 Tab(text: 'Private'),
                 Tab(text: 'Groups'),
               ],
@@ -121,14 +132,10 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Private
                 _ConversationList(
-                  conversations: _getFilteredConversations(false),
-                ),
-                // Groups
+                    conversations: _getFilteredConversations(false)),
                 _ConversationList(
-                  conversations: _getFilteredConversations(true),
-                ),
+                    conversations: _getFilteredConversations(true)),
               ],
             ),
           ),
@@ -145,17 +152,21 @@ class _ConversationList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     if (conversations.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.peach.withOpacity(0.5)),
+            Icon(Icons.chat_bubble_outline,
+                size: 64,
+                color: AppColors.peach.withValues(alpha: 0.5)),
             const SizedBox(height: 12),
             Text(
               'No conversations yet',
               style: TextStyle(
-                color: AppColors.textPrimary.withOpacity(0.5),
+                color: cs.onSurface.withValues(alpha: 0.5),
                 fontSize: 16,
               ),
             ),

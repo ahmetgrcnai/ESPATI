@@ -20,17 +20,14 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = List.from(SampleData.chatMessages);
+  final List<Map<String, dynamic>> _messages =
+      List.from(SampleData.chatMessages);
 
   void _sendMessage() {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
     setState(() {
-      _messages.add({
-        'text': text,
-        'isMe': true,
-        'time': 'Now',
-      });
+      _messages.add({'text': text, 'isMe': true, 'time': 'Now'});
     });
     _messageController.clear();
   }
@@ -43,13 +40,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: cs.surface,
         elevation: 1,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: cs.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         titleSpacing: 0,
@@ -57,7 +58,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.peachLight,
+              backgroundColor:
+                  isDark ? cs.surface : AppColors.peachLight,
               child: ClipOval(
                 child: CachedNetworkImage(
                   imageUrl: widget.contactAvatar,
@@ -80,15 +82,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
-                    color: AppColors.textPrimary,
+                    color: cs.onSurface,
                   ),
                 ),
                 Text(
                   'Online',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.success,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.success),
                 ),
               ],
             ),
@@ -105,7 +104,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
         ],
       ),
-
       body: Column(
         children: [
           // ── Messages ──
@@ -115,11 +113,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                final isMe = msg['isMe'] as bool;
                 return _ChatBubble(
                   text: msg['text'] as String,
                   time: msg['time'] as String,
-                  isMe: isMe,
+                  isMe: msg['isMe'] as bool,
                 );
               },
             ),
@@ -129,7 +126,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: cs.surface,
               boxShadow: [
                 BoxShadow(
                   color: AppColors.shadow,
@@ -142,37 +139,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               top: false,
               child: Row(
                 children: [
-                  // Add attachment
                   Container(
                     decoration: BoxDecoration(
-                      color: AppColors.peachLight,
+                      color: isDark ? cs.surface : AppColors.peachLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.add_rounded, color: AppColors.textPrimary),
+                      icon: Icon(Icons.add_rounded, color: cs.onSurface),
                       onPressed: () {},
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Text field
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Type a message...',
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                       ),
                       textCapitalization: TextCapitalization.sentences,
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Send button
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -181,7 +173,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.send_rounded, color: Colors.white),
+                      icon: const Icon(Icons.send_rounded, color: Colors.white),
                       onPressed: _sendMessage,
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
@@ -197,7 +189,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 }
 
-/// A single chat bubble.
 class _ChatBubble extends StatelessWidget {
   final String text;
   final String time;
@@ -211,6 +202,8 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -221,9 +214,10 @@ class _ChatBubble extends StatelessWidget {
             constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.72,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isMe ? AppColors.primary : AppColors.surface,
+              color: isMe ? AppColors.primary : cs.surface,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(18),
                 topRight: const Radius.circular(18),
@@ -246,7 +240,7 @@ class _ChatBubble extends StatelessWidget {
                   text,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isMe ? Colors.white : AppColors.textPrimary,
+                    color: isMe ? Colors.white : cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -255,8 +249,8 @@ class _ChatBubble extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     color: isMe
-                        ? Colors.white.withOpacity(0.7)
-                        : AppColors.textPrimary.withOpacity(0.4),
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : cs.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
               ],

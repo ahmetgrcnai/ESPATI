@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "590289305150",
+    "project_id": "espati-5c079",
+    "storage_bucket": "espati-5c079.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:590289305150:android:75d72b871b5bcaf2d99b6f",
+        "android_client_info": {
+          "package_name": "com.espati.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2wLSbRRwV8poEHz2yf7m1p7SdK_uM1tY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

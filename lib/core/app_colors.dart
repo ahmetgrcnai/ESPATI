@@ -43,4 +43,13 @@ class AppColors {
 
   /// Light blue — for secondary highlights
   static const Color primaryLight = Color(0xFFBBDEFB);
+
+  /// Deep Peach — splash screen background (light mode)
+  static const Color splashPeach = Color(0xFFFFCBA4);
+
+  /// Soft Teal — active bottom nav item (both modes)
+  static const Color softTeal = Color(0xFF4DB6AC);
+
+  /// Soft Teal Light — teal pill background / highlights
+  static const Color softTealLight = Color(0xFFB2DFDB);
 }

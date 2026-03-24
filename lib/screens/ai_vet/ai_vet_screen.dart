@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../data/sample_data.dart';
 import '../../viewmodels/ai_vet_viewmodel.dart';
-import '../../widgets/lost_pet_card.dart';
+import 'academy_tab_view.dart';
 
-/// AI/Vet screen — three sections: Ask AI, Ask a Vet (Q&A), and Lost Pet Reports.
+/// AI/Vet screen — three tabs: Pati-AI Sor, Pati Akademi, Veteriner Soru-Cevap.
 ///
-/// The Ask AI tab is powered by [AIVetViewModel] which manages all chat
-/// business logic. The UI only reads state and calls [sendMessage].
+/// Lost pet reporting has been consolidated into FormHubScreen (İlanlar tab).
+/// The Ask AI tab is powered by [AIVetViewModel]; the Academy tab uses the same
+/// ViewModel for guide state. The Vet Q&A tab is static mock data for now.
 class AiVetScreen extends StatefulWidget {
   const AiVetScreen({super.key});
 
@@ -35,16 +37,16 @@ class _AiVetScreenState extends State<AiVetScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
-          'AI & Vet Help',
+          'Pati-AI & Akademi',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ),
@@ -54,27 +56,29 @@ class _AiVetScreenState extends State<AiVetScreen>
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.peachLight.withOpacity(0.5),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Theme.of(context).colorScheme.surface
+                  : AppColors.peachLight.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(16),
             ),
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: AppColors.peach,
+                color: Theme.of(context).colorScheme.secondary,
                 borderRadius: BorderRadius.circular(14),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: AppColors.textPrimary,
-              unselectedLabelColor: AppColors.textPrimary.withOpacity(0.5),
+              labelColor: Theme.of(context).colorScheme.onSurface,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               labelStyle:
                   const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               unselectedLabelStyle:
                   const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               dividerColor: Colors.transparent,
               tabs: const [
-                Tab(text: 'Ask AI'),
-                Tab(text: 'Ask Vet'),
-                Tab(text: 'Lost Pets'),
+                Tab(text: 'Pati-AI'),
+                Tab(text: 'Akademi'),
+                Tab(text: 'Veteriner'),
               ],
             ),
           ),
@@ -86,8 +90,8 @@ class _AiVetScreenState extends State<AiVetScreen>
               controller: _tabController,
               children: const [
                 _AskAiTab(),
+                AcademyTabView(),
                 _AskVetTab(),
-                _LostPetsTab(),
               ],
             ),
           ),
@@ -170,9 +174,8 @@ class _AskAiTabState extends State<_AskAiTab> {
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
                 itemCount:
-                    viewModel.messages.length + (viewModel.isLoading ? 1 : 0),
+                    viewModel.messages.length + (viewModel.isProcessing ? 1 : 0),
                 itemBuilder: (context, index) {
-                  // Show typing indicator as the last item when loading
                   if (index == viewModel.messages.length) {
                     return const _TypingIndicator();
                   }
@@ -190,7 +193,7 @@ class _AskAiTabState extends State<_AskAiTab> {
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: Theme.of(context).colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.shadow,
@@ -212,21 +215,21 @@ class _AskAiTabState extends State<_AskAiTab> {
                               color: AppColors.primary, size: 20),
                         ),
                         onSubmitted: (_) => _sendQuestion(),
-                        enabled: !viewModel.isLoading,
+                        enabled: !viewModel.isProcessing,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: viewModel.isLoading
+                          colors: viewModel.isProcessing
                               ? [Colors.grey, Colors.grey.shade600]
                               : [AppColors.primary, AppColors.primaryDark],
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
-                        icon: viewModel.isLoading
+                        icon: viewModel.isProcessing
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
@@ -237,7 +240,7 @@ class _AskAiTabState extends State<_AskAiTab> {
                               )
                             : const Icon(Icons.send_rounded,
                                 color: Colors.white),
-                        onPressed: viewModel.isLoading ? null : _sendQuestion,
+                        onPressed: viewModel.isProcessing ? null : _sendQuestion,
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
                       ),
@@ -277,7 +280,7 @@ class _TypingIndicator extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(18),
                 topRight: Radius.circular(18),
@@ -364,7 +367,7 @@ class _AiChatBubble extends StatelessWidget {
             ),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isAi ? AppColors.surface : AppColors.primary,
+              color: isAi ? Theme.of(context).colorScheme.surface : AppColors.primary,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(18),
                 topRight: const Radius.circular(18),
@@ -379,13 +382,26 @@ class _AiChatBubble extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 14,
-                color: isAi ? AppColors.textPrimary : Colors.white,
-              ),
-            ),
+            child: isAi
+                ? MarkdownBody(
+                    data: text,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
+                      h2: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface),
+                      strong: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface),
+                      listBullet: TextStyle(
+                          fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                  )
+                : Text(
+                    text,
+                    style: const TextStyle(fontSize: 14, color: Colors.white),
+                  ),
           ),
         ],
       ),
@@ -581,85 +597,4 @@ class _AskVetTab extends StatelessWidget {
   }
 }
 
-// ────────────────────────────────────────────────────────
-// LOST PETS TAB (unchanged, no ViewModel needed yet)
-// ────────────────────────────────────────────────────────
-class _LostPetsTab extends StatelessWidget {
-  const _LostPetsTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Report button
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: InkWell(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Report a lost pet — coming soon!'),
-                  backgroundColor: AppColors.error,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.error.withOpacity(0.3),
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.add_circle_outline_rounded,
-                      color: AppColors.error, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Report a Lost Pet',
-                      style: TextStyle(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.arrow_forward_ios_rounded,
-                      color: AppColors.error, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // Lost pets list
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: SampleData.lostPets.length,
-            itemBuilder: (context, index) {
-              final pet = SampleData.lostPets[index];
-              return LostPetCard(
-                name: pet['name'] as String,
-                type: pet['type'] as String,
-                lastSeen: pet['lastSeen'] as String,
-                date: pet['date'] as String,
-                imageUrl: pet['image'] as String,
-                contact: pet['contact'] as String,
-                description: pet['description'] as String,
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
+// Lost pet reporting is now handled by FormHubScreen → İlanlar tab.

@@ -12,17 +12,20 @@ class NotificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         title: Text(
           'Notifications',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,
-            color: AppColors.textPrimary,
+            color: cs.onSurface,
           ),
         ),
         actions: [
@@ -58,7 +61,7 @@ class NotificationScreen extends StatelessWidget {
                   Icon(
                     Icons.notifications_off_rounded,
                     size: 64,
-                    color: AppColors.textPrimary.withValues(alpha: 0.2),
+                    color: cs.onSurface.withValues(alpha: 0.2),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -66,7 +69,7 @@ class NotificationScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary.withValues(alpha: 0.5),
+                      color: cs.onSurface.withValues(alpha: 0.5),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -75,7 +78,7 @@ class NotificationScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textPrimary.withValues(alpha: 0.4),
+                      color: cs.onSurface.withValues(alpha: 0.4),
                     ),
                   ),
                 ],
@@ -86,12 +89,11 @@ class NotificationScreen extends StatelessWidget {
           // ── Notification List ──
           return Column(
             children: [
-              // Unread summary bar
               if (vm.hasUnread)
                 Container(
                   margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [AppColors.primary, AppColors.primaryDark],
@@ -114,8 +116,6 @@ class NotificationScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
-              // List
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -137,7 +137,6 @@ class NotificationScreen extends StatelessWidget {
   }
 }
 
-/// A single notification card styled to match the app theme.
 class _NotificationCard extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback onTap;
@@ -183,6 +182,8 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -191,8 +192,8 @@ class _NotificationCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? AppColors.surface
-              : AppColors.primaryLight.withValues(alpha: 0.4),
+              ? cs.surface
+              : AppColors.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -204,7 +205,6 @@ class _NotificationCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -214,8 +214,6 @@ class _NotificationCard extends StatelessWidget {
               child: Icon(_icon, color: _iconColor, size: 22),
             ),
             const SizedBox(width: 14),
-
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +228,7 @@ class _NotificationCard extends StatelessWidget {
                                 ? FontWeight.w500
                                 : FontWeight.w700,
                             fontSize: 14,
-                            color: AppColors.textPrimary,
+                            color: cs.onSurface,
                           ),
                         ),
                       ),
@@ -238,7 +236,7 @@ class _NotificationCard extends StatelessWidget {
                         _formatTime(notification.timestamp),
                         style: TextStyle(
                           fontSize: 11,
-                          color: AppColors.textPrimary.withValues(alpha: 0.4),
+                          color: cs.onSurface.withValues(alpha: 0.4),
                         ),
                       ),
                     ],
@@ -248,7 +246,7 @@ class _NotificationCard extends StatelessWidget {
                     notification.message,
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      color: cs.onSurface.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -256,8 +254,6 @@ class _NotificationCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Unread dot
             if (!notification.isRead) ...[
               const SizedBox(width: 8),
               Container(

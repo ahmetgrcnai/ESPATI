@@ -1,121 +1,152 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
-/// Service for interacting with the Google Gemini (Generative AI) API.
-///
-/// ## Secure API Key Storage
-///
-/// The API key is loaded from the `.env` file via `flutter_dotenv`:
-///
-/// ```
-/// # .env (project root — add to .gitignore!)
-/// GEMINI_API_KEY=your_key_here
-/// ```
-///
-/// Make sure to:
-/// 1. Add `.env` to `.gitignore`
-/// 2. Add `.env` to `pubspec.yaml` assets
-/// 3. Call `await dotenv.load()` in `main()` before `runApp()`
-class GeminiService {
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+/// Pati-AI system identity — sent as systemInstruction on every request.
+const String _kSystemInstruction = '''
+You are "Pati-AI", a Professional Veterinary Consultant and dedicated employee of ESPATI — Eskişehir's premier pet-social ecosystem.
 
-  /// API key loaded from .env file via flutter_dotenv.
+CORE IDENTITY:
+- Name: Pati-AI
+- Employer: ESPATI (Eskişehir Pet-Social & AI-Assisted Ecosystem)
+- Tone: Empathetic, authoritative, and helpful
+- Language: Always respond in the same language as the user's message
+
+PROFESSIONAL GUARDRAILS:
+1. REFUSAL POLICY: If the user asks about ANY non-pet topic (cooking, politics, sports, general coding, relationships, etc.), respond ONLY with:
+   Turkish: "Yalnızca siz ve tüylü dostlarınızla ilgili konularda yardımcı olmak için buradayım. Bugün patilinizle ilgili nasıl yardımcı olabilirim? 🐾"
+   English: "I am here to assist you and your furry friends with pet-related concerns only. How can I help with your pet today?"
+
+2. SAFETY PROTOCOL: Every response that includes medical advice or health guidance MUST end with:
+   "⚠️ Bu bilgi ön rehber niteliğindedir; kesin teşhis için lütfen lisanslı bir veteriner hekime danışınız."
+
+3. LOCALIZED KNOWLEDGE: You are an expert local guide for Eskişehir:
+   - Sazova Bilim Kültür ve Sanat Parkı: large dog-friendly park, leash required
+   - Kanlıkavak Parkı: popular for morning walks, dogs must be leashed
+   - Porsuk Çayı riverside: scenic walking route, pet-friendly
+
+RESPONSE FORMAT (MOBILE OPTIMIZED):
+- Use Markdown: ## headings, **bold** key terms, bullet points (-)
+- Short paragraphs (2-3 sentences max per section)
+- Digestible sections for mobile screens
+''';
+
+/// Singleton AI service — uses the Gemini REST API directly via HTTP.
+///
+/// HTTP approach is used instead of the google_generative_ai SDK to avoid
+/// model-name resolution issues with v1beta. The REST API accepts the exact
+/// model ID string and has been confirmed working.
+///
+/// API key is loaded from `.env` — never hard-coded.
+class GeminiService {
+  // ── Singleton ─────────────────────────────────────────────────────────────
+  static GeminiService? _instance;
+  static GeminiService get instance => _instance ??= GeminiService._init();
+
   late final String _apiKey;
 
-  GeminiService() {
+  GeminiService._init() {
     _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    if (_apiKey.isEmpty) {
+      debugPrint('[GeminiService] ⚠️  No API key — running in mock mode.');
+    } else {
+      debugPrint('[GeminiService] ✅ Initialized. Model: gemini-1.5-flash');
+    }
   }
 
-  /// Whether the service has a valid API key configured.
   bool get isConfigured => _apiKey.isNotEmpty;
 
-  /// Sends a prompt to Gemini and returns the AI response text.
-  ///
-  /// The prompt is automatically wrapped with a pet-care context
-  /// so the AI responds as a friendly veterinary assistant.
+  // ── Public API ─────────────────────────────────────────────────────────────
+
+  /// Sends [userMessage] to Gemini and returns the full response as a Future.
   Future<String> generateResponse(String userMessage) async {
     if (!isConfigured) {
-      return _getMockResponse(userMessage);
+      debugPrint('[GeminiService] Mock mode — returning fallback response.');
+      return _getMockResponse();
     }
 
+    debugPrint('[GeminiService] ✅ AI CALL INITIATED — "$userMessage"');
+
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl?key=$_apiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'contents': [
-            {
-              'parts': [
-                {
-                  'text': _buildPrompt(userMessage),
-                }
-              ]
-            }
-          ],
-          'generationConfig': {
-            'temperature': 0.7,
-            'topK': 40,
-            'topP': 0.95,
-            'maxOutputTokens': 512,
-          },
-          'safetySettings': [
-            {
-              'category': 'HARM_CATEGORY_HARASSMENT',
-              'threshold': 'BLOCK_MEDIUM_AND_ABOVE',
-            },
-          ],
-        }),
+      final uri = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/'
+        'gemini-1.5-flash:generateContent?key=$_apiKey',
       );
+
+      final body = jsonEncode({
+        'system_instruction': {
+          'parts': [
+            {'text': _kSystemInstruction}
+          ]
+        },
+        'contents': [
+          {
+            'parts': [
+              {'text': userMessage}
+            ]
+          }
+        ],
+        'generationConfig': {
+          'temperature': 0.4,
+          'maxOutputTokens': 400,
+        },
+        'safetySettings': [
+          {
+            'category': 'HARM_CATEGORY_HARASSMENT',
+            'threshold': 'BLOCK_MEDIUM_AND_ABOVE',
+          },
+        ],
+      });
+
+      final response = await http
+          .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
+          .timeout(const Duration(seconds: 30));
+
+      debugPrint('[GeminiService] HTTP ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final candidates = data['candidates'] as List<dynamic>?;
-        if (candidates != null && candidates.isNotEmpty) {
-          final content = candidates[0]['content'] as Map<String, dynamic>?;
-          final parts = content?['parts'] as List<dynamic>?;
-          if (parts != null && parts.isNotEmpty) {
-            return parts[0]['text'] as String? ?? 'No response received.';
-          }
-        }
-        return 'I could not generate a response. Please try again.';
-      } else {
-        return _getMockResponse(userMessage);
+        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text']
+            as String?;
+        debugPrint('[GeminiService] ✅ AI CALL COMPLETED');
+        return text ?? _buildErrorMessage('Boş yanıt alındı.');
       }
-    } on Exception {
-      return _getMockResponse(userMessage);
+
+      // ── Error responses ──────────────────────────────────────────────────
+      final err = jsonDecode(response.body);
+      final msg = err['error']?['message'] as String? ?? 'Bilinmeyen hata';
+      debugPrint('[GeminiService] ❌ API Error ${response.statusCode}: $msg');
+
+      if (response.statusCode == 429) {
+        return _buildErrorMessage(
+          'Günlük istek limitine ulaşıldı. Lütfen birkaç dakika bekleyin '
+          'veya yarın tekrar deneyin.',
+        );
+      }
+      return _getMockResponse();
+    } catch (e) {
+      debugPrint('[GeminiService] ❌ Exception: $e');
+      return _buildErrorMessage(
+          'Bağlantı hatası. İnternet bağlantınızı kontrol edin.');
     }
   }
 
-  /// Constructs a system-prompted request for pet care assistance.
-  String _buildPrompt(String userMessage) {
-    return '''You are "Espati AI", a friendly, knowledgeable veterinary assistant for a pet social media app based in Eskişehir, Turkey. 
+  String _buildErrorMessage(String detail) =>
+      '## ⚠️ Hata\n\n$detail';
 
-Your role:
-- Answer questions about pet health, nutrition, behavior, and training
-- Be warm, empathetic, and use occasional pet emojis 🐾🐶🐱
-- If a question is about a serious medical condition, always recommend visiting a real veterinarian
-- Keep responses concise (2-4 paragraphs max)
-- Respond in the same language as the user's message
+  // ── Mock Responses ─────────────────────────────────────────────────────────
 
-User's question: $userMessage''';
-  }
-
-  /// Fallback mock responses when API key is not configured or API fails.
   static const _mockResponses = [
-    'Great question! 🐾 Based on my knowledge, maintaining a balanced diet and regular exercise is key for pet health. I\'d recommend consulting with your local vet in Eskişehir for a personalized answer. 🐶',
-    'That\'s a common concern among pet owners! Here are some tips: ensure fresh water is always available, keep a consistent feeding schedule, and provide plenty of enrichment activities. 🐱',
-    'I understand your concern! ❤️ While I can provide general guidance, for serious symptoms please visit a veterinary clinic as soon as possible. Your pet\'s health comes first!',
-    'Interesting question! 🍽️ Pet nutrition is crucial — the key is finding a high-quality food appropriate for your pet\'s age, breed, and activity level.',
-    'Regular check-ups are the best way to stay on top of your pet\'s health. 🏥 I recommend visiting your vet at least once a year for routine wellness exams.',
+    '## Genel Sağlık Önerileri\n\nEvcil hayvanınızın sağlığı için dengeli beslenme ve düzenli egzersiz en temel gereksinimlerdir.\n\n- Temiz su her zaman erişilebilir olmalı\n- Yaşa uygun kaliteli mama tercih edin\n- Sazova veya Kanlıkavak\'ta günlük yürüyüşler yapın\n\n⚠️ Bu bilgi ön rehber niteliğindedir; kesin teşhis için lütfen lisanslı bir veteriner hekime danışınız.',
+    '## Beslenme Rehberi\n\nDoğru beslenme patilinizin uzun ve sağlıklı bir yaşam sürmesi için kritiktir.\n\n- **Köpekler:** Irk, yaş ve aktivite düzeyine uygun mama seçin\n- **Kediler:** Yüksek proteinli, tahılsız mamalar tercih edilebilir\n\n⚠️ Bu bilgi ön rehber niteliğindedir; kesin teşhis için lütfen lisanslı bir veteriner hekime danışınız.',
+    '## Eskişehir\'de Evcil Hayvan Dostu Mekanlar\n\n**Sazova Parkı:** Geniş yeşil alan, tasma zorunlu\n**Kanlıkavak Parkı:** Sabah yürüyüşleri için ideal\n**Porsuk Kenarı:** Manzaralı yürüyüş güzergahı\n\nTüm alanlarda dışkı torbası bulundurmayı unutmayın! 🐾',
   ];
 
   static int _mockIndex = 0;
-
-  String _getMockResponse(String userMessage) {
-    final response = _mockResponses[_mockIndex % _mockResponses.length];
+  String _getMockResponse() {
+    final r = _mockResponses[_mockIndex % _mockResponses.length];
     _mockIndex++;
-    return response;
+    return r;
   }
 }

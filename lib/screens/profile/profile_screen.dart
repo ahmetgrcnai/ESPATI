@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../data/sample_data.dart';
+import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/theme_viewmodel.dart';
 import '../../widgets/pet_card.dart';
+import 'reminder_manager_screen.dart';
 
 /// Profile screen — user header, stats, my pets scrollable list,
 /// post grid, and settings bottom sheet with dark mode toggle.
@@ -250,7 +253,15 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
+
+            // ── Pati Takvimi (Pet Schedule) ──
+            Consumer<ProfileViewModel>(
+              builder: (context, vm, _) =>
+                  _PatiTakvimiSection(vm: vm, theme: theme),
+            ),
+
+            const SizedBox(height: 8),
 
             // ── Posts Grid Header ──
             Padding(
@@ -458,6 +469,154 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATI TAKVİMİ SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PatiTakvimiSection extends StatelessWidget {
+  final ProfileViewModel vm;
+  final ThemeData theme;
+
+  const _PatiTakvimiSection({required this.vm, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = theme.colorScheme;
+    final upcoming = vm.upcomingReminders(maxCount: 3);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header row ────────────────────────────────────────────────────
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.softTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.calendar_month_rounded,
+                    size: 18, color: AppColors.softTeal),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Pati Takvimi',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  color: cs.onSurface,
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReminderManagerScreen(),
+                  ),
+                ),
+                icon: Icon(Icons.open_in_new_rounded,
+                    size: 15, color: AppColors.softTeal),
+                label: Text(
+                  'Tümünü Gör / Düzenle',
+                  style: GoogleFonts.poppins(
+                    color: AppColors.softTeal,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Loading ───────────────────────────────────────────────────────
+          if (vm.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+
+          // ── Empty state ───────────────────────────────────────────────────
+          else if (upcoming.isEmpty)
+            _PreviewEmptyState(
+              onAdd: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ReminderManagerScreen(),
+                ),
+              ),
+            )
+
+          // ── Preview list (max 3) ──────────────────────────────────────────
+          else
+            ...upcoming.map(
+              (reminder) => ReminderCard(
+                reminder: reminder,
+                onComplete: () => vm.completeReminder(reminder.id),
+                onDelete: () => vm.deleteReminder(reminder.id),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewEmptyState extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _PreviewEmptyState({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onAdd,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 22),
+        decoration: BoxDecoration(
+          color: AppColors.softTeal.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.softTeal.withValues(alpha: 0.25),
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.add_alarm_rounded,
+                size: 36, color: AppColors.softTeal.withValues(alpha: 0.5)),
+            const SizedBox(height: 8),
+            Text(
+              'İlk hatırlatıcını ekle!',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.softTeal,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Aşı, mama, ilaç takvimini takip et',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: cs.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _StatColumn extends StatelessWidget {
   final String value;

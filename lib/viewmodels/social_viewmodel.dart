@@ -4,10 +4,14 @@ import '../data/models/event_model.dart';
 import '../data/repositories/interfaces/i_social_repository.dart';
 import 'notification_viewmodel.dart';
 
-/// ViewModel for social interactions (like, comment, follow) and events.
+/// ViewModel for social interactions (pati, yorum, follow) and events.
 ///
 /// Uses **Optimistic UI** — state is updated immediately and rolled back
 /// if the backend call fails.
+///
+/// Brand language:
+///   • "Pati"  — the like/reaction interaction (paw stamp)
+///   • "Yorum" — the comment interaction
 class SocialViewModel extends ChangeNotifier {
   final ISocialRepository _socialRepository;
   final NotificationViewModel _notificationViewModel;
@@ -16,7 +20,7 @@ class SocialViewModel extends ChangeNotifier {
     loadEvents();
   }
 
-  // ── State ──
+  // ── State ──────────────────────────────────────────────────────────────────
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -24,9 +28,11 @@ class SocialViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  // Track liked posts (optimistic)
-  final Set<String> _likedPosts = {};
-  bool isPostLiked(String postId) => _likedPosts.contains(postId);
+  // Posts that the current user has "pati'd" (liked), tracked optimistically.
+  final Set<String> _patiPosts = {};
+
+  /// Returns true if the current user has given a Pati to [postId].
+  bool isPostPati(String postId) => _patiPosts.contains(postId);
 
   // Track followed users (optimistic)
   final Set<String> _followedUsers = {};
@@ -36,45 +42,48 @@ class SocialViewModel extends ChangeNotifier {
   List<EventModel> _events = [];
   List<EventModel> get events => List.unmodifiable(_events);
 
-  // ── Like (Optimistic UI) ──
+  // ── Pati / Like (Optimistic UI) ────────────────────────────────────────────
 
-  /// Toggles like on a post. Updates UI instantly, then confirms with backend.
-  Future<void> toggleLike(String postId) async {
-    final wasLiked = _likedPosts.contains(postId);
+  /// Toggles the "Pati" (like) on a post.
+  ///
+  /// Updates the UI instantly via optimistic state, then confirms with the
+  /// backend. On failure, rolls back the local state and surfaces an error.
+  Future<void> togglePati(String postId) async {
+    final wasPati = _patiPosts.contains(postId);
 
-    // Optimistic update
-    if (wasLiked) {
-      _likedPosts.remove(postId);
+    // Optimistic update — UI responds immediately
+    if (wasPati) {
+      _patiPosts.remove(postId);
     } else {
-      _likedPosts.add(postId);
+      _patiPosts.add(postId);
     }
     notifyListeners();
 
     // Backend call
-    final result = wasLiked
-        ? await _socialRepository.unlikePost(postId)
-        : await _socialRepository.likePost(postId);
+    final result = wasPati
+        ? await _socialRepository.patiGeri(postId)
+        : await _socialRepository.patiVer(postId);
 
     switch (result) {
       case Success():
-        break; // Already updated optimistically
+        break; // Optimistic state is already correct
       case Failure(:final message):
         // Rollback on failure
-        if (wasLiked) {
-          _likedPosts.add(postId);
+        if (wasPati) {
+          _patiPosts.add(postId);
         } else {
-          _likedPosts.remove(postId);
+          _patiPosts.remove(postId);
         }
         _errorMessage = message;
         notifyListeners();
     }
   }
 
-  // ── Comment ──
+  // ── Yorum / Comment ────────────────────────────────────────────────────────
 
-  /// Adds a comment to a post.
-  Future<bool> addComment(String postId, String comment) async {
-    final result = await _socialRepository.addComment(postId, comment);
+  /// Adds a "Yorum" (comment) to a post.
+  Future<bool> addYorum(String postId, String yorum) async {
+    final result = await _socialRepository.addYorum(postId, yorum);
     switch (result) {
       case Success():
         return true;
@@ -85,7 +94,7 @@ class SocialViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Follow (Optimistic UI) ──
+  // ── Follow (Optimistic UI) ─────────────────────────────────────────────────
 
   /// Toggles follow on a user.
   Future<void> toggleFollow(String userId) async {
@@ -119,7 +128,7 @@ class SocialViewModel extends ChangeNotifier {
     }
   }
 
-  // ── Events ──
+  // ── Events ─────────────────────────────────────────────────────────────────
 
   /// Loads upcoming events from the repository.
   Future<void> loadEvents() async {
@@ -141,12 +150,11 @@ class SocialViewModel extends ChangeNotifier {
 
   /// Joins an event — updates state optimistically and creates a notification.
   Future<void> joinEvent(String eventId) async {
-    // Find and optimistically update the event
     final index = _events.indexWhere((e) => e.id == eventId);
     if (index == -1) return;
 
     final event = _events[index];
-    if (event.isJoined) return; // Already joined
+    if (event.isJoined) return;
 
     // Optimistic update
     _events[index] = event.copyWith(
@@ -155,7 +163,6 @@ class SocialViewModel extends ChangeNotifier {
     );
     notifyListeners();
 
-    // Sync notification — event joined
     _notificationViewModel.addEventNotification(event.title);
 
     // Backend call

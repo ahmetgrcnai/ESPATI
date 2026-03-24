@@ -18,41 +18,47 @@ class SampleData {
   ];
 
   // ─── Feed Posts ───
+  // Each post carries a stable [id] used to key SocialViewModel.isPostPati().
+  // Brand language: 'pati' = like count, 'yorum' = comment count.
   static const List<Map<String, dynamic>> posts = [
     {
+      'id': 'post_001',
       'username': 'luna_the_golden',
       'avatar': 'https://placekitten.com/50/50',
       'image': 'https://placekitten.com/600/600',
       'caption': 'Morning walk vibes 🐾☀️ Nothing beats a sunny day at the park!',
-      'likes': 234,
-      'comments': 18,
+      'pati': 234,
+      'yorum': 18,
       'timeAgo': '2h ago',
     },
     {
+      'id': 'post_002',
       'username': 'max_adventures',
       'avatar': 'https://placekitten.com/51/51',
       'image': 'https://placekitten.com/601/601',
       'caption': 'Found a new pet-friendly cafe! 🐶☕ The staff even gave Max a treat.',
-      'likes': 456,
-      'comments': 32,
+      'pati': 456,
+      'yorum': 32,
       'timeAgo': '4h ago',
     },
     {
+      'id': 'post_003',
       'username': 'bella_whiskers',
       'avatar': 'https://placekitten.com/52/52',
       'image': 'https://placekitten.com/602/602',
       'caption': 'Lazy Sunday with my best friend 😻 Who else has a cat that loves blankets?',
-      'likes': 789,
-      'comments': 56,
+      'pati': 789,
+      'yorum': 56,
       'timeAgo': '6h ago',
     },
     {
+      'id': 'post_004',
       'username': 'charlie_paws',
       'avatar': 'https://placekitten.com/53/53',
       'image': 'https://placekitten.com/603/603',
       'caption': 'Training session complete ✅🐕 Charlie learned a new trick today!',
-      'likes': 345,
-      'comments': 24,
+      'pati': 345,
+      'yorum': 24,
       'timeAgo': '8h ago',
     },
   ];

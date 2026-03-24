@@ -16,10 +16,14 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         title: Row(
           children: [
@@ -30,7 +34,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 24,
-                color: AppColors.textPrimary,
+                color: cs.onSurface,
                 letterSpacing: 0.5,
               ),
             ),
@@ -41,11 +45,10 @@ class HomeScreen extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.peachLight,
+                color: isDark ? cs.surface : AppColors.peachLight,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.favorite_border,
-                  color: AppColors.textPrimary, size: 20),
+              child: Icon(Icons.favorite_border, color: cs.onSurface, size: 20),
             ),
             onPressed: () {},
           ),
@@ -60,11 +63,11 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.peachLight,
+                        color: isDark ? cs.surface : AppColors.peachLight,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(Icons.notifications_none_rounded,
-                          color: AppColors.textPrimary, size: 20),
+                          color: cs.onSurface, size: 20),
                     ),
                     if (notifVM.hasUnread)
                       Positioned(
@@ -75,8 +78,7 @@ class HomeScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppColors.error,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                                color: AppColors.surface, width: 1.5),
+                            border: Border.all(color: cs.surface, width: 1.5),
                           ),
                           constraints: const BoxConstraints(
                             minWidth: 18,
@@ -128,7 +130,7 @@ class HomeScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15,
-                        color: AppColors.textPrimary.withValues(alpha: 0.7),
+                        color: cs.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -183,7 +185,7 @@ class HomeScreen extends StatelessWidget {
                 ),
 
                 Divider(
-                    color: AppColors.divider,
+                    color: theme.dividerColor,
                     height: 24,
                     indent: 16,
                     endIndent: 16),
@@ -202,8 +204,8 @@ class HomeScreen extends StatelessWidget {
                         comments: post.commentsCount,
                         timeAgo: _formatTimeAgo(post.timestamp),
                         postId: post.id,
-                        isLiked: socialVM.isPostLiked(post.id),
-                        onLike: () => socialVM.toggleLike(post.id),
+                        isLiked: socialVM.isPostPati(post.id),
+                        onLike: () => socialVM.togglePati(post.id),
                       );
                     }).toList(),
                   ),

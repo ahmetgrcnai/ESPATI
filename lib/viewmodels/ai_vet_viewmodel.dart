@@ -1,108 +1,185 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/models/chat_message.dart';
+import '../data/models/academy_guide_model.dart';
+import '../data/repositories/interfaces/i_academy_repository.dart';
 import '../core/gemini_service.dart';
+import '../core/result.dart';
 
 /// ViewModel for the AI/Vet chat screen.
 ///
-/// Uses [GeminiService] for real AI responses (when API key is configured)
-/// or falls back to mock responses automatically.
+/// Uses [GeminiService.instance] singleton. The [GenerativeModel] (HTTP client)
+/// is created exactly once for the app lifetime.
+///
+/// Also owns the Pati Akademi state (guide list, category filter, search query).
 class AIVetViewModel extends ChangeNotifier {
   final GeminiService _geminiService;
+  final IAcademyRepository _academyRepository;
 
-  AIVetViewModel({GeminiService? geminiService})
-      : _geminiService = geminiService ?? GeminiService() {
-    // Start with a welcome message from the AI.
+  AIVetViewModel({
+    GeminiService? geminiService,
+    required IAcademyRepository academyRepository,
+  })  : _geminiService = geminiService ?? GeminiService.instance,
+        _academyRepository = academyRepository {
     _messages.add(ChatMessage(
       id: 'welcome',
-      text:
-          'Hello! 🐾 I\'m Espati AI, your pet care assistant. Ask me anything about your pet\'s health, nutrition, behavior, or training!',
+      text: '## Merhaba! 🐾\n\nBen **Pati-AI**, ESPATI\'nin uzman veteriner '
+          'danışmanınım.\n\nSize ve tüylü dostlarınıza şu konularda yardımcı '
+          'olabilirim:\n- 🏥 Sağlık & semptom rehberliği\n- 🍽️ Beslenme & '
+          'diyet önerileri\n- 🗺️ Eskişehir\'deki evcil hayvan dostu mekanlar'
+          '\n- 🐾 Davranış & eğitim ipuçları\n\nBugün patiliniz için ne '
+          'öğrenmek istersiniz?',
       isUser: false,
       timestamp: DateTime.now(),
     ));
   }
 
-  // ── State Fields ──
+  // ── Chat State ─────────────────────────────────────────────────────────────
 
   final List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
-  bool _isLoading = false;
-  bool get isLoading => _isLoading;
+  bool _isProcessing = false;
+  bool get isProcessing => _isProcessing;
+  bool get isLoading => _isProcessing;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  /// Whether the AI service has a real API key configured.
   bool get isAIConfigured => _geminiService.isConfigured;
 
-  // ── Public Methods ──
+  // ── Academy State ──────────────────────────────────────────────────────────
 
-  /// Sends a user message and gets an AI response via GeminiService.
+  List<AcademyGuideModel> _allGuides = [];
+  bool _isLoadingGuides = false;
+  bool get isLoadingGuides => _isLoadingGuides;
+
+  String _selectedCategory = AcademyCategory.tumu;
+  String get selectedCategory => _selectedCategory;
+
+  String _searchQuery = '';
+  String get searchQuery => _searchQuery;
+
+  /// Guides filtered by active category and search query.
+  List<AcademyGuideModel> get filteredGuides {
+    var guides = _allGuides;
+
+    if (_selectedCategory != AcademyCategory.tumu) {
+      guides = guides
+          .where((g) => g.category == _selectedCategory)
+          .toList(growable: false);
+    }
+
+    final q = _searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      guides = guides
+          .where((g) =>
+              g.title.toLowerCase().contains(q) ||
+              g.summary.toLowerCase().contains(q))
+          .toList(growable: false);
+    }
+
+    return guides;
+  }
+
+  // ── Academy Public Methods ─────────────────────────────────────────────────
+
+  /// Fetches guides from the repository. No-ops if already loaded.
+  Future<void> loadGuides({bool forceRefresh = false}) async {
+    if (_allGuides.isNotEmpty && !forceRefresh) return;
+
+    _isLoadingGuides = true;
+    notifyListeners();
+
+    final result = await _academyRepository.getGuides();
+    switch (result) {
+      case Success(:final data):
+        _allGuides = data;
+      case Failure(:final message):
+        debugPrint('[AIVetViewModel] loadGuides error: $message');
+    }
+
+    _isLoadingGuides = false;
+    notifyListeners();
+  }
+
+  void setAcademyCategory(String categoryId) {
+    if (_selectedCategory == categoryId) return;
+    _selectedCategory = categoryId;
+    notifyListeners();
+  }
+
+  void setAcademySearch(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  // ── Chat Public Methods ────────────────────────────────────────────────────
+
+  /// Sends a user message and awaits the AI response.
   ///
-  /// Steps:
-  /// 1. Adds the user's message immediately
-  /// 2. Sets [isLoading] to true (shows typing indicator)
-  /// 3. Calls GeminiService for a response
-  /// 4. Adds the AI response
-  /// 5. Sets [isLoading] to false
+  /// Double-guarded against concurrent calls:
+  ///   1. [_isProcessing] set synchronously before first await
+  ///   2. UI Send button disabled via [isProcessing]
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
+    if (_isProcessing) {
+      debugPrint('[AIVetViewModel] Blocked — already processing.');
+      return;
+    }
 
     _errorMessage = null;
 
-    // 1. Add user message
-    final userMessage = ChatMessage(
+    _messages.add(ChatMessage(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       text: text.trim(),
       isUser: true,
       timestamp: DateTime.now(),
-    );
-    _messages.add(userMessage);
-    notifyListeners();
+    ));
 
-    // 2. Show loading state (typing indicator)
-    _isLoading = true;
+    _isProcessing = true;
     notifyListeners();
 
     try {
-      // 3. Get AI response from GeminiService
-      final responseText = await _geminiService.generateResponse(text.trim());
+      final responseText =
+          await _geminiService.generateResponse(text.trim());
 
-      // 4. Add AI response
-      final aiMessage = ChatMessage(
+      _messages.add(ChatMessage(
         id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
         text: responseText,
         isUser: false,
         timestamp: DateTime.now(),
-      );
-      _messages.add(aiMessage);
-    } on Exception catch (e) {
-      _errorMessage = 'Failed to get AI response: ${e.toString()}';
+      ));
+    } catch (e) {
+      _errorMessage = 'Yanıt alınamadı. İnternet bağlantınızı kontrol edin.';
+      debugPrint('[AIVetViewModel] Error: $e');
     } finally {
-      // 5. Hide loading
-      _isLoading = false;
+      _isProcessing = false;
       notifyListeners();
     }
   }
 
-  /// Clears the error message after the UI has displayed it.
   void clearError() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  /// Clears all messages and resets the chat with a welcome message.
   void resetChat() {
     _messages.clear();
+    _isProcessing = false;
+    _errorMessage = null;
     _messages.add(ChatMessage(
       id: 'welcome',
-      text:
-          'Hello! 🐾 I\'m Espati AI, your pet care assistant. Ask me anything about your pet\'s health, nutrition, behavior, or training!',
+      text: '## Merhaba! 🐾\n\nBen **Pati-AI**, ESPATI\'nin uzman veteriner '
+          'danışmanınım.\n\nSize ve tüylü dostlarınıza şu konularda yardımcı '
+          'olabilirim:\n- 🏥 Sağlık & semptom rehberliği\n- 🍽️ Beslenme & '
+          'diyet önerileri\n- 🗺️ Eskişehir\'deki evcil hayvan dostu mekanlar'
+          '\n- 🐾 Davranış & eğitim ipuçları\n\nBugün patiliniz için ne '
+          'öğrenmek istersiniz?',
       isUser: false,
       timestamp: DateTime.now(),
     ));
-    _errorMessage = null;
-    _isLoading = false;
     notifyListeners();
   }
 }
