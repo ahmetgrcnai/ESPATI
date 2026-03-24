@@ -4,7 +4,10 @@
       "Bash(flutter pub:*)",
       "Bash(flutter analyze:*)",
       "Bash(grep -v \"^$\")",
-      "Bash(dart run:*)"
+      "Bash(dart run:*)",
+      "Bash(grep -v ^C:/Users/ahmet/Documents/GitHub/ESPATI/android/app$)",
+      "Bash(find C:/Users/ahmet/Documents/GitHub/ESPATI/android -path */com/espati/app*)",
+      "Bash(flutterfire configure:*)"
     ]
   }
 }

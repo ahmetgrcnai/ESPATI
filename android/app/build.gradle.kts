@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,6 +7,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
     // Firebase — must come after the Android plugin.
     id("com.google.gms.google-services") version "4.4.2"
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
 }
 
 android {
@@ -21,7 +28,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.espati.com"
+        applicationId = "com.espati.espati"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
         // Recommended alongside desugaring: the desugar_jdk_libs adds enough
@@ -29,6 +36,8 @@ android {
         multiDexEnabled = true
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Inject Maps API key from local.properties into AndroidManifest.xml
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {

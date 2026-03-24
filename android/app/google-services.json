@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "590289305150",
-    "project_id": "espati-5c079",
-    "storage_bucket": "espati-5c079.firebasestorage.app"
+    "project_number": "688505701744",
+    "project_id": "espati-b722f",
+    "storage_bucket": "espati-b722f.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:590289305150:android:75d72b871b5bcaf2d99b6f",
+        "mobilesdk_app_id": "1:688505701744:android:fe6af5cd58554db3e7bbb5",
         "android_client_info": {
-          "package_name": "com.espati.com"
+          "package_name": "com.espati.espati"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD2wLSbRRwV8poEHz2yf7m1p7SdK_uM1tY"
+          "current_key": "AIzaSyBpukwlU_jUHB-28p0kFIvInbgjqzDpJ3w"
         }
       ],
       "services": {

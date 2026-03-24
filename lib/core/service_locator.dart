@@ -35,7 +35,7 @@ import '../viewmodels/form_viewmodel.dart';
 // true  → MockAuthRepository  (offline, test@espati.com / password123)
 // false → FirebaseAuthRepository (real Firebase, requires google-services)
 // ─────────────────────────────────────────────────────────────────────────────
-const bool kUseMock = true; // ← CHANGE THIS ONE LINE TO SWITCH
+const bool kUseMock = false; // ← CHANGE THIS ONE LINE TO SWITCH
 
 /// Wraps the given [child] widget with all necessary dependency providers.
 ///

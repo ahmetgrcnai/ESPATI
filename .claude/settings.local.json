@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(flutter run:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(dart pub:*)",
+      "Bash(export PATH=\"$PATH:/c/Users/ahmet/AppData/Local/Pub/Cache/bin\")",
+      "Bash(flutterfire --version)",
+      "Bash(flutterfire configure:*)"
     ]
   }
 }

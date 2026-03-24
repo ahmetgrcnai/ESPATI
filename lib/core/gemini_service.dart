@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 /// Pati-AI system identity — sent as systemInstruction on every request.
@@ -47,7 +46,7 @@ class GeminiService {
   late final String _apiKey;
 
   GeminiService._init() {
-    _apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+    _apiKey = const String.fromEnvironment('GEMINI_API_KEY');
     if (_apiKey.isEmpty) {
       debugPrint('[GeminiService] ⚠️  No API key — running in mock mode.');
     } else {

@@ -30,10 +30,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD2wLSbRRwV8poEHz2yf7m1p7SdK_uM1tY',
-    appId: '1:590289305150:android:75d72b871b5bcaf2d99b6f',
-    messagingSenderId: '590289305150',
-    projectId: 'espati-5c079',
-    storageBucket: 'espati-5c079.firebasestorage.app',
+    apiKey: 'AIzaSyBpukwlU_jUHB-28p0kFIvInbgjqzDpJ3w',
+    appId: '1:688505701744:android:fe6af5cd58554db3e7bbb5',
+    messagingSenderId: '688505701744',
+    projectId: 'espati-b722f',
+    storageBucket: 'espati-b722f.firebasestorage.app',
   );
 }
