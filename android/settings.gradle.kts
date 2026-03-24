@@ -16,13 +16,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 
-    // pluginManagement.plugins sets version defaults for ALL subproject build scripts.
-    // This is the Gradle-documented mechanism — distinct from the top-level plugins {}
-    // block which is processed by dev.flutter.flutter-plugin-loader for AGP/Kotlin only.
-    plugins {
-        id("com.google.gms.google-services") version "4.4.2"
-    }
-
 }
 
 plugins {

@@ -4,7 +4,7 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     // Firebase — must come after the Android plugin.
-    id("com.google.gms.google-services")
+    id("com.google.gms.google-services") version "4.4.2"
 }
 
 android {
