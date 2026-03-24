@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -73,8 +71,10 @@ class FirebaseAuthRepository implements IAuthRepository {
       await credential.user!.updateDisplayName(displayName.trim());
 
       // Reload so currentUser reflects the updated displayName immediately.
+      // Falls back to the credential user if currentUser is null after reload
+      // (e.g. account remotely disabled between creation and this call).
       await credential.user!.reload();
-      final refreshedUser = _auth.currentUser!;
+      final refreshedUser = _auth.currentUser ?? credential.user!;
 
       return Success(_firebaseUserToModel(refreshedUser));
     } on FirebaseAuthException catch (e) {
@@ -118,11 +118,18 @@ class FirebaseAuthRepository implements IAuthRepository {
   @override
   Future<Result<void>> signOut() async {
     try {
-      // Sign out from both providers so Google's picker shows next time.
-      await Future.wait([
-        _auth.signOut(),
-        _googleSignIn.signOut(),
-      ]);
+      // Firebase sign-out is authoritative — must succeed for the auth
+      // stream to emit null and trigger navigation to LoginScreen.
+      await _auth.signOut();
+
+      // Google sign-out is best-effort: clears the cached account so the
+      // account picker re-appears on next sign-in. Failure here is silenced
+      // because the user IS already signed out from Firebase — surfacing an
+      // error at this point would be misleading.
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+
       return const Success(null);
     } on Exception catch (e) {
       return Failure('Çıkış yapılamadı. Lütfen tekrar deneyin.', exception: e);
@@ -155,6 +162,7 @@ class FirebaseAuthRepository implements IAuthRepository {
   UserModel _firebaseUserToModel(User user) {
     return UserModel(
       id: user.uid,
+      email: user.email ?? '',
       name: user.displayName ?? '',
       bio: '',
       profilePicture: user.photoURL ?? '',
@@ -173,6 +181,9 @@ class FirebaseAuthRepository implements IAuthRepository {
       case 'user-not-found':
       case 'invalid-credential':
         return 'E-posta adresi veya şifre hatalı.';
+      case 'account-exists-with-different-credential':
+        return 'Bu e-posta adresi farklı bir giriş yöntemiyle kayıtlı. '
+            'Lütfen e-posta ile giriş yapmayı deneyin.';
       case 'wrong-password':
         return 'Şifre yanlış. Lütfen tekrar deneyin.';
       case 'user-disabled':

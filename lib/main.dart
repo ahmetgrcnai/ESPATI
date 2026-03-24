@@ -6,7 +6,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'core/app_theme.dart';
-import 'core/app_colors.dart';
 import 'core/notification_service.dart';
 import 'core/service_locator.dart';
 import 'viewmodels/theme_viewmodel.dart';

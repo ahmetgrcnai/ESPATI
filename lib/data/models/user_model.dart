@@ -4,6 +4,7 @@
 /// immutable state updates via [copyWith], and safe empty state via [UserModel.empty].
 class UserModel {
   final String id;
+  final String email;
   final String name;
   final String bio;
   final String profilePicture;
@@ -12,6 +13,7 @@ class UserModel {
 
   const UserModel({
     required this.id,
+    required this.email,
     required this.name,
     required this.bio,
     required this.profilePicture,
@@ -23,6 +25,7 @@ class UserModel {
   factory UserModel.empty() {
     return const UserModel(
       id: '',
+      email: '',
       name: '',
       bio: '',
       profilePicture: '',
@@ -35,6 +38,7 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       name: json['name'] as String? ?? '',
       bio: json['bio'] as String? ?? '',
       profilePicture: json['profilePicture'] as String? ?? '',
@@ -50,6 +54,7 @@ class UserModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'email': email,
       'name': name,
       'bio': bio,
       'profilePicture': profilePicture,
@@ -61,6 +66,7 @@ class UserModel {
   /// Returns a copy of this [UserModel] with the given fields replaced.
   UserModel copyWith({
     String? id,
+    String? email,
     String? name,
     String? bio,
     String? profilePicture,
@@ -69,6 +75,7 @@ class UserModel {
   }) {
     return UserModel(
       id: id ?? this.id,
+      email: email ?? this.email,
       name: name ?? this.name,
       bio: bio ?? this.bio,
       profilePicture: profilePicture ?? this.profilePicture,
@@ -83,7 +90,7 @@ class UserModel {
 
   @override
   String toString() =>
-      'UserModel(id: $id, name: $name, locationDistrict: $locationDistrict)';
+      'UserModel(id: $id, email: $email, name: $name, locationDistrict: $locationDistrict)';
 
   @override
   bool operator ==(Object other) =>

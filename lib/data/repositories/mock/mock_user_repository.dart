@@ -19,6 +19,7 @@ class MockUserRepository implements IUserRepository {
       const p = SampleData.userProfile;
       final user = UserModel(
         id: 'current_user',
+        email: 'demo@espati.com',
         name: p['name'] as String,
         bio: p['bio'] as String,
         profilePicture: p['avatar'] as String,

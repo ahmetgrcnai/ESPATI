@@ -10,6 +10,7 @@ import '../data/repositories/interfaces/i_form_repository.dart';
 import '../data/repositories/interfaces/i_academy_repository.dart';
 import '../data/repositories/interfaces/i_reminder_repository.dart';
 import '../data/repositories/firebase/firebase_auth_repository.dart';
+import '../data/repositories/mock/mock_auth_repository.dart';
 import '../data/repositories/mock/mock_post_repository.dart';
 import '../data/repositories/mock/mock_user_repository.dart';
 import '../data/repositories/mock/mock_pet_repository.dart';
@@ -28,6 +29,14 @@ import '../viewmodels/notification_viewmodel.dart';
 import '../viewmodels/social_viewmodel.dart';
 import '../viewmodels/form_viewmodel.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTH MODE SWITCH
+// ─────────────────────────────────────────────────────────────────────────────
+// true  → MockAuthRepository  (offline, test@espati.com / password123)
+// false → FirebaseAuthRepository (real Firebase, requires google-services)
+// ─────────────────────────────────────────────────────────────────────────────
+const bool kUseMock = true; // ← CHANGE THIS ONE LINE TO SWITCH
+
 /// Wraps the given [child] widget with all necessary dependency providers.
 ///
 /// Repositories are registered as interfaces (abstract types) so the UI
@@ -41,11 +50,14 @@ Widget createProviders({required Widget child}) {
     providers: [
       // ── Repositories (swap mock → real here) ──
 
-      // Auth uses FirebaseAuthRepository directly — no mock needed as Firebase
-      // Auth emulator handles testing. Swap to a MockAuthRepository for pure
-      // unit tests without network.
+      // Auth repository: controlled by [kUseMock] at the top of this file.
+      // Flip that flag — nothing else in the codebase needs to change.
       Provider<IAuthRepository>(
-        create: (_) => FirebaseAuthRepository(),
+        create: (_) =>
+            kUseMock ? MockAuthRepository() : FirebaseAuthRepository(),
+        dispose: (_, repo) {
+          if (repo is MockAuthRepository) repo.dispose();
+        },
       ),
       Provider<IPostRepository>(
         create: (_) => MockPostRepository(),
