@@ -1,16 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
-import '../../data/sample_data.dart';
-import '../../viewmodels/ai_vet_viewmodel.dart';
-import 'academy_tab_view.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// AI/Vet screen — three tabs: Pati-AI Sor, Pati Akademi, Veteriner Soru-Cevap.
-///
-/// Lost pet reporting has been consolidated into FormHubScreen (İlanlar tab).
-/// The Ask AI tab is powered by [AIVetViewModel]; the Academy tab uses the same
-/// ViewModel for guide state. The Vet Q&A tab is static mock data for now.
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
+import '../../data/sample_data.dart';
+import 'academy_tab_view.dart';
+import 'pati_ai_screen.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOT SCREEN — 3-tab scaffold, Neo-Brutalist chrome
+//
+//   1. Pati-AI    — [PatiAiChatBody], the same restyled chat body used by
+//                    the standalone [PatiAiScreen] route — single source of
+//                    truth, no duplicate chat implementation here anymore.
+//   2. Akademi    — [AcademyTabView], searchable guide library (unchanged
+//                    for now — visual restyle is a separate step).
+//   3. Veteriner  — [_AskVetTab], static community Q&A listing (unchanged
+//                    for now — visual restyle is a separate step).
+//
+// The tab bar itself is a custom Neo-Brutalist row ([_NeoTabRow]) instead
+// of Flutter's Material [TabBar] — still driven by a real [TabController]
+// so swipe-to-switch on [TabBarView] keeps working.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class AiVetScreen extends StatefulWidget {
   const AiVetScreen({super.key});
 
@@ -20,16 +32,30 @@ class AiVetScreen extends StatefulWidget {
 
 class _AiVetScreenState extends State<AiVetScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  late final TabController _tabController;
+  int _activeIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Track the interactive swipe drag, not just settled taps — mirrors how
+    // Flutter's own TabBar syncs its indicator to TabBarView: `.index` only
+    // updates once a swipe settles on a page, but `.animation` tracks the
+    // drag continuously, so the tab row was lagging a full swipe behind.
+    _tabController.animation!.addListener(_handleTabAnimation);
+  }
+
+  void _handleTabAnimation() {
+    final newIndex = _tabController.animation!.value.round().clamp(0, 2);
+    if (newIndex != _activeIndex) {
+      setState(() => _activeIndex = newIndex);
+    }
   }
 
   @override
   void dispose() {
+    _tabController.animation?.removeListener(_handleTabAnimation);
     _tabController.dispose();
     super.dispose();
   }
@@ -37,59 +63,22 @@ class _AiVetScreenState extends State<AiVetScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text(
-          'Pati-AI & Akademi',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
-        ),
-      ),
+      backgroundColor: NeoBrutal.scaffoldBg,
+      appBar: const _AiVetAppBar(),
       body: Column(
         children: [
-          // ── Tab Bar ──
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.surface
-                  : AppColors.peachLight.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondary,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Theme.of(context).colorScheme.onSurface,
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              labelStyle:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              unselectedLabelStyle:
-                  const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-              dividerColor: Colors.transparent,
-              tabs: const [
-                Tab(text: 'Pati-AI'),
-                Tab(text: 'Akademi'),
-                Tab(text: 'Veteriner'),
-              ],
-            ),
+          _NeoTabRow(
+            activeIndex: _activeIndex,
+            onSelect: (index) => _tabController.animateTo(index),
           ),
-          const SizedBox(height: 8),
-
-          // ── Tab Views ──
           Expanded(
             child: TabBarView(
               controller: _tabController,
+              // Tap-only tab switching — kaydırarak (swipe) sekme değişimi
+              // kapalı, [_NeoTabRow] üzerinden dokunarak geçiş yapılıyor.
+              physics: const NeverScrollableScrollPhysics(),
               children: const [
-                _AskAiTab(),
+                PatiAiChatBody(),
                 AcademyTabView(),
                 _AskVetTab(),
               ],
@@ -101,317 +90,186 @@ class _AiVetScreenState extends State<AiVetScreen>
   }
 }
 
-// ────────────────────────────────────────────────────────
-// ASK AI TAB — powered by AIVetViewModel
-// ────────────────────────────────────────────────────────
-class _AskAiTab extends StatefulWidget {
-  const _AskAiTab();
+// ─────────────────────────────────────────────────────────────────────────────
+// APP BAR — off-white background, thick black bottom border, sharp square
+// avatar. Same visual language as [PatiAiScreen]'s own app bar.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AiVetAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _AiVetAppBar();
+
+  static const double _height = 64;
 
   @override
-  State<_AskAiTab> createState() => _AskAiTabState();
-}
-
-class _AskAiTabState extends State<_AskAiTab> {
-  final TextEditingController _controller = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  /// Scrolls to the bottom of the chat list after a new message arrives.
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  /// Sends the typed message via [AIVetViewModel].
-  void _sendQuestion() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
-    _controller.clear();
-    context.read<AIVetViewModel>().sendMessage(text);
-  }
+  Size get preferredSize => const Size.fromHeight(_height);
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AIVetViewModel>(
-      builder: (context, viewModel, child) {
-        // Auto-scroll when messages change
-        _scrollToBottom();
-
-        // Show error via SnackBar if present
-        if (viewModel.errorMessage != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(viewModel.errorMessage!),
-                backgroundColor: AppColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+    return Container(
+      height: _height,
+      decoration: const BoxDecoration(
+        color: NeoBrutal.scaffoldBg,
+        border: Border(
+          bottom: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: EspatiColors.peach,
+                  borderRadius: BorderRadius.zero,
+                  border: NeoBrutal.border(2.5),
+                  boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                ),
+                child: const Icon(Icons.pets_rounded,
+                    color: Colors.black, size: 20),
               ),
-            );
-            viewModel.clearError();
-          });
-        }
+              const SizedBox(width: 12),
+              Text(
+                'Pati-AI & Akademi',
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 19,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-        return Column(
-          children: [
-            // ── Message List ──
+// ─────────────────────────────────────────────────────────────────────────────
+// CUSTOM NEO TAB ROW — replaces the Material TabBar. Active tab: violet
+// fill + hard shadow. Inactive: grayscale + flat. Every tap plays a
+// mechanical press (shadow collapses, block translates down) regardless of
+// active state, then calls [onSelect] which drives the real TabController.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TabSpec {
+  final String label;
+  final IconData icon;
+  const _TabSpec({required this.label, required this.icon});
+}
+
+class _NeoTabRow extends StatelessWidget {
+  final int activeIndex;
+  final ValueChanged<int> onSelect;
+
+  const _NeoTabRow({required this.activeIndex, required this.onSelect});
+
+  static const List<_TabSpec> _tabs = [
+    _TabSpec(label: 'Pati AI', icon: Icons.smart_toy_rounded),
+    _TabSpec(label: 'Akademi', icon: Icons.menu_book_rounded),
+    _TabSpec(label: 'Veterinere Sor', icon: Icons.medical_services_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: NeoBrutal.scaffoldBg,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+      child: Row(
+        children: [
+          for (int i = 0; i < _tabs.length; i++) ...[
+            if (i != 0) const SizedBox(width: 8),
             Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount:
-                    viewModel.messages.length + (viewModel.isProcessing ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == viewModel.messages.length) {
-                    return const _TypingIndicator();
-                  }
-
-                  final msg = viewModel.messages[index];
-                  return _AiChatBubble(
-                    text: msg.text,
-                    isAi: !msg.isUser,
-                  );
-                },
-              ),
-            ),
-
-            // ── Input Bar ──
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 8,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        decoration: InputDecoration(
-                          hintText: 'Ask the AI anything about pets...',
-                          prefixIcon: Icon(Icons.smart_toy_outlined,
-                              color: AppColors.primary, size: 20),
-                        ),
-                        onSubmitted: (_) => _sendQuestion(),
-                        enabled: !viewModel.isProcessing,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: viewModel.isProcessing
-                              ? [Colors.grey, Colors.grey.shade600]
-                              : [AppColors.primary, AppColors.primaryDark],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: viewModel.isProcessing
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.send_rounded,
-                                color: Colors.white),
-                        onPressed: viewModel.isProcessing ? null : _sendQuestion,
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(),
-                      ),
-                    ),
-                  ],
-                ),
+              child: _NeoTabItem(
+                spec: _tabs[i],
+                isActive: activeIndex == i,
+                onTap: () => onSelect(i),
               ),
             ),
           ],
-        );
-      },
-    );
-  }
-}
-
-// ── Typing Indicator ──
-class _TypingIndicator extends StatelessWidget {
-  const _TypingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.smart_toy_rounded,
-                color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _dot(0),
-                const SizedBox(width: 4),
-                _dot(1),
-                const SizedBox(width: 4),
-                _dot(2),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _dot(int index) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.3, end: 1.0),
-      duration: Duration(milliseconds: 600 + (index * 200)),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ── Chat Bubble ──
-class _AiChatBubble extends StatelessWidget {
-  final String text;
-  final bool isAi;
-
-  const _AiChatBubble({required this.text, required this.isAi});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
-        children: [
-          if (isAi) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.smart_toy_rounded,
-                  color: AppColors.primary, size: 20),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isAi ? Theme.of(context).colorScheme.surface : AppColors.primary,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(isAi ? 4 : 18),
-                bottomRight: Radius.circular(isAi ? 18 : 4),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: isAi
-                ? MarkdownBody(
-                    data: text,
-                    styleSheet: MarkdownStyleSheet(
-                      p: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
-                      h2: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface),
-                      strong: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: Theme.of(context).colorScheme.onSurface),
-                      listBullet: TextStyle(
-                          fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
-                    ),
-                  )
-                : Text(
-                    text,
-                    style: const TextStyle(fontSize: 14, color: Colors.white),
-                  ),
-          ),
         ],
       ),
     );
   }
 }
 
-// ────────────────────────────────────────────────────────
-// ASK VET TAB (unchanged, no ViewModel needed yet)
-// ────────────────────────────────────────────────────────
+class _NeoTabItem extends StatefulWidget {
+  final _TabSpec spec;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _NeoTabItem({
+    required this.spec,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  State<_NeoTabItem> createState() => _NeoTabItemState();
+}
+
+class _NeoTabItemState extends State<_NeoTabItem> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool showFlat = _isPressed || !widget.isActive;
+    final Color fill =
+        widget.isActive ? NeoBrutal.activeAccent : NeoBrutal.inactiveFill;
+    final Color content =
+        widget.isActive ? Colors.black : NeoBrutal.inactiveContent;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 80),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(
+          showFlat ? 4 : 0,
+          showFlat ? 4 : 0,
+          0,
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(),
+          boxShadow: showFlat ? const [] : NeoBrutal.shadow(),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(widget.spec.icon, size: 18, color: content),
+            const SizedBox(height: 4),
+            Text(
+              widget.spec.label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w800,
+                fontSize: 12.5,
+                color: content,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB 3 — VETERİNER SORU-CEVAP (unchanged — visual restyle is a later step)
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _AskVetTab extends StatelessWidget {
   const _AskVetTab();
 
@@ -419,66 +277,65 @@ class _AskVetTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Ask a question button
+        // ── CTA banner — solid peach block, thick border, hard shadow ────────
         Padding(
-          padding: const EdgeInsets.all(16),
-          child: InkWell(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Post a question to vets — coming soon!'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: GestureDetector(
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Veterinere soru sor — yakında geliyor!',
+                  style: GoogleFonts.poppins(fontSize: 13),
                 ),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
+                backgroundColor: EspatiColors.lightBlue,
+                behavior: SnackBarBehavior.floating,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                  side: BorderSide(color: Colors.black, width: 2),
+                ),
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              ),
+            ),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                color: EspatiColors.peach,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(),
+                boxShadow: NeoBrutal.shadow(),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.zero,
+                      border: NeoBrutal.border(2),
                     ),
                     child: const Icon(Icons.medical_services_rounded,
-                        color: Colors.white, size: 24),
+                        color: Colors.black, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Ask a Veterinarian',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                        Text(
+                          'Veterinere Sor',
+                          style: GoogleFonts.fredoka(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Get expert answers about your pet',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                          'Patiliniz için uzman görüşü alın',
+                          style: GoogleFonts.poppins(
+                            color: Colors.black.withValues(alpha: 0.7),
                             fontSize: 12,
                           ),
                         ),
@@ -486,108 +343,53 @@ class _AskVetTab extends StatelessWidget {
                     ),
                   ),
                   const Icon(Icons.arrow_forward_ios_rounded,
-                      color: Colors.white, size: 18),
+                      color: Colors.black, size: 18),
                 ],
               ),
             ),
           ),
         ),
 
-        // Q&A List
+        // ── Section header ────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
               Text(
-                'Recent Questions',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
+                'Son Sorular',
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w900,
                   fontSize: 16,
-                  color: AppColors.textPrimary,
+                  color: Colors.black,
                 ),
               ),
               const Spacer(),
               TextButton(
                 onPressed: () {},
-                child: Text('See All',
-                    style: TextStyle(color: AppColors.primary, fontSize: 13)),
+                child: Text(
+                  'Tümünü Gör',
+                  style: GoogleFonts.poppins(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13),
+                ),
               ),
             ],
           ),
         ),
+
+        // ── Q&A list ──────────────────────────────────────────────────────────
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
             itemCount: SampleData.vetQuestions.length,
             itemBuilder: (context, index) {
               final q = SampleData.vetQuestions[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadow,
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            q['category'] as String,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primaryDark,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
-                        Icon(Icons.question_answer_rounded,
-                            size: 16, color: AppColors.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${q['answers']} answers',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textPrimary.withOpacity(0.5),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      q['question'] as String,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'by ${q['author']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textPrimary.withOpacity(0.4),
-                      ),
-                    ),
-                  ],
-                ),
+              return _VetQuestionCard(
+                category: q['category'] as String,
+                question: q['question'] as String,
+                answersCount: q['answers'] as int,
+                author: q['author'] as String,
               );
             },
           ),
@@ -597,4 +399,83 @@ class _AskVetTab extends StatelessWidget {
   }
 }
 
-// Lost pet reporting is now handled by FormHubScreen → İlanlar tab.
+class _VetQuestionCard extends StatelessWidget {
+  final String category;
+  final String question;
+  final int answersCount;
+  final String author;
+
+  const _VetQuestionCard({
+    required this.category,
+    required this.question,
+    required this.answersCount,
+    required this.author,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero,
+        border: NeoBrutal.border(2),
+        boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: EspatiColors.peach,
+                  border: Border.all(color: Colors.black, width: 1.5),
+                ),
+                child: Text(
+                  category,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.question_answer_rounded,
+                  size: 14, color: Colors.black),
+              const SizedBox(width: 4),
+              Text(
+                '$answersCount yanıt',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.black.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            question,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$author tarafından',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.black.withValues(alpha: 0.45),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
