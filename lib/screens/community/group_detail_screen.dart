@@ -1,0 +1,476 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
+import '../../core/constants/app_colors.dart';
+import '../../core/neo_brutalist_tokens.dart';
+import '../../data/models/chat_group_model.dart';
+import '../../data/models/listing_model.dart';
+import '../../data/models/post_model.dart';
+import '../../services/interaction_tracking_service.dart';
+import '../../viewmodels/form_viewmodel.dart';
+import '../../viewmodels/social_viewmodel.dart';
+import '../../widgets/common/neo_brutalist_button.dart';
+import '../feed_detail_screen.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROUP DETAIL SCREEN — Sub-Reddit-style mixed feed for one community group
+// (Phase 2 Step 4).
+//
+// Merges the app's existing live [FormViewModel] listings and
+// [SocialViewModel] posts into one heterogeneous, chronologically sorted
+// feed, filtered to items whose [ListingModel.groupId] / [PostModel.groupId]
+// matches [group.id] (set via the group selector on the listing/post
+// creation forms). Items created with no group selected (groupId == null)
+// are intentionally general-feed-only and never appear here.
+//
+// DESIGN SYSTEM PASS — matches the sharp Neo-Brutalist system [ProfileScreen]
+// / [AlgorithmicFeedScreen] (Keşfet) run on: zero-radius white/[EspatiColors]
+// blocks with a solid black border + hard offset shadow, [NeoBrutalistButton]
+// press feedback, hardcoded `Colors.black` text — replacing the older
+// rounded `NeoBrutalism`/legacy `AppColors` look this screen used to carry.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class GroupDetailScreen extends StatelessWidget {
+  final ChatGroupModel group;
+
+  const GroupDetailScreen({super.key, required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    final cat = group.petCategory;
+
+    return Scaffold(
+      backgroundColor: EspatiColors.cream,
+      appBar: AppBar(
+        backgroundColor: EspatiColors.cream,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false,
+        titleSpacing: 8,
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Center(
+            child: NeoBrutalistButton(
+              semanticLabel: 'Geri',
+              onPressed: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.zero,
+                  border: NeoBrutal.border(2),
+                  boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.black, size: 20),
+              ),
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: cat.accentColor,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(2),
+              ),
+              child: Icon(cat.icon, color: Colors.black, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                group.name,
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  color: Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: Consumer2<FormViewModel, SocialViewModel>(
+        builder: (context, formVm, socialVm, _) {
+          final items = _mergedFeed(formVm.allListings, socialVm.feedPosts);
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            children: [
+              _GroupInfoBanner(group: group),
+              const SizedBox(height: 16),
+              if (items.isEmpty)
+                const _EmptyFeed()
+              else
+                for (final item in items) ...[
+                  if (item is ListingModel)
+                    _CommunityListingCard(listing: item)
+                  else if (item is PostModel)
+                    _CommunityPostCard(post: item),
+                  const SizedBox(height: 12),
+                ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Interleaves this group's listings + posts by recency, excluding
+  /// anything a moderation pass has flagged (Madde 8 safety mandate —
+  /// isApproved defaults to true, so legacy records are unaffected).
+  List<Object> _mergedFeed(List<ListingModel> listings, List<PostModel> posts) {
+    final items = <Object>[
+      ...listings.where((l) => l.isApproved && l.groupId == group.id),
+      ...posts.where((p) => p.isApproved && p.groupId == group.id),
+    ];
+    items.sort((a, b) {
+      final aDate = a is ListingModel ? a.createdAt : (a as PostModel).timestamp;
+      final bDate = b is ListingModel ? b.createdAt : (b as PostModel).timestamp;
+      return bDate.compareTo(aDate);
+    });
+    return items;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROUP INFO BANNER
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _GroupInfoBanner extends StatelessWidget {
+  final ChatGroupModel group;
+  const _GroupInfoBanner({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero,
+        border: NeoBrutal.border(2),
+        boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            group.description,
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.people_alt_rounded,
+                  size: 13, color: Colors.black.withValues(alpha: 0.5)),
+              const SizedBox(width: 4),
+              Text(
+                '${group.memberCount} üye',
+                style: GoogleFonts.poppins(
+                    fontSize: 11, color: Colors.black.withValues(alpha: 0.5)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY LISTING CARD — compact ListingModel item in the mixed feed
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CommunityListingCard extends StatelessWidget {
+  final ListingModel listing;
+
+  const _CommunityListingCard({required this.listing});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = listing.status.accentColor;
+    final statusIcon = listing.status.icon;
+
+    return NeoBrutalistButton(
+      onPressed: () {
+        // Step 8: log a view interaction on this listing's category before
+        // navigating — feeds Summit A's interest_scores weighting.
+        InteractionTrackingService.instance
+            .logInteraction(_categoryTag(listing), 1.0);
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => FeedDetailScreen.listing(listing)),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+          boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRect(
+              child: CachedNetworkImage(
+                imageUrl: listing.imageUrl,
+                width: 90,
+                height: 110,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  width: 90,
+                  height: 110,
+                  color: EspatiColors.cream,
+                  child: Icon(Icons.pets,
+                      size: 30, color: EspatiColors.peach.withValues(alpha: 0.6)),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: 90,
+                  height: 110,
+                  color: EspatiColors.cream,
+                  child: const Icon(Icons.pets, size: 30, color: EspatiColors.peach),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 12, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          listing.status.label,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      listing.name,
+                      style: GoogleFonts.fredoka(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        color: Colors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded,
+                            size: 12, color: EspatiColors.sageGreen),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            listing.location,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: EspatiColors.sageGreen,
+                                fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY POST CARD — compact PostModel item in the mixed feed
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CommunityPostCard extends StatelessWidget {
+  final PostModel post;
+
+  const _CommunityPostCard({required this.post});
+
+  static String _formatTimeAgo(DateTime timestamp) {
+    final diff = DateTime.now().difference(timestamp);
+    if (diff.inSeconds < 60) return 'şimdi';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}dk önce';
+    if (diff.inHours < 24) return '${diff.inHours}sa önce';
+    if (diff.inDays < 7) return '${diff.inDays}g önce';
+    return '${(diff.inDays / 7).floor()}h önce';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NeoBrutalistButton(
+      onPressed: () {
+        // Step 8: log a view interaction on this post's category before
+        // navigating — feeds Summit A's interest_scores weighting.
+        InteractionTrackingService.instance
+            .logInteraction(_categoryTag(post), 1.0);
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => FeedDetailScreen.post(post)),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+          boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRect(
+              child: CachedNetworkImage(
+                imageUrl: post.imageUrl,
+                width: 66,
+                height: 66,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => Container(
+                  width: 66,
+                  height: 66,
+                  color: EspatiColors.cream,
+                  child: Icon(Icons.pets,
+                      size: 24, color: EspatiColors.peach.withValues(alpha: 0.6)),
+                ),
+                errorWidget: (_, __, ___) => Container(
+                  width: 66,
+                  height: 66,
+                  color: EspatiColors.cream,
+                  child: const Icon(Icons.pets, size: 24, color: EspatiColors.peach),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          post.authorName,
+                          style: GoogleFonts.fredoka(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: Colors.black,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        _formatTimeAgo(post.timestamp),
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.black.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    post.description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.black.withValues(alpha: 0.7),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.pets, size: 13, color: EspatiColors.sageGreen),
+                      const SizedBox(width: 3),
+                      Text('${post.patiCount}',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.black.withValues(alpha: 0.55))),
+                      const SizedBox(width: 10),
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          size: 13, color: Colors.black.withValues(alpha: 0.4)),
+                      const SizedBox(width: 3),
+                      Text('${post.commentsCount}',
+                          style: GoogleFonts.poppins(
+                              fontSize: 11, color: Colors.black.withValues(alpha: 0.55))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyFeed extends StatelessWidget {
+  const _EmptyFeed();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.dynamic_feed_rounded,
+                size: 56, color: Colors.black.withValues(alpha: 0.25)),
+            const SizedBox(height: 12),
+            Text(
+              'Bu toplulukta henüz içerik yok',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The interest tag an item is tracked under for Summit A's
+/// interest_scores weighting (Step 7/8) — a [ListingModel]'s structured
+/// species facet ("Kedi", "Köpek", ...) or a [PostModel]'s breed (falling
+/// back to its denormalized species type), matching
+/// [AlgorithmicFeedScreen]'s own tagging so a signal logged here also
+/// affects that feed's ranking. Falls back to 'Diğer' for legacy records
+/// missing both fields.
+String _categoryTag(Object item) {
+  if (item is ListingModel) {
+    return item.species.isNotEmpty ? item.species : 'Diğer';
+  }
+  final post = item as PostModel;
+  if (post.petBreed.isNotEmpty) return post.petBreed;
+  if (post.petType.isNotEmpty) return post.petType;
+  return 'Diğer';
+}

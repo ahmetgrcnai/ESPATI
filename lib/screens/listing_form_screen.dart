@@ -5,12 +5,27 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
+import '../core/constants/app_colors.dart' show EspatiColors;
+import '../core/eskisehir_districts.dart';
 import '../data/models/listing_model.dart';
+import '../services/content_moderation_service.dart';
+import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/form_viewmodel.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LISTING FORM SCREEN
-// Shared form for both Adoption and Lost/Found listing creation.
+// LISTING FORM SCREEN (Neo-Brutalist pass)
+//
+// Shared form for Sahiplendirme / Kayıp-Buluntu / Bakıcı listing creation —
+// same cream-on-dark-brown blocky visual language as [CreatePostScreen]
+// (Design System Step 32) so every content-creation screen reached from the
+// "Oluştur" hub ([action_hub_sheet.dart]) reads as one family.
+//
+// [ListingStatus.bakici] is a service listing, not an animal listing, so it
+// swaps the "Hayvan Bilgileri" section for "Hizmet Bilgileri" (service
+// title, species scope, offered services, price) instead of reusing
+// name/breed/age/gender fields for data they don't actually mean — see
+// [ListingModel.serviceTypes] / [ListingModel.priceInfo].
+//
 // Driven by FormViewModel; all submission state lives in the ViewModel.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -32,13 +47,24 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
   final _nameCtrl        = TextEditingController();
   final _breedCtrl       = TextEditingController();
   final _ageCtrl         = TextEditingController();
-  final _contactCtrl     = TextEditingController();
+  final _priceCtrl       = TextEditingController();
   final _descriptionCtrl = TextEditingController();
 
   // ── Dropdown selections ───────────────────────────────────────────────────
   String? _selectedSpecies;
   String? _selectedGender;
   String? _selectedDistrict;
+
+  /// Target community group ("Hangi Topluluğa Gönderilecek?"). `null` =
+  /// "Genel" — the listing isn't routed to a specific group.
+  String? _selectedGroupId;
+
+  /// "Acil" toggle — only meaningful (and only shown) for Kayıp listings.
+  bool _isUrgent = false;
+
+  /// Offered services — only meaningful (and only shown) for Bakıcı listings.
+  final Set<String> _selectedServiceTypes = {};
+  bool _serviceTypeError = false;
 
   // ── Image picker ──────────────────────────────────────────────────────────
   final _picker = ImagePicker();
@@ -55,6 +81,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     'Balık', 'Sürüngen', 'Kemirgen', 'Diğer',
   ];
 
+  static const String _allSpecies = 'Tüm Türler';
+
   static const List<String> _genders = ['Erkek', 'Dişi', 'Bilinmiyor'];
 
   static const List<String> _districts = [
@@ -64,25 +92,32 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     'Sarıcakaya', 'Seyitgazi',
   ];
 
+  static const List<String> _serviceTypeOptions = [
+    'Gezdirme',
+    'Günlük Bakım',
+    'Pansiyon (Ev Sahipliği)',
+    'Eğitim',
+    'Veteriner Refakati',
+    'Tımar / Bakım',
+  ];
+
   // ── Convenience getters ───────────────────────────────────────────────────
 
-  bool get _isAdoption => widget.type == ListingStatus.sahiplendirme;
+  bool get _isKayip   => widget.type == ListingStatus.kayip;
+  bool get _isBakici  => widget.type == ListingStatus.bakici;
 
-  Color get _accentColor =>
-      _isAdoption ? const Color(0xFFE65100) : AppColors.error;
+  Color get _accentColor => widget.type.accentColor;
 
-  String get _screenTitle =>
-      _isAdoption ? 'Sahiplendirme İlanı' : 'Kayıp/Buluntu İlanı';
+  String get _screenTitle => widget.type.title;
 
-  String get _submitLabel =>
-      _isAdoption ? 'İlanı Yayınla' : 'Kaybı Bildir';
+  String get _submitLabel => _isKayip ? 'Kaybı Bildir' : 'İlanı Yayınla';
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _breedCtrl.dispose();
     _ageCtrl.dispose();
-    _contactCtrl.dispose();
+    _priceCtrl.dispose();
     _descriptionCtrl.dispose();
     super.dispose();
   }
@@ -121,6 +156,15 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     setState(() => _images.removeAt(index));
   }
 
+  void _toggleServiceType(String type) {
+    setState(() {
+      if (!_selectedServiceTypes.remove(type)) {
+        _selectedServiceTypes.add(type);
+      }
+      if (_selectedServiceTypes.isNotEmpty) _serviceTypeError = false;
+    });
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
@@ -132,90 +176,202 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       setState(() => _imageError = true);
     }
 
-    if (!formValid || _images.isEmpty) return;
+    // Bakıcı listings validate offered services instead of breed/age/gender.
+    if (_isBakici && _selectedServiceTypes.isEmpty) {
+      setState(() => _serviceTypeError = true);
+    }
 
-    final listing = ListingModel(
-      id: 'lst_${DateTime.now().millisecondsSinceEpoch}',
-      name: _nameCtrl.text.trim(),
-      type: '${_selectedSpecies ?? ''} — ${_breedCtrl.text.trim()}',
-      status: widget.type,
-      location: _selectedDistrict ?? '',
-      date: _formatDate(DateTime.now()),
-      // In production, upload images to storage and store the URL.
-      imageUrl: 'https://placekitten.com/400/400',
-      contact: _contactCtrl.text.trim(),
-      description: _descriptionCtrl.text.trim(),
-      createdAt: DateTime.now(),
-    );
+    if (!formValid || _images.isEmpty) return;
+    if (_isBakici && _selectedServiceTypes.isEmpty) return;
+
+    // Madde 8 — safety mandate: reject inappropriate text before it ever
+    // reaches Firestore. Checks every user-authored text field together
+    // (title fields + free-text description) in one pass.
+    final moderationText =
+        '${_nameCtrl.text} ${_breedCtrl.text} ${_descriptionCtrl.text}';
+    if (ContentModerationService.containsInappropriateText(moderationText)) {
+      _showSnackBar(
+        'İçeriğiniz topluluk kurallarımıza uymayan ifadeler içeriyor.',
+        isError: true,
+      );
+      return;
+    }
 
     final vm = context.read<FormViewModel>();
-    final success = await vm.createListing(listing);
 
-    if (!mounted) return;
-
-    if (success) {
-      _showSuccessDialog();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(vm.submitError ?? 'Bir hata oluştu.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+    if (vm.isSubmitting) {
+      // Guards against the "silent failure" case: isSubmitting stuck true
+      // from an interrupted earlier attempt would otherwise disable this
+      // button entirely (see _SubmitBar's onPressed), so tapping it does
+      // nothing with zero feedback. Surface that explicitly instead.
+      _showSnackBar(
+        'Bir işlem zaten devam ediyor. Lütfen bekleyin veya uygulamayı '
+        'yeniden başlatın.',
+        isError: true,
       );
-      vm.clearSubmitError();
+      return;
     }
+
+    try {
+      final currentUser = context.read<AuthViewModel>().currentUser;
+      final (lat, lng) = EskisehirDistricts.resolve(_selectedDistrict ?? '');
+
+      final listing = ListingModel(
+        // Repository assigns the real Firestore document ID.
+        id: '',
+        name: _nameCtrl.text.trim(),
+        type: _isBakici
+            ? _selectedServiceTypes.join(', ')
+            : '${_selectedSpecies ?? ''} — ${_breedCtrl.text.trim()}',
+        species: _selectedSpecies ?? '',
+        status: widget.type,
+        location: _selectedDistrict ?? '',
+        date: _formatDate(DateTime.now()),
+        // Repository fills this in after uploading _images to Storage.
+        imageUrls: const [],
+        description: _descriptionCtrl.text.trim(),
+        createdAt: DateTime.now(),
+        // Needed so other users can message this listing's author (Sprint 8).
+        authorId: currentUser?.id ?? '',
+        authorName: currentUser?.name.isNotEmpty == true
+            ? currentUser!.name
+            : (currentUser?.email ?? ''),
+        authorPhoto: currentUser?.profilePicture ?? '',
+        latitude: lat,
+        longitude: lng,
+        isUrgent: _isKayip ? _isUrgent : false,
+        groupId: _selectedGroupId,
+        serviceTypes: _isBakici ? _selectedServiceTypes.toList() : const [],
+        priceInfo: _isBakici ? _priceCtrl.text.trim() : '',
+      );
+
+      final success = await vm.createListing(
+        listing,
+        _images.map((x) => File(x.path)).toList(),
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        _showSuccessDialog();
+      } else {
+        _showSnackBar(vm.submitError ?? 'Bir hata oluştu.', isError: true);
+        vm.clearSubmitError();
+      }
+    } catch (e, stack) {
+      // Belt-and-suspenders: anything that throws *before* reaching
+      // vm.createListing (which already has its own try/catch) would
+      // otherwise be an uncaught exception with no visible feedback —
+      // exactly the "tap and nothing happens" symptom.
+      debugPrint('[ListingFormScreen] _submit unexpected exception: $e\n$stack');
+      if (!mounted) return;
+      _showSnackBar('Beklenmedik bir hata oluştu. Lütfen tekrar deneyin.',
+          isError: true);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.poppins(fontSize: 13)),
+        backgroundColor: isError ? AppColors.error : EspatiColors.sageGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: EspatiColors.darkBrown, width: 2),
+        ),
+      ),
+    );
   }
 
   void _showSuccessDialog() {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        icon: Container(
-          padding: const EdgeInsets.all(12),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: AppColors.softTeal.withOpacity(0.12),
-            shape: BoxShape.circle,
+            color: EspatiColors.cream,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: EspatiColors.darkBrown, width: 3),
+            boxShadow: const [
+              BoxShadow(
+                color: EspatiColors.darkBrown,
+                offset: Offset(4, 4),
+                blurRadius: 0,
+              ),
+            ],
           ),
-          child: Icon(Icons.check_circle_rounded,
-              color: AppColors.softTeal, size: 40),
-        ),
-        title: Text(
-          'İlan Yayında!',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        content: Text(
-          'İlanınız başarıyla oluşturuldu.\nForum → İlanlar bölümünden görüntüleyebilirsiniz.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(fontSize: 14,
-              color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.65)),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);      // close dialog
-              Navigator.pop(context);  // return to FormHubScreen
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.softTeal,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 32, vertical: 12),
-            ),
-            child: Text('Harika!',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: EspatiColors.sageGreen,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
+                ),
+                child: const Icon(Icons.check_rounded,
+                    color: EspatiColors.darkBrown, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'İlan Yayında!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.fredoka(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 19,
+                  color: EspatiColors.darkBrown,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'İlanınız başarıyla oluşturuldu.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: EspatiColors.darkBrown.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);      // close dialog
+                  Navigator.pop(context);  // return to caller
+                },
+                child: Container(
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: EspatiColors.sageGreen,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: EspatiColors.darkBrown,
+                        offset: Offset(3, 3),
+                        blurRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    'Harika!',
+                    style: GoogleFonts.fredoka(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: EspatiColors.darkBrown),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -225,8 +381,6 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cs = theme.colorScheme;
 
     return Consumer<FormViewModel>(
       builder: (context, vm, _) {
@@ -234,175 +388,159 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
           children: [
             Scaffold(
               backgroundColor: theme.scaffoldBackgroundColor,
-              appBar: _buildAppBar(theme, cs),
-              body: Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  children: [
-                    // ── Header banner ─────────────────────────────────────
-                    _TypeBanner(isAdoption: _isAdoption, accentColor: _accentColor),
-                    const SizedBox(height: 20),
+              appBar: _buildAppBar(),
+              body: AbsorbPointer(
+                absorbing: vm.isSubmitting,
+                child: Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    children: [
+                      // ── Type banner ─────────────────────────────────────
+                      _TypeBanner(type: widget.type),
+                      const SizedBox(height: 20),
 
-                    // ── Section 1: Hayvan Bilgileri ───────────────────────
-                    _SectionHeader(
-                        label: 'Hayvan Bilgileri',
-                        icon: Icons.pets_rounded),
-                    const SizedBox(height: 12),
-                    _FormCard(
-                      isDark: isDark,
-                      children: [
-                        _buildTextField(
-                          controller: _nameCtrl,
-                          label: 'İsim',
-                          hint: 'Örn: Rocky, Mimi',
-                          icon: Icons.badge_rounded,
-                          validator: _requiredValidator('İsim'),
-                        ),
-                        const SizedBox(height: 14),
-                        _buildDropdown(
-                          label: 'Tür',
-                          hint: 'Hayvan türünü seçin',
-                          icon: Icons.category_rounded,
-                          value: _selectedSpecies,
-                          items: _species,
-                          onChanged: (v) =>
-                              setState(() => _selectedSpecies = v),
-                          validator: (v) =>
-                              v == null ? 'Tür seçimi zorunludur' : null,
-                        ),
-                        const SizedBox(height: 14),
-                        _buildTextField(
-                          controller: _breedCtrl,
-                          label: 'Irk / Cins',
-                          hint: 'Örn: Golden Retriever, Tekir',
-                          icon: Icons.info_outline_rounded,
-                          validator: _requiredValidator('Irk/Cins'),
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: _buildTextField(
-                                controller: _ageCtrl,
-                                label: 'Yaş',
-                                hint: 'Örn: 2',
-                                icon: Icons.cake_rounded,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: _requiredValidator('Yaş'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 3,
-                              child: _buildDropdown(
-                                label: 'Cinsiyet',
-                                hint: 'Seçin',
-                                icon: Icons.wc_rounded,
-                                value: _selectedGender,
-                                items: _genders,
-                                onChanged: (v) =>
-                                    setState(() => _selectedGender = v),
-                                validator: (v) => v == null
-                                    ? 'Cinsiyet zorunludur'
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      // ── Section 1: Hayvan Bilgileri / Hizmet Bilgileri ──
+                      _SectionLabel(
+                          text:
+                              _isBakici ? 'Hizmet Bilgileri' : 'Hayvan Bilgileri'),
+                      const SizedBox(height: 8),
+                      if (_isBakici) ..._buildBakiciFields() else ..._buildAnimalFields(),
 
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // ── Section 2: Konum ─────────────────────────────────
-                    _SectionHeader(
-                        label: 'Konum', icon: Icons.location_on_rounded),
-                    const SizedBox(height: 12),
-                    _FormCard(
-                      isDark: isDark,
-                      children: [
-                        _buildDropdown(
-                          label: 'İlçe',
-                          hint: 'Eskişehir ilçesini seçin',
-                          icon: Icons.map_rounded,
-                          value: _selectedDistrict,
-                          items: _districts,
-                          onChanged: (v) =>
-                              setState(() => _selectedDistrict = v),
+                      // ── Section 2: Konum ─────────────────────────────────
+                      const _SectionLabel(text: 'Konum'),
+                      const SizedBox(height: 8),
+                      _BlockyField(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _selectedDistrict,
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: EspatiColors.darkBrown),
+                          dropdownColor: EspatiColors.cream,
+                          decoration: _fieldDecoration(
+                            hintText: _isBakici
+                                ? 'Hizmet verdiğiniz ilçeyi seçin'
+                                : 'Eskişehir ilçesini seçin',
+                            prefixIcon: Icons.map_rounded,
+                          ),
+                          items: _districts
+                              .map((d) => DropdownMenuItem(
+                                    value: d,
+                                    child: Text(d,
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            color: EspatiColors.darkBrown)),
+                                  ))
+                              .toList(),
+                          onChanged: (v) => setState(() => _selectedDistrict = v),
                           validator: (v) =>
                               v == null ? 'İlçe seçimi zorunludur' : null,
                         ),
-                      ],
-                    ),
+                      ),
 
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                    // ── Section 3: İletişim ──────────────────────────────
-                    _SectionHeader(
-                        label: 'İletişim', icon: Icons.phone_rounded),
-                    const SizedBox(height: 12),
-                    _FormCard(
-                      isDark: isDark,
-                      children: [
-                        _buildTextField(
-                          controller: _contactCtrl,
-                          label: 'Telefon',
-                          hint: '05XX XXX XX XX',
-                          icon: Icons.call_rounded,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9 +]')),
+                      // ── Section 3: Topluluk ──────────────────────────────
+                      const _SectionLabel(text: 'Topluluk'),
+                      const SizedBox(height: 8),
+                      _BlockyField(
+                        child: DropdownButtonFormField<String?>(
+                          initialValue: _selectedGroupId,
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: EspatiColors.darkBrown),
+                          dropdownColor: EspatiColors.cream,
+                          decoration: _fieldDecoration(
+                            hintText: 'Genel (isteğe bağlı)',
+                            prefixIcon: Icons.forum_rounded,
+                          ),
+                          items: [
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('Genel',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: EspatiColors.darkBrown)),
+                            ),
+                            ...vm.chatGroups.map((g) => DropdownMenuItem<String?>(
+                                  value: g.id,
+                                  child: Text(g.name,
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 14,
+                                          color: EspatiColors.darkBrown)),
+                                )),
                           ],
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Telefon numarası zorunludur';
-                            }
-                            if (v.trim().replaceAll(' ', '').length < 10) {
-                              return 'Geçerli bir telefon numarası girin';
-                            }
-                            return null;
-                          },
+                          onChanged: (v) => setState(() => _selectedGroupId = v),
                         ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // ── Section 4: Acil Durum (Kayıp only) ───────────────
+                      if (_isKayip) ...[
+                        const _SectionLabel(text: 'Acil Durum'),
+                        const SizedBox(height: 8),
+                        _BlockyField(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 6),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Acil olarak işaretle',
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: EspatiColors.darkBrown),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Yeni kaybolmuş veya risk altındaki '
+                                        'hayvanlar için kullanın.',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          color: EspatiColors.darkBrown
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: _isUrgent,
+                                  onChanged: (v) =>
+                                      setState(() => _isUrgent = v),
+                                  activeThumbColor: EspatiColors.cream,
+                                  activeTrackColor: EspatiColors.red,
+                                  trackOutlineColor:
+                                      WidgetStateProperty.all(
+                                          EspatiColors.darkBrown),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                       ],
-                    ),
 
-                    const SizedBox(height: 20),
-
-                    // ── Section 4: Açıklama ──────────────────────────────
-                    _SectionHeader(
-                        label: 'Açıklama', icon: Icons.description_rounded),
-                    const SizedBox(height: 12),
-                    _FormCard(
-                      isDark: isDark,
-                      children: [
-                        TextFormField(
+                      // ── Section 5: Açıklama ──────────────────────────────
+                      const _SectionLabel(text: 'Açıklama'),
+                      const SizedBox(height: 8),
+                      _BlockyField(
+                        child: TextFormField(
                           controller: _descriptionCtrl,
                           maxLines: 5,
                           maxLength: _maxDescLength,
-                          style: GoogleFonts.poppins(fontSize: 14),
-                          decoration: InputDecoration(
-                            labelText: 'Açıklama',
-                            hintText: _isAdoption
-                                ? 'Hayvanın karakterini, bakım gereksinimlerini ve ideal yuvasını anlatın...'
-                                : 'Kaybolduğu yer, zaman, fiziksel özellikler ve son görülme koşullarını anlatın...',
-                            labelStyle:
-                                GoogleFonts.poppins(fontSize: 13),
-                            hintStyle: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: cs.onSurface.withOpacity(0.38)),
-                            alignLabelWithHint: true,
-                            prefixIcon: Padding(
-                              padding: const EdgeInsets.only(bottom: 64),
-                              child: Icon(Icons.edit_note_rounded,
-                                  size: 20,
-                                  color: cs.onSurface.withOpacity(0.5)),
-                            ),
+                          style: GoogleFonts.poppins(
+                              fontSize: 14, color: EspatiColors.darkBrown),
+                          decoration: _fieldDecoration(
+                            hintText: _descriptionHint,
+                            alignLabelTop: true,
                           ),
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) {
@@ -414,184 +552,287 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                             return null;
                           },
                         ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // ── Section 5: Fotoğraflar ───────────────────────────
-                    _SectionHeader(
-                        label: 'Fotoğraflar', icon: Icons.photo_library_rounded),
-                    const SizedBox(height: 4),
-                    Text(
-                      'En az 1, en fazla $_maxImages fotoğraf ekleyin.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: cs.onSurface.withOpacity(0.5),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _ImagePickerSection(
-                      images: _images,
-                      hasError: _imageError,
-                      maxImages: _maxImages,
-                      onGallery: _pickFromGallery,
-                      onCamera: _pickFromCamera,
-                      onRemove: _removeImage,
-                      isDark: isDark,
-                      cs: cs,
-                    ),
 
-                    const SizedBox(height: 24),
-                  ],
+                      const SizedBox(height: 20),
+
+                      // ── Section 6: Fotoğraflar ───────────────────────────
+                      const _SectionLabel(text: 'Fotoğraflar'),
+                      const SizedBox(height: 4),
+                      Text(
+                        'En az 1, en fazla $_maxImages fotoğraf ekleyin.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: EspatiColors.cream.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _ImagePickerSection(
+                        images: _images,
+                        hasError: _imageError,
+                        maxImages: _maxImages,
+                        onGallery: _pickFromGallery,
+                        onCamera: _pickFromCamera,
+                        onRemove: _removeImage,
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
+            ),
 
-              // ── Submit button ─────────────────────────────────────────
-              bottomNavigationBar: _SubmitBar(
+            // ── Submit bar ─────────────────────────────────────────────────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _SubmitBar(
                 label: _submitLabel,
                 accentColor: _accentColor,
                 isSubmitting: vm.isSubmitting,
                 onSubmit: _submit,
               ),
             ),
-
-            // ── Full-screen loading overlay ───────────────────────────────
-            if (vm.isSubmitting)
-              Container(
-                color: Colors.black.withOpacity(0.35),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? theme.colorScheme.surface
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(
-                            color: AppColors.softTeal, strokeWidth: 3),
-                        const SizedBox(height: 16),
-                        Text(
-                          'İlan yayınlanıyor...',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         );
       },
     );
   }
 
+  String get _descriptionHint {
+    switch (widget.type) {
+      case ListingStatus.sahiplendirme:
+        return 'Hayvanın karakterini, bakım gereksinimlerini ve ideal yuvasını anlatın...';
+      case ListingStatus.kayip:
+        return 'Kaybolduğu yer, zaman, fiziksel özellikler ve son görülme koşullarını anlatın...';
+      case ListingStatus.bakici:
+        return 'Deneyiminizi, çalışma saatlerinizi ve hizmet detaylarınızı anlatın...';
+    }
+  }
+
+  // ── Field groups ──────────────────────────────────────────────────────────
+
+  List<Widget> _buildAnimalFields() {
+    return [
+      _BlockyField(
+        child: TextFormField(
+          controller: _nameCtrl,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          decoration: _fieldDecoration(
+            hintText: 'İsim (Örn: Rocky, Mimi)',
+            prefixIcon: Icons.badge_rounded,
+          ),
+          validator: _requiredValidator('İsim'),
+        ),
+      ),
+      const SizedBox(height: 10),
+      _BlockyField(
+        child: DropdownButtonFormField<String>(
+          initialValue: _selectedSpecies,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          dropdownColor: EspatiColors.cream,
+          decoration: _fieldDecoration(
+              hintText: 'Hayvan türünü seçin', prefixIcon: Icons.category_rounded),
+          items: _species
+              .map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s,
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, color: EspatiColors.darkBrown)),
+                  ))
+              .toList(),
+          onChanged: (v) => setState(() => _selectedSpecies = v),
+          validator: (v) => v == null ? 'Tür seçimi zorunludur' : null,
+        ),
+      ),
+      const SizedBox(height: 10),
+      _BlockyField(
+        child: TextFormField(
+          controller: _breedCtrl,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          decoration: _fieldDecoration(
+            hintText: 'Irk / Cins (Örn: Golden Retriever, Tekir)',
+            prefixIcon: Icons.info_outline_rounded,
+          ),
+          validator: _requiredValidator('Irk/Cins'),
+        ),
+      ),
+      const SizedBox(height: 10),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: _BlockyField(
+              child: TextFormField(
+                controller: _ageCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: GoogleFonts.poppins(
+                    fontSize: 14, color: EspatiColors.darkBrown),
+                decoration:
+                    _fieldDecoration(hintText: 'Yaş', prefixIcon: Icons.cake_rounded),
+                validator: _requiredValidator('Yaş'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 3,
+            child: _BlockyField(
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedGender,
+                style: GoogleFonts.poppins(
+                    fontSize: 14, color: EspatiColors.darkBrown),
+                dropdownColor: EspatiColors.cream,
+                decoration:
+                    _fieldDecoration(hintText: 'Cinsiyet', prefixIcon: Icons.wc_rounded),
+                items: _genders
+                    .map((g) => DropdownMenuItem(
+                          value: g,
+                          child: Text(g,
+                              style: GoogleFonts.poppins(
+                                  fontSize: 14, color: EspatiColors.darkBrown)),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedGender = v),
+                validator: (v) => v == null ? 'Cinsiyet zorunludur' : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _buildBakiciFields() {
+    return [
+      _BlockyField(
+        child: TextFormField(
+          controller: _nameCtrl,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          decoration: _fieldDecoration(
+            hintText: 'İlan Başlığı (Örn: Deneyimli Köpek Bakıcısı)',
+            prefixIcon: Icons.badge_rounded,
+          ),
+          validator: _requiredValidator('İlan başlığı'),
+        ),
+      ),
+      const SizedBox(height: 10),
+      _BlockyField(
+        child: DropdownButtonFormField<String>(
+          initialValue: _selectedSpecies,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          dropdownColor: EspatiColors.cream,
+          decoration: _fieldDecoration(
+              hintText: 'Baktığınız türü seçin', prefixIcon: Icons.category_rounded),
+          items: [..._species, _allSpecies]
+              .map((s) => DropdownMenuItem(
+                    value: s,
+                    child: Text(s,
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, color: EspatiColors.darkBrown)),
+                  ))
+              .toList(),
+          onChanged: (v) => setState(() => _selectedSpecies = v),
+          validator: (v) => v == null ? 'Tür seçimi zorunludur' : null,
+        ),
+      ),
+      const SizedBox(height: 10),
+      _BlockyField(
+        child: TextFormField(
+          controller: _priceCtrl,
+          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          decoration: _fieldDecoration(
+            hintText: 'Fiyat Bilgisi (Örn: 150₺/gün, saatlik 50₺)',
+            prefixIcon: Icons.sell_rounded,
+          ),
+          validator: _requiredValidator('Fiyat bilgisi'),
+        ),
+      ),
+      const SizedBox(height: 14),
+      Text(
+        'Verdiğiniz Hizmetler',
+        style: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: EspatiColors.cream.withValues(alpha: 0.85),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: _serviceTypeOptions
+            .map((s) => _ServiceChip(
+                  label: s,
+                  isSelected: _selectedServiceTypes.contains(s),
+                  onTap: () => _toggleServiceType(s),
+                ))
+            .toList(),
+      ),
+      if (_serviceTypeError) ...[
+        const SizedBox(height: 6),
+        Text(
+          'En az bir hizmet seçmeniz zorunludur',
+          style: GoogleFonts.poppins(fontSize: 12, color: EspatiColors.red),
+        ),
+      ],
+    ];
+  }
+
   // ── AppBar ────────────────────────────────────────────────────────────────
 
-  AppBar _buildAppBar(ThemeData theme, ColorScheme cs) {
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: EspatiColors.darkBrown,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.close_rounded),
+        icon: const Icon(Icons.close_rounded, color: EspatiColors.cream),
         onPressed: () => Navigator.pop(context),
         tooltip: 'Kapat',
       ),
       title: Text(
         _screenTitle,
-        style: GoogleFonts.poppins(
-          fontWeight: FontWeight.w700,
+        style: GoogleFonts.fredoka(
+          fontWeight: FontWeight.w600,
           fontSize: 18,
-          color: cs.onSurface,
+          color: EspatiColors.cream,
         ),
       ),
       centerTitle: true,
     );
   }
 
-  // ── Field builders ────────────────────────────────────────────────────────
+  // ── Shared field decoration ──────────────────────────────────────────────
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
+  InputDecoration _fieldDecoration({
+    String? hintText,
+    IconData? prefixIcon,
+    bool alignLabelTop = false,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      style: GoogleFonts.poppins(fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: GoogleFonts.poppins(fontSize: 13),
-        hintStyle: GoogleFonts.poppins(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.38)),
-        prefixIcon: Icon(icon, size: 20,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
-      ),
-      validator: validator,
-    );
-  }
-
-  Widget _buildDropdown({
-    required String label,
-    required String hint,
-    required IconData icon,
-    required String? value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-    String? Function(String?)? validator,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return DropdownButtonFormField<String>(
-      value: value,
-      onChanged: onChanged,
-      validator: validator,
-      style: GoogleFonts.poppins(
-          fontSize: 14, color: cs.onSurface),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: GoogleFonts.poppins(fontSize: 13),
-        hintStyle: GoogleFonts.poppins(
-            fontSize: 13, color: cs.onSurface.withOpacity(0.38)),
-        prefixIcon: Icon(icon, size: 20,
-            color: cs.onSurface.withOpacity(0.5)),
-      ),
-      dropdownColor:
-          Theme.of(context).brightness == Brightness.dark
-              ? cs.surface
-              : Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      icon: Icon(Icons.keyboard_arrow_down_rounded,
-          color: cs.onSurface.withOpacity(0.5)),
-      items: items
-          .map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item,
-                    style: GoogleFonts.poppins(fontSize: 14)),
-              ))
-          .toList(),
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: GoogleFonts.poppins(
+          fontSize: 13.5, color: EspatiColors.darkBrown.withValues(alpha: 0.45)),
+      prefixIcon: prefixIcon == null
+          ? null
+          : Padding(
+              padding: alignLabelTop ? const EdgeInsets.only(bottom: 88) : EdgeInsets.zero,
+              child: Icon(prefixIcon, size: 19, color: EspatiColors.darkBrown.withValues(alpha: 0.6)),
+            ),
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      errorBorder: InputBorder.none,
+      focusedErrorBorder: InputBorder.none,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      counterStyle: GoogleFonts.poppins(
+          fontSize: 11, color: EspatiColors.darkBrown.withValues(alpha: 0.5)),
+      errorStyle: GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
     );
   }
 
@@ -606,35 +847,80 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
 // SUPPORTING WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Coloured banner at the top of the form indicating listing type.
-class _TypeBanner extends StatelessWidget {
-  final bool isAdoption;
-  final Color accentColor;
+/// Blocky cream/dark-brown/hard-shadow frame around a plain (border-less,
+/// unfilled) input — every field on this screen reads as one consistent
+/// Neo-Brutalist block, same convention as [CreatePostScreen]'s `_BlockyField`.
+class _BlockyField extends StatelessWidget {
+  final Widget child;
 
-  const _TypeBanner({required this.isAdoption, required this.accentColor});
+  const _BlockyField({required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: accentColor.withOpacity(0.2)),
+        color: EspatiColors.cream,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: EspatiColors.darkBrown, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            color: EspatiColors.darkBrown,
+            offset: Offset(3, 3),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Coloured banner at the top of the form indicating listing type — blocky
+/// icon tile + title/subtitle, using [ListingStatus.accentColor]/[icon].
+class _TypeBanner extends StatelessWidget {
+  final ListingStatus type;
+
+  const _TypeBanner({required this.type});
+
+  String get _subtitle {
+    switch (type) {
+      case ListingStatus.sahiplendirme:
+        return 'Evcil hayvanınıza sıcak bir yuva bulun';
+      case ListingStatus.kayip:
+        return 'Kayıp hayvanınızı bildirin veya bulduğunuzu paylaşın';
+      case ListingStatus.bakici:
+        return 'Evcil hayvan sahiplerine bakıcılık hizmeti sunun';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: type.accentColor,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
+        boxShadow: const [
+          BoxShadow(
+            color: EspatiColors.darkBrown,
+            offset: Offset(3, 3),
+            blurRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: EspatiColors.cream,
+              borderRadius: BorderRadius.zero,
+              border: Border.all(color: EspatiColors.darkBrown, width: 2),
             ),
-            child: Icon(
-              isAdoption ? Icons.favorite_rounded : Icons.search_rounded,
-              color: accentColor,
-              size: 24,
-            ),
+            child: Icon(type.icon, color: EspatiColors.darkBrown, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -642,23 +928,19 @@ class _TypeBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isAdoption
-                      ? 'Sahiplendirme İlanı'
-                      : 'Kayıp/Buluntu İlanı',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: accentColor,
+                  type.title,
+                  style: GoogleFonts.fredoka(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: EspatiColors.darkBrown,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  isAdoption
-                      ? 'Evcil hayvanınıza sıcak bir yuva bulun'
-                      : 'Kayıp hayvanınızı bildirin veya bulduğunuzu paylaşın',
+                  _subtitle,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: accentColor.withOpacity(0.75),
+                    color: EspatiColors.darkBrown.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -670,72 +952,84 @@ class _TypeBanner extends StatelessWidget {
   }
 }
 
-/// Section header with teal accent line.
-class _SectionHeader extends StatelessWidget {
+/// Section label sitting directly on the dark-brown scaffold.
+class _SectionLabel extends StatelessWidget {
+  final String text;
+
+  const _SectionLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: EspatiColors.cream.withValues(alpha: 0.85),
+      ),
+    );
+  }
+}
+
+/// One tappable service-type chip for Bakıcı listings — filled with the
+/// screen's accent color when selected, same border/shadow language as
+/// every other block on this screen.
+class _ServiceChip extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
 
-  const _SectionHeader({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.softTeal),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.softTeal,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: AppColors.softTeal.withOpacity(0.2),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// White/surface card wrapping form fields.
-class _FormCard extends StatelessWidget {
-  final bool isDark;
-  final List<Widget> children;
-
-  const _FormCard({required this.isDark, required this.children});
+  const _ServiceChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Theme.of(context).colorScheme.surface
-            : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: isSelected ? EspatiColors.lightBlue : EspatiColors.cream,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(
+              color: EspatiColors.darkBrown, width: isSelected ? 2.5 : 2),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: EspatiColors.darkBrown,
+                    offset: Offset(2, 2),
+                    blurRadius: 0,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.check_rounded,
+                  size: 15, color: EspatiColors.darkBrown),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: EspatiColors.darkBrown,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Horizontal image preview strip with add buttons.
+/// Blocky add-photo buttons + horizontal thumbnail strip.
 class _ImagePickerSection extends StatelessWidget {
   final List<XFile> images;
   final bool hasError;
@@ -743,8 +1037,6 @@ class _ImagePickerSection extends StatelessWidget {
   final VoidCallback onGallery;
   final VoidCallback onCamera;
   final ValueChanged<int> onRemove;
-  final bool isDark;
-  final ColorScheme cs;
 
   const _ImagePickerSection({
     required this.images,
@@ -753,8 +1045,6 @@ class _ImagePickerSection extends StatelessWidget {
     required this.onGallery,
     required this.onCamera,
     required this.onRemove,
-    required this.isDark,
-    required this.cs,
   });
 
   @override
@@ -762,21 +1052,18 @@ class _ImagePickerSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Add buttons row
         Row(
           children: [
             _PickerButton(
               icon: Icons.photo_library_rounded,
               label: 'Galeri',
               onTap: onGallery,
-              isDark: isDark,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             _PickerButton(
               icon: Icons.camera_alt_rounded,
               label: 'Kamera',
               onTap: onCamera,
-              isDark: isDark,
             ),
             const Spacer(),
             Text(
@@ -784,27 +1071,22 @@ class _ImagePickerSection extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 color: images.isEmpty && hasError
-                    ? AppColors.error
-                    : cs.onSurface.withOpacity(0.45),
+                    ? EspatiColors.red
+                    : EspatiColors.cream.withValues(alpha: 0.55),
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
 
-        // Error label
         if (hasError && images.isEmpty) ...[
           const SizedBox(height: 6),
           Text(
             'En az 1 fotoğraf eklemeniz zorunludur',
-            style: GoogleFonts.poppins(
-              fontSize: 12,
-              color: AppColors.error,
-            ),
+            style: GoogleFonts.poppins(fontSize: 12, color: EspatiColors.red),
           ),
         ],
 
-        // Preview strip
         if (images.isNotEmpty) ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -828,13 +1110,11 @@ class _PickerButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool isDark;
 
   const _PickerButton({
     required this.icon,
     required this.label,
     required this.onTap,
-    required this.isDark,
   });
 
   @override
@@ -842,27 +1122,30 @@ class _PickerButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isDark
-              ? Theme.of(context).colorScheme.surface
-              : AppColors.softTealLight.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.softTeal.withOpacity(0.3),
-          ),
+          color: EspatiColors.cream,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: EspatiColors.darkBrown, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: EspatiColors.darkBrown,
+              offset: Offset(2, 2),
+              blurRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: AppColors.softTeal),
+            Icon(icon, size: 17, color: EspatiColors.darkBrown),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.poppins(
-                fontSize: 13,
+                fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.softTeal,
+                color: EspatiColors.darkBrown,
               ),
             ),
           ],
@@ -885,32 +1168,29 @@ class _ImageThumb extends StatelessWidget {
       width: 90,
       height: 90,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.softTeal.withOpacity(0.3)),
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: EspatiColors.darkBrown, width: 2),
       ),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Image.file(
-              File(xFile.path),
-              fit: BoxFit.cover,
-            ),
-          ),
+          Image.file(File(xFile.path), fit: BoxFit.cover),
           Positioned(
             top: 4,
             right: 4,
             child: GestureDetector(
               onTap: onRemove,
               child: Container(
-                padding: const EdgeInsets.all(2),
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
-                  shape: BoxShape.circle,
+                  color: EspatiColors.cream,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(color: EspatiColors.darkBrown, width: 1.5),
                 ),
                 child: const Icon(Icons.close_rounded,
-                    size: 14, color: Colors.white),
+                    size: 14, color: EspatiColors.darkBrown),
               ),
             ),
           ),
@@ -920,7 +1200,8 @@ class _ImageThumb extends StatelessWidget {
   }
 }
 
-/// Sticky submit button bar pinned to the bottom of the screen.
+/// Sticky, blocky submit button bar pinned to the bottom of the screen —
+/// filled with the listing type's accent color.
 class _SubmitBar extends StatelessWidget {
   final String label;
   final Color accentColor;
@@ -936,36 +1217,67 @@ class _SubmitBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
+      color: EspatiColors.darkBrown,
       padding: EdgeInsets.fromLTRB(
-          16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Theme.of(context).colorScheme.surface
-            : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.07),
-            blurRadius: 16,
-            offset: const Offset(0, -2),
+          16, 10, 16, 10 + MediaQuery.of(context).padding.bottom),
+      child: GestureDetector(
+        onTap: isSubmitting ? null : onSubmit,
+        child: Container(
+          width: double.infinity,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          decoration: BoxDecoration(
+            color: isSubmitting ? accentColor.withValues(alpha: 0.5) : accentColor,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: EspatiColors.darkBrown, width: 3),
+            boxShadow: isSubmitting
+                ? null
+                : const [
+                    BoxShadow(
+                      color: EspatiColors.cream,
+                      offset: Offset(0, 0),
+                      blurRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: EspatiColors.darkBrown,
+                      offset: Offset(4, 4),
+                      blurRadius: 0,
+                    ),
+                  ],
           ),
-        ],
-      ),
-      child: FilledButton(
-        onPressed: isSubmitting ? null : onSubmit,
-        style: FilledButton.styleFrom(
-          backgroundColor: accentColor,
-          disabledBackgroundColor: accentColor.withOpacity(0.5),
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w700, fontSize: 15),
+          child: isSubmitting
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(EspatiColors.darkBrown),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'İlan yayınlanıyor…',
+                      style: GoogleFonts.fredoka(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: EspatiColors.darkBrown),
+                    ),
+                  ],
+                )
+              : Text(
+                  label.toUpperCase(),
+                  style: GoogleFonts.fredoka(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: EspatiColors.darkBrown,
+                    letterSpacing: 0.3,
+                  ),
+                ),
         ),
       ),
     );
