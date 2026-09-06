@@ -133,17 +133,51 @@ class _AiVetAppBar extends StatelessWidget implements PreferredSizeWidget {
                     color: Colors.black, size: 20),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Pati-AI & Akademi',
-                style: GoogleFonts.fredoka(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 19,
-                  color: Colors.black,
+              Expanded(
+                child: Text(
+                  'Pati-AI & Akademi',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.fredoka(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 19,
+                    color: Colors.black,
+                  ),
                 ),
               ),
+              const SizedBox(width: 12),
+              const _CloseButton(),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLOSE BUTTON — top-right, sharp square block, thick border, hard shadow.
+// Pops this pushed route back to whichever main tab was active underneath
+// (MainScreen), mirroring [guide_detail_screen.dart]'s [_BackButton].
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CloseButton extends StatelessWidget {
+  const _CloseButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).maybePop(),
+      child: Container(
+        width: 40,
+        height: 40,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2.5),
+          boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+        ),
+        child: const Icon(Icons.close_rounded, color: Colors.black, size: 22),
       ),
     );
   }
