@@ -23,7 +23,7 @@ import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../viewmodels/ai_vet_viewmodel.dart';
 import '../viewmodels/profile_viewmodel.dart';
-import 'gemini_service.dart';
+import '../services/pati_ai_service.dart';
 import '../viewmodels/map_viewmodel.dart';
 import '../viewmodels/notification_viewmodel.dart';
 import '../viewmodels/social_viewmodel.dart';
@@ -100,10 +100,10 @@ Widget createProviders({required Widget child}) {
         ),
       ),
       ChangeNotifierProvider<AIVetViewModel>(
-        // GeminiService.instance is the singleton — GenerativeModel is
+        // PatiAiService.instance is the singleton — the HTTP client is
         // created exactly once regardless of hot-reload or rebuilds.
         create: (context) => AIVetViewModel(
-          geminiService: GeminiService.instance,
+          aiService: PatiAiService.instance,
           academyRepository: context.read<IAcademyRepository>(),
         ),
       ),

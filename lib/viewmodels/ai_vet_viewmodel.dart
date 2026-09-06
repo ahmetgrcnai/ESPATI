@@ -1,25 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import '../data/models/chat_message.dart';
 import '../data/models/academy_guide_model.dart';
 import '../data/repositories/interfaces/i_academy_repository.dart';
-import '../core/gemini_service.dart';
+import '../core/i_ai_service.dart';
+import '../services/pati_ai_service.dart';
 import '../core/result.dart';
 
 /// ViewModel for the AI/Vet chat screen.
 ///
-/// Uses [GeminiService.instance] singleton. The [GenerativeModel] (HTTP client)
-/// is created exactly once for the app lifetime.
+/// Uses [PatiAiService.instance] singleton, which talks to pati_ai_backend's
+/// `/chat` endpoint (Gemini, PDF-grounded RAG, optional image). Replaces the
+/// former ClaudeService + PatiKnowledgeService split after the Anthropic key
+/// stopped authenticating. The HTTP client is created exactly once for the
+/// app lifetime.
 ///
 /// Also owns the Pati Akademi state (guide list, category filter, search query).
 class AIVetViewModel extends ChangeNotifier {
-  final GeminiService _geminiService;
+  final IAIService _aiService;
   final IAcademyRepository _academyRepository;
 
   AIVetViewModel({
-    GeminiService? geminiService,
+    IAIService? aiService,
     required IAcademyRepository academyRepository,
-  })  : _geminiService = geminiService ?? GeminiService.instance,
+  })  : _aiService = aiService ?? PatiAiService.instance,
         _academyRepository = academyRepository {
     _messages.add(ChatMessage(
       id: 'welcome',
@@ -46,7 +51,28 @@ class AIVetViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  bool get isAIConfigured => _geminiService.isConfigured;
+  bool get isAIConfigured => _aiService.isConfigured;
+
+  // ── Pending Image State ────────────────────────────────────────────────────
+
+  File? _pendingImageFile;
+  Uint8List? _pendingImageBytes;
+
+  File? get pendingImageFile => _pendingImageFile;
+  Uint8List? get pendingImageBytes => _pendingImageBytes;
+  bool get hasPendingImage => _pendingImageFile != null;
+
+  Future<void> setPendingImage(File file) async {
+    _pendingImageFile = file;
+    _pendingImageBytes = await file.readAsBytes();
+    notifyListeners();
+  }
+
+  void clearPendingImage() {
+    _pendingImageFile = null;
+    _pendingImageBytes = null;
+    notifyListeners();
+  }
 
   // ── Academy State ──────────────────────────────────────────────────────────
 
@@ -117,13 +143,21 @@ class AIVetViewModel extends ChangeNotifier {
 
   // ── Chat Public Methods ────────────────────────────────────────────────────
 
-  /// Sends a user message and awaits the AI response.
+  /// Sends a user message (with optional pending image) and awaits the AI response.
   ///
-  /// Double-guarded against concurrent calls:
-  ///   1. [_isProcessing] set synchronously before first await
-  ///   2. UI Send button disabled via [isProcessing]
+  /// Text-only messages send the **full conversation history** (via
+  /// [IAIService.generateResponse]) — pati_ai_backend's `/chat` endpoint
+  /// accepts multi-turn history natively and does its own PDF-grounded
+  /// retrieval, so there's no separate knowledge-service call to make here
+  /// anymore.
+  ///
+  /// For image messages, [priorHistory] (the conversation snapshot taken before
+  /// the current user turn was appended) is passed to
+  /// [IAIService.analyzePetIssue] — the service appends the current text +
+  /// image turn itself, preventing duplicate entries.
   Future<void> sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
+    final trimmed = text.trim();
+    if (trimmed.isEmpty && !hasPendingImage) return;
     if (_isProcessing) {
       debugPrint('[AIVetViewModel] Blocked — already processing.');
       return;
@@ -131,19 +165,46 @@ class AIVetViewModel extends ChangeNotifier {
 
     _errorMessage = null;
 
+    // Snapshot and clear pending image before the first await.
+    final imageFile = _pendingImageFile;
+    final imageBytes = _pendingImageBytes;
+    _pendingImageFile = null;
+    _pendingImageBytes = null;
+
+    // [PREREQ-01] Capture the conversation history BEFORE appending the current
+    // user message. This snapshot is passed to analyzePetIssue so the service
+    // receives prior context only — it builds the image turn from the File itself.
+    final priorHistory = List<ChatMessage>.unmodifiable(_messages);
+
     _messages.add(ChatMessage(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
-      text: text.trim(),
+      text: trimmed.isEmpty ? '📷 Fotoğraf gönderildi' : trimmed,
       isUser: true,
       timestamp: DateTime.now(),
+      imageBytes: imageBytes,
     ));
 
     _isProcessing = true;
     notifyListeners();
 
     try {
-      final responseText =
-          await _geminiService.generateResponse(text.trim());
+      final String responseText;
+      if (imageFile != null) {
+        // Multimodal path: prior context + compressed image + text prompt.
+        // The service handles compression (PREREQ-02) and appends the image
+        // turn to the request internally.
+        responseText = await _aiService.analyzePetIssue(
+          imageFile,
+          trimmed.isEmpty
+              ? 'Bu evcil hayvan fotoğrafını incele ve genel sağlık durumu hakkında bilgi ver.'
+              : trimmed,
+          priorHistory,
+        );
+      } else {
+        // Text-only path: full history (including the just-appended user
+        // turn) so the backend keeps multi-turn memory.
+        responseText = await _aiService.generateResponse(_messages);
+      }
 
       _messages.add(ChatMessage(
         id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
@@ -169,6 +230,8 @@ class AIVetViewModel extends ChangeNotifier {
     _messages.clear();
     _isProcessing = false;
     _errorMessage = null;
+    _pendingImageFile = null;
+    _pendingImageBytes = null;
     _messages.add(ChatMessage(
       id: 'welcome',
       text: '## Merhaba! 🐾\n\nBen **Pati-AI**, ESPATI\'nin uzman veteriner '
