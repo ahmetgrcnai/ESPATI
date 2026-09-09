@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// A branded Google Sign-In button matching Google's identity guidelines.
+import '../../../core/neo_brutalist_tokens.dart';
+import '../../../widgets/common/neo_brutalist_button.dart';
+
+/// A branded Google Sign-In button matching Google's identity guidelines —
+/// the "G" mark keeps its own circular logo treatment (per Google's brand
+/// rules), the surrounding button is the app's Neo-Brutalist white block.
 ///
 /// Shows a loading spinner when [isLoading] is true and disables the tap.
 class GoogleSignInButton extends StatelessWidget {
@@ -16,36 +21,41 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return NeoBrutalistButton(
+      semanticLabel: 'Google ile devam et',
       onPressed: isLoading ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        side: BorderSide(color: Colors.grey.shade300),
-        backgroundColor: Colors.white,
-      ),
-      child: isLoading
-          ? const SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Google "G" logo reproduced with Text + colours
-                _GoogleLogo(),
-                const SizedBox(width: 12),
-                Text(
-                  'Google ile devam et',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Google "G" logo reproduced with Text + colours
+                  _GoogleLogo(),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Google ile devam et',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }

@@ -42,9 +42,9 @@ class GroupDetailScreen extends StatelessWidget {
     final cat = group.petCategory;
 
     return Scaffold(
-      backgroundColor: EspatiColors.cream,
+      backgroundColor: NeoBrutal.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: EspatiColors.cream,
+        backgroundColor: NeoBrutal.scaffoldBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -231,15 +231,14 @@ class _CommunityListingCard extends StatelessWidget {
                 placeholder: (_, __) => Container(
                   width: 90,
                   height: 110,
-                  color: EspatiColors.cream,
-                  child: Icon(Icons.pets,
-                      size: 30, color: EspatiColors.peach.withValues(alpha: 0.6)),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets, size: 30, color: Colors.black),
                 ),
                 errorWidget: (_, __, ___) => Container(
                   width: 90,
                   height: 110,
-                  color: EspatiColors.cream,
-                  child: const Icon(Icons.pets, size: 30, color: EspatiColors.peach),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets, size: 30, color: Colors.black),
                 ),
               ),
             ),
@@ -354,15 +353,14 @@ class _CommunityPostCard extends StatelessWidget {
                 placeholder: (_, __) => Container(
                   width: 66,
                   height: 66,
-                  color: EspatiColors.cream,
-                  child: Icon(Icons.pets,
-                      size: 24, color: EspatiColors.peach.withValues(alpha: 0.6)),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets, size: 24, color: Colors.black),
                 ),
                 errorWidget: (_, __, ___) => Container(
                   width: 66,
                   height: 66,
-                  color: EspatiColors.cream,
-                  child: const Icon(Icons.pets, size: 24, color: EspatiColors.peach),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets, size: 24, color: Colors.black),
                 ),
               ),
             ),

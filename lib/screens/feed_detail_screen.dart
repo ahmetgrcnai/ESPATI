@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../core/constants/app_colors.dart' show EspatiColors;
+import '../core/neo_brutalist_tokens.dart';
 import '../core/result.dart';
 import '../data/models/listing_model.dart';
 import '../data/models/post_model.dart';
@@ -97,12 +98,12 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message,
-            style: GoogleFonts.poppins(fontSize: 13, color: EspatiColors.cream)),
-        backgroundColor: isError ? EspatiColors.red : EspatiColors.darkBrown,
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+        backgroundColor: isError ? EspatiColors.red : Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: EspatiColors.cream, width: 1.5),
+          side: BorderSide(color: Colors.white, width: 1.5),
         ),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       ),
@@ -186,9 +187,9 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: EspatiColors.cream,
+      backgroundColor: NeoBrutal.scaffoldBg,
       appBar: AppBar(
-        backgroundColor: EspatiColors.cream,
+        backgroundColor: NeoBrutal.scaffoldBg,
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -204,21 +205,21 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  color: EspatiColors.cream,
+                  color: Colors.white,
                   borderRadius: BorderRadius.zero,
                   border: Border.fromBorderSide(
-                    BorderSide(color: EspatiColors.darkBrown, width: 2),
+                    BorderSide(color: Colors.black, width: 2),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: EspatiColors.darkBrown,
+                      color: Colors.black,
                       offset: Offset(2, 2),
                       blurRadius: 0,
                     ),
                   ],
                 ),
                 child: const Icon(Icons.arrow_back_rounded,
-                    color: EspatiColors.darkBrown, size: 20),
+                    color: Colors.black, size: 20),
               ),
             ),
           ),
@@ -228,7 +229,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
           style: GoogleFonts.fredoka(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: EspatiColors.darkBrown,
+            color: Colors.black,
           ),
         ),
       ),
@@ -272,7 +273,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   height: 1.4,
-                                  color: EspatiColors.darkBrown,
+                                  color: Colors.black,
                                 ),
                               ),
                           ],
@@ -283,7 +284,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                             style: GoogleFonts.fredoka(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: EspatiColors.darkBrown,
+                              color: Colors.black,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -312,9 +313,9 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
             // ── Pinned bottom bar ────────────────────────────────────────
             Container(
               decoration: const BoxDecoration(
-                color: EspatiColors.cream,
+                color: Colors.white,
                 border: Border(
-                  top: BorderSide(color: EspatiColors.darkBrown, width: 2.5),
+                  top: BorderSide(color: Colors.black, width: 2.5),
                 ),
               ),
               child: SafeArea(
@@ -374,7 +375,7 @@ class _HeroImageState extends State<_HeroImage> {
   Widget _placeholder() => Container(
         color: EspatiColors.sageGreen.withValues(alpha: 0.25),
         child: const Icon(Icons.pets_rounded,
-            size: 48, color: EspatiColors.darkBrown),
+            size: 48, color: Colors.black),
       );
 
   @override
@@ -385,7 +386,7 @@ class _HeroImageState extends State<_HeroImage> {
     return Container(
       decoration: const BoxDecoration(
         border: Border.symmetric(
-          horizontal: BorderSide(color: EspatiColors.darkBrown, width: 3),
+          horizontal: BorderSide(color: Colors.black, width: 3),
         ),
       ),
       child: AspectRatio(
@@ -430,10 +431,10 @@ class _HeroImageState extends State<_HeroImage> {
                       width: i == _page ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: EspatiColors.cream,
+                        color: Colors.white,
                         borderRadius: BorderRadius.zero,
                         border: Border.all(
-                            color: EspatiColors.darkBrown, width: 1),
+                            color: Colors.black, width: 1),
                       ),
                     ),
                   ),
@@ -452,10 +453,10 @@ class _HeroImageState extends State<_HeroImage> {
                     color: widget.statusColor,
                     borderRadius: BorderRadius.zero,
                     border: Border.all(
-                        color: EspatiColors.darkBrown, width: 2.5),
+                        color: Colors.black, width: 2.5),
                     boxShadow: const [
                       BoxShadow(
-                        color: EspatiColors.darkBrown,
+                        color: Colors.black,
                         offset: Offset(3, 3),
                         blurRadius: 0,
                       ),
@@ -466,7 +467,7 @@ class _HeroImageState extends State<_HeroImage> {
                     style: GoogleFonts.fredoka(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: EspatiColors.darkBrown,
+                      color: Colors.black,
                     ),
                   ),
                 ),
@@ -507,7 +508,7 @@ class _AuthorRow extends StatelessWidget {
             color: EspatiColors.sageGreen,
             borderRadius: BorderRadius.zero,
             border: Border.fromBorderSide(
-              BorderSide(color: EspatiColors.darkBrown, width: 2),
+              BorderSide(color: Colors.black, width: 2),
             ),
           ),
           child: authorPhoto.isNotEmpty
@@ -515,10 +516,10 @@ class _AuthorRow extends StatelessWidget {
                   imageUrl: authorPhoto,
                   fit: BoxFit.cover,
                   errorWidget: (_, __, ___) => const Icon(Icons.pets_rounded,
-                      color: EspatiColors.darkBrown, size: 20),
+                      color: Colors.black, size: 20),
                 )
               : const Icon(Icons.pets_rounded,
-                  color: EspatiColors.darkBrown, size: 20),
+                  color: Colors.black, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -529,7 +530,7 @@ class _AuthorRow extends StatelessWidget {
             style: GoogleFonts.fredoka(
               fontWeight: FontWeight.w600,
               fontSize: 16,
-              color: EspatiColors.darkBrown,
+              color: Colors.black,
             ),
           ),
         ),
@@ -546,14 +547,14 @@ class _AuthorRow extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
-                  color: isFollowed ? EspatiColors.cream : EspatiColors.sageGreen,
+                  color: isFollowed ? Colors.white : EspatiColors.sageGreen,
                   borderRadius: BorderRadius.zero,
-                  border: Border.all(color: EspatiColors.darkBrown, width: 2),
+                  border: Border.all(color: Colors.black, width: 2),
                   boxShadow: isFollowed
                       ? null
                       : const [
                           BoxShadow(
-                            color: EspatiColors.darkBrown,
+                            color: Colors.black,
                             offset: Offset(2, 2),
                             blurRadius: 0,
                           ),
@@ -564,7 +565,7 @@ class _AuthorRow extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: EspatiColors.darkBrown,
+                    color: Colors.black,
                   ),
                 ),
               ),
@@ -621,7 +622,7 @@ class _PostInteractionBar extends StatelessWidget {
                 SnackBar(
                   content: Text('Yorumlar — yakında geliyor!',
                       style: GoogleFonts.poppins(fontSize: 13)),
-                  backgroundColor: EspatiColors.darkBrown,
+                  backgroundColor: Colors.black,
                   behavior: SnackBarBehavior.floating,
                 ),
               ),
@@ -666,14 +667,14 @@ class _InteractionIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? EspatiColors.terracotta : EspatiColors.darkBrown;
+    final color = active ? EspatiColors.terracotta : Colors.black;
     return NeoBrutalistButton(
       semanticLabel: semanticLabel,
       onPressed: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: EspatiColors.cream,
+          color: Colors.white,
           borderRadius: BorderRadius.zero,
           border: Border.all(color: color, width: 1.5),
         ),
@@ -711,22 +712,22 @@ class _ListingInfo extends StatelessWidget {
         Text(
           listing.name,
           style: GoogleFonts.fredoka(
-              fontWeight: FontWeight.bold, fontSize: 22, color: EspatiColors.darkBrown),
+              fontWeight: FontWeight.bold, fontSize: 22, color: Colors.black),
         ),
         Text(
           listing.type,
           style: GoogleFonts.poppins(
-              fontSize: 14, color: EspatiColors.darkBrown.withValues(alpha: 0.6)),
+              fontSize: 14, color: Colors.black.withValues(alpha: 0.6)),
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            const Icon(Icons.location_on_rounded, size: 15, color: EspatiColors.darkBrown),
+            const Icon(Icons.location_on_rounded, size: 15, color: Colors.black),
             const SizedBox(width: 4),
             Expanded(
               child: Text(listing.location,
                   style: GoogleFonts.poppins(
-                      fontSize: 13, fontWeight: FontWeight.w600, color: EspatiColors.darkBrown)),
+                      fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black)),
             ),
           ],
         ),
@@ -734,11 +735,11 @@ class _ListingInfo extends StatelessWidget {
         Row(
           children: [
             Icon(Icons.schedule_rounded,
-                size: 13, color: EspatiColors.darkBrown.withValues(alpha: 0.5)),
+                size: 13, color: Colors.black.withValues(alpha: 0.5)),
             const SizedBox(width: 4),
             Text(listing.date,
                 style: GoogleFonts.poppins(
-                    fontSize: 12, color: EspatiColors.darkBrown.withValues(alpha: 0.5))),
+                    fontSize: 12, color: Colors.black.withValues(alpha: 0.5))),
             if (listing.isUrgent) ...[
               const SizedBox(width: 8),
               Text('· ACİL',
@@ -751,17 +752,17 @@ class _ListingInfo extends StatelessWidget {
           const SizedBox(height: 18),
           Text('Açıklama',
               style: GoogleFonts.fredoka(
-                  fontWeight: FontWeight.bold, fontSize: 15, color: EspatiColors.darkBrown)),
+                  fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
           const SizedBox(height: 6),
           Text(listing.description,
               style: GoogleFonts.poppins(
-                  fontSize: 14, height: 1.5, color: EspatiColors.darkBrown.withValues(alpha: 0.85))),
+                  fontSize: 14, height: 1.5, color: Colors.black.withValues(alpha: 0.85))),
         ],
         if (listing.hasLocation) ...[
           const SizedBox(height: 18),
           Text('Son Görülen Konum',
               style: GoogleFonts.fredoka(
-                  fontWeight: FontWeight.bold, fontSize: 15, color: EspatiColors.darkBrown)),
+                  fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
           const SizedBox(height: 8),
           AdLocationMapWidget(
             latitude: listing.latitude,
@@ -799,11 +800,11 @@ class _MessageOwnerBar extends StatelessWidget {
             color: EspatiColors.terracotta,
             borderRadius: BorderRadius.zero,
             border: Border.fromBorderSide(
-              BorderSide(color: EspatiColors.darkBrown, width: 3),
+              BorderSide(color: Colors.black, width: 3),
             ),
             boxShadow: [
               BoxShadow(
-                color: EspatiColors.darkBrown,
+                color: Colors.black,
                 offset: Offset(5, 5),
                 blurRadius: 0,
               ),
@@ -814,20 +815,20 @@ class _MessageOwnerBar extends StatelessWidget {
                   width: 22,
                   height: 22,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: EspatiColors.cream),
+                      strokeWidth: 2.5, color: Colors.white),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.pets_rounded, color: EspatiColors.cream, size: 20),
+                    const Icon(Icons.pets_rounded, color: Colors.white, size: 20),
                     const SizedBox(width: 10),
                     Text(
                       'İlan Sahibine Mesaj At',
                       style: GoogleFonts.fredoka(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: EspatiColors.cream,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -854,10 +855,10 @@ class _CommentInputBar extends StatelessWidget {
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
-                color: EspatiColors.cream,
+                color: Colors.white,
                 borderRadius: BorderRadius.zero,
                 border: Border.fromBorderSide(
-                  BorderSide(color: EspatiColors.darkBrown, width: 2.5),
+                  BorderSide(color: Colors.black, width: 2.5),
                 ),
               ),
               child: TextField(
@@ -865,13 +866,14 @@ class _CommentInputBar extends StatelessWidget {
                 minLines: 1,
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
-                style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Yorum ekle...',
                   hintStyle: GoogleFonts.poppins(
                     fontSize: 14,
-                    color: EspatiColors.darkBrown.withValues(alpha: 0.45),
+                    color: Colors.black.withValues(alpha: 0.45),
                   ),
+                  filled: false,
                   border: InputBorder.none,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -892,11 +894,11 @@ class _CommentInputBar extends StatelessWidget {
                 color: EspatiColors.sageGreen,
                 borderRadius: BorderRadius.zero,
                 border: Border.fromBorderSide(
-                  BorderSide(color: EspatiColors.darkBrown, width: 2.5),
+                  BorderSide(color: Colors.black, width: 2.5),
                 ),
               ),
               child: const Icon(Icons.pets_rounded,
-                  color: EspatiColors.darkBrown, size: 20),
+                  color: Colors.black, size: 20),
             ),
           ),
         ],

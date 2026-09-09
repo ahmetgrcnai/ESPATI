@@ -1,164 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'constants/app_colors.dart' as design;
+import 'neo_brutalist_tokens.dart';
 
+/// Neo-brutalist visual system — light [NeoBrutal.scaffoldBg] canvas, pure
+/// black borders/text, zero-radius corners, hard offset shadows. This is the
+/// same "Gen3" system [NeoBrutal] and every migrated screen already use —
+/// this file makes it the app's actual Material theme default too, instead
+/// of every screen having to override an old dark-brown/cream default on
+/// its own Scaffold/AppBar.
+///
+/// [lightTheme] and [darkTheme] intentionally render the identical palette —
+/// this design is a single unified brand look, not a light/dark pair. Both
+/// getters are kept (rather than collapsing to one) purely so
+/// `MaterialApp.theme`/`darkTheme`/`themeMode` in `main.dart` — and the
+/// user-facing "Karanlık Mod" toggle in [ProfileScreen] — keep working
+/// exactly as before; no navigation/state logic changes with this overhaul.
+///
+/// Sourced from [design.EspatiColors] (`core/constants/app_colors.dart`) —
+/// the canonical design-system palette, shared with [EspatiCard]/[EspatiTag]
+/// (`widgets/common/`). Imported with a prefix since this file also imports
+/// the legacy `core/app_colors.dart` `AppColors` (for [AppColors.error]) —
+/// two same-named classes can't share an unprefixed import.
 class AppTheme {
   AppTheme._();
 
-  // ── Light palette ──────────────────────────────────────────────────────────
-  static const _lightText = Color(0xFF36454F); // charcoal — AppColors.textPrimary
-  static const _lightBg   = AppColors.background;
-  static const _lightSurf = AppColors.surface;
-  static const _lightDiv  = AppColors.divider;
-
-  // ── Dark palette ───────────────────────────────────────────────────────────
-  static const _darkBg   = Color(0xFF121212);
-  static const _darkSurf = Color(0xFF1E1E1E);
-  static const _darkCard = Color(0xFF2A2A2A);
-  static const _darkText = Color(0xFFEEEEEE); // bright off-white for max contrast
-  static const _darkDiv  = Color(0xFF3A3A3A);
-
-  // ── Shared accent (readable on both backgrounds) ───────────────────────────
-  // Primary blue — contrast ratio on dark (#121212) ≈ 4.6 : 1  ✓ AA
-  // Primary blue — contrast ratio on light (#FFEEBD) ≈ 3.2 : 1  ~ (AA large)
-  // Peach stays as accent only (icons / chips), not on body text
+  // ── Neo-brutalist palette ────────────────────────────────────────────────
+  static const _bg = NeoBrutal.scaffoldBg; // scaffold background
+  static const _card = Colors.white; // card / surface background
+  static const _onBg = Colors.black; // text drawn directly on the scaffold
+  static const _onCard = Colors.black; // text drawn on white surfaces
+  static const _accentA = design.EspatiColors.peach; // primary accent
+  static const _accentB = design.EspatiColors.mintGreen; // secondary accent
+  static const _div = Color(0xFFE0E0E0); // light divider, one step darker than bg
 
   // ════════════════════════════════════════════════════════════════════════════
-  // LIGHT THEME
+  // LIGHT THEME — same neo-brutalist palette as dark (see class doc)
   // ════════════════════════════════════════════════════════════════════════════
-  static ThemeData get lightTheme {
-    final base = _buildTextTheme(_lightText);
-
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-
-      colorScheme: ColorScheme.light(
-        primary: AppColors.primary,
-        onPrimary: Colors.white,
-        secondary: AppColors.peach,
-        onSecondary: _lightText,
-        surface: _lightSurf,
-        onSurface: _lightText,
-        error: AppColors.error,
-        onError: Colors.white,
-      ),
-
-      scaffoldBackgroundColor: _lightBg,
-
-      // ── Full TextTheme ──
-      textTheme: base,
-      primaryTextTheme: base,
-
-      // ── TextField cursor + selection ──
-      textSelectionTheme: TextSelectionThemeData(
-        cursorColor: AppColors.primary,
-        selectionColor: AppColors.primary.withValues(alpha: 0.3),
-        selectionHandleColor: AppColors.primary,
-      ),
-
-      // ── AppBar ──
-      appBarTheme: AppBarTheme(
-        backgroundColor: _lightBg,
-        foregroundColor: _lightText,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: _lightText,
-        ),
-        iconTheme: const IconThemeData(color: _lightText),
-      ),
-
-      // ── Input Fields ──
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: _lightSurf,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(color: _lightDiv, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        hintStyle: GoogleFonts.poppins(
-          color: _lightText.withValues(alpha: 0.4),
-          fontSize: 14,
-        ),
-        labelStyle: GoogleFonts.poppins(color: _lightText, fontSize: 14),
-      ),
-
-      // ── Cards ──
-      cardTheme: CardThemeData(
-        color: _lightSurf,
-        elevation: 2,
-        shadowColor: AppColors.shadow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
-
-      // ── FAB ──
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.peach,
-        foregroundColor: _lightText,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-
-      // ── Chips ──
-      chipTheme: ChipThemeData(
-        backgroundColor: AppColors.peachLight,
-        selectedColor: AppColors.peach,
-        labelStyle: GoogleFonts.poppins(fontSize: 12, color: _lightText),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      ),
-
-      // ── Divider ──
-      dividerTheme: const DividerThemeData(
-          color: _lightDiv, thickness: 1, space: 0),
-
-      // ── Bottom Nav ──
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.softTeal,
-        unselectedItemColor: Color(0xFFAAAAAA),
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-      ),
-    );
-  }
+  static ThemeData get lightTheme => _buildTheme(Brightness.light);
 
   // ════════════════════════════════════════════════════════════════════════════
   // DARK THEME
   // ════════════════════════════════════════════════════════════════════════════
-  static ThemeData get darkTheme {
-    final base = _buildTextTheme(_darkText);
+  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final base = _buildTextTheme();
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
 
-      colorScheme: ColorScheme.dark(
-        primary: AppColors.primary,
-        onPrimary: Colors.white,
-        secondary: AppColors.peach,
-        onSecondary: _darkText,
-        surface: _darkSurf,
-        onSurface: _darkText,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: _accentA,
+        onPrimary: _onCard,
+        secondary: _accentB,
+        onSecondary: _onCard,
+        surface: _card,
+        onSurface: _onCard,
         error: AppColors.error,
         onError: Colors.white,
       ),
 
-      scaffoldBackgroundColor: _darkBg,
+      scaffoldBackgroundColor: _bg,
 
       // ── Full TextTheme ──
       textTheme: base,
@@ -166,85 +72,97 @@ class AppTheme {
 
       // ── TextField cursor + selection ──
       textSelectionTheme: TextSelectionThemeData(
-        cursorColor: AppColors.peach,
-        selectionColor: AppColors.peach.withValues(alpha: 0.3),
-        selectionHandleColor: AppColors.peach,
+        cursorColor: _accentA,
+        selectionColor: _accentA.withValues(alpha: 0.3),
+        selectionHandleColor: _accentA,
       ),
 
-      // ── AppBar ──
+      // ── AppBar — heading font, drawn on the walnut scaffold ──
       appBarTheme: AppBarTheme(
-        backgroundColor: _darkBg,
-        foregroundColor: _darkText,
+        backgroundColor: _bg,
+        foregroundColor: _onBg,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.poppins(
+        titleTextStyle: GoogleFonts.fredoka(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: _darkText,
+          color: _onBg,
         ),
-        iconTheme: const IconThemeData(color: _darkText),
+        iconTheme: const IconThemeData(color: _onBg),
       ),
 
-      // ── Input Fields ──
+      // ── Input Fields ── filled defaults to false: every migrated
+      // Neo-Brutalist field widget already draws its own white/black-bordered
+      // container around a plain TextField, so a theme-level `filled: true`
+      // fill only ever leaked an unwanted background *inside* that container.
+      // See NeoBrutalistTextField/NeoBrutalistSearchBar for the pattern this
+      // now matches instead of fighting.
       inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: _darkCard,
+        filled: false,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide.none,
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: Colors.black, width: 2),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: _darkDiv, width: 1),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: Colors.black, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.zero,
+          borderSide: BorderSide(color: _accentA, width: 2.5),
         ),
         hintStyle: GoogleFonts.poppins(
-          color: _darkText.withValues(alpha: 0.4),
+          color: _onCard.withValues(alpha: 0.4),
           fontSize: 14,
         ),
-        labelStyle: GoogleFonts.poppins(color: _darkText, fontSize: 14),
+        labelStyle: GoogleFonts.poppins(color: _onCard, fontSize: 14),
       ),
 
-      // ── Cards ──
+      // ── Cards — neo-brutalist: solid border + hard offset shadow ──
       cardTheme: CardThemeData(
-        color: _darkCard,
-        elevation: 2,
-        shadowColor: const Color(0x33000000),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: _card,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Colors.black, width: 2),
+        ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
 
       // ── FAB ──
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.peach,
-        foregroundColor: _darkText,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: _accentA,
+        foregroundColor: _onCard,
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Colors.black, width: 2),
+        ),
       ),
 
-      // ── Chips ──
+      // ── Chips / pills ──
       chipTheme: ChipThemeData(
-        backgroundColor: _darkCard,
-        selectedColor: AppColors.peach,
-        labelStyle: GoogleFonts.poppins(fontSize: 12, color: _darkText),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: _accentB,
+        selectedColor: _accentA,
+        labelStyle: GoogleFonts.poppins(
+            fontSize: 12, fontWeight: FontWeight.w600, color: _onCard),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Colors.black, width: 2),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
 
       // ── Divider ──
-      dividerTheme: const DividerThemeData(
-          color: _darkDiv, thickness: 1, space: 0),
+      dividerTheme: const DividerThemeData(color: _div, thickness: 1, space: 0),
 
-      // ── Bottom Nav — pure AMOLED black for zero-power dark mode ──
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Colors.black,
-        selectedItemColor: AppColors.softTeal,
-        unselectedItemColor: Color(0xFF666666),
+      // ── Bottom Nav ──
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: _bg,
+        selectedItemColor: _accentB,
+        unselectedItemColor: _onBg.withValues(alpha: 0.45),
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
@@ -253,35 +171,41 @@ class AppTheme {
 
   // ════════════════════════════════════════════════════════════════════════════
   // SHARED TEXT THEME BUILDER
-  // Every variant is explicitly typed so widgets that inherit from the theme
-  // always get the right color — no widget needs to hardcode a text color.
+  //
+  // Headings (display/headline/titleLarge/titleMedium) use Fredoka — the
+  // "playful flat design" heading font. Body/label copy stays on Poppins for
+  // readability at small sizes. All variants render [_onBg] (cream) since
+  // Flutter's default `Text` widgets sit directly on the dark-brown scaffold;
+  // the handful of cream-card widgets that need dark-on-cream text set their
+  // own color explicitly via `EspatiColors.darkBrown` rather than relying on
+  // the theme default (see [_CommunityGroupCard] etc.).
   // ════════════════════════════════════════════════════════════════════════════
-  static TextTheme _buildTextTheme(Color textColor) {
+  static TextTheme _buildTextTheme() {
     return GoogleFonts.poppinsTextTheme().copyWith(
-      // ── Display ──
-      displayLarge:  GoogleFonts.poppins(fontSize: 57, fontWeight: FontWeight.w400, color: textColor),
-      displayMedium: GoogleFonts.poppins(fontSize: 45, fontWeight: FontWeight.w400, color: textColor),
-      displaySmall:  GoogleFonts.poppins(fontSize: 36, fontWeight: FontWeight.w400, color: textColor),
+      // ── Display (Fredoka — heading) ──
+      displayLarge:  GoogleFonts.fredoka(fontSize: 57, fontWeight: FontWeight.w600, color: _onBg),
+      displayMedium: GoogleFonts.fredoka(fontSize: 45, fontWeight: FontWeight.w600, color: _onBg),
+      displaySmall:  GoogleFonts.fredoka(fontSize: 36, fontWeight: FontWeight.w600, color: _onBg),
 
-      // ── Headline ──
-      headlineLarge:  GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.w700, color: textColor),
-      headlineMedium: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.w700, color: textColor),
-      headlineSmall:  GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.w600, color: textColor),
+      // ── Headline (Fredoka — heading) ──
+      headlineLarge:  GoogleFonts.fredoka(fontSize: 32, fontWeight: FontWeight.w700, color: _onBg),
+      headlineMedium: GoogleFonts.fredoka(fontSize: 24, fontWeight: FontWeight.w700, color: _onBg),
+      headlineSmall:  GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.w600, color: _onBg),
 
-      // ── Title ──
-      titleLarge:  GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600, color: textColor),
-      titleMedium: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
-      titleSmall:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: textColor),
+      // ── Title (Fredoka for Large/Medium — still heading-weight; Small stays body-like) ──
+      titleLarge:  GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w600, color: _onBg),
+      titleMedium: GoogleFonts.fredoka(fontSize: 16, fontWeight: FontWeight.w600, color: _onBg),
+      titleSmall:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: _onBg),
 
-      // ── Body ──
-      bodyLarge:  GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w400, color: textColor),
-      bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w400, color: textColor),
-      bodySmall:  GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w400, color: textColor.withValues(alpha: 0.7)),
+      // ── Body (Poppins — readable copy) ──
+      bodyLarge:  GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w400, color: _onBg),
+      bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w400, color: _onBg),
+      bodySmall:  GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.7)),
 
-      // ── Label ──
-      labelLarge:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: textColor),
-      labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: textColor),
-      labelSmall:  GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w400, color: textColor.withValues(alpha: 0.6)),
+      // ── Label (Poppins) ──
+      labelLarge:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: _onBg),
+      labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: _onBg),
+      labelSmall:  GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.6)),
     );
   }
 }

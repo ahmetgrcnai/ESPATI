@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../core/notification_service.dart';
 import '../../data/models/reminder_model.dart';
 import '../../data/sample_data.dart';
 import '../../viewmodels/profile_viewmodel.dart';
+import '../../widgets/common/neo_brutalist_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// REMINDER MANAGER SCREEN
+// REMINDER MANAGER SCREEN (Neo-Brutalist pass — aligned to the app's actual
+// current design system: [NeoBrutal] tokens, same as Keşfet/Paties/Pati-AI.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Full-screen list of all reminders with swipe-to-delete and a FAB to add new
@@ -18,50 +21,9 @@ class ReminderManagerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text(
-          'Pati Takvimi',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: cs.onSurface,
-          ),
-        ),
-        actions: [
-          // Request permissions shortcut (useful on first open)
-          IconButton(
-            tooltip: 'Bildirim izni',
-            icon: Icon(Icons.notifications_active_rounded,
-                color: AppColors.softTeal),
-            onPressed: () async {
-              final granted =
-                  await NotificationService.instance.requestPermissions();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(granted
-                        ? 'Bildirim izni verildi ✓'
-                        : 'Bildirim izni reddedildi.'),
-                    backgroundColor:
-                        granted ? AppColors.success : AppColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
-              }
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: NeoBrutal.scaffoldBg,
+      appBar: _ReminderAppBar(),
       body: Consumer<ProfileViewModel>(
         builder: (context, vm, _) {
           // Error snackbar
@@ -69,11 +31,14 @@ class ReminderManagerScreen extends StatelessWidget {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(vm.errorMessage!),
-                  backgroundColor: AppColors.error,
+                  content: Text(vm.errorMessage!,
+                      style: GoogleFonts.poppins(fontSize: 13)),
+                  backgroundColor: EspatiColors.red,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                    side: BorderSide(color: Colors.black, width: 2),
+                  ),
                 ),
               );
               vm.clearError();
@@ -81,7 +46,9 @@ class ReminderManagerScreen extends StatelessWidget {
           }
 
           if (vm.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: EspatiColors.sageGreen),
+            );
           }
 
           if (vm.reminders.isEmpty) {
@@ -91,7 +58,7 @@ class ReminderManagerScreen extends StatelessWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             itemCount: vm.reminders.length,
             itemBuilder: (context, index) {
               final reminder = vm.reminders[index];
@@ -105,13 +72,30 @@ class ReminderManagerScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: NeoBrutalistButton(
+        semanticLabel: 'Hatırlatıcı Ekle',
         onPressed: () => _showAddSheet(context),
-        backgroundColor: AppColors.softTeal,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_alarm_rounded),
-        label: Text('Hatırlatıcı Ekle',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: EspatiColors.sageGreen,
+            borderRadius: BorderRadius.zero,
+            border: NeoBrutal.border(2.5),
+            boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.add_alarm_rounded, color: Colors.black, size: 20),
+              const SizedBox(width: 8),
+              Text('Hatırlatıcı Ekle',
+                  style: GoogleFonts.fredoka(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.black)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -137,7 +121,114 @@ class ReminderManagerScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// REMINDER CARD  (public — also used in ProfileScreen preview)
+// APP BAR — sharp back block + Fredoka title, thick black bottom border on
+// the [NeoBrutal.scaffoldBg] canvas. Same convention as [AiVetScreen] /
+// [ListingFormScreen].
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ReminderAppBar extends StatelessWidget implements PreferredSizeWidget {
+  @override
+  Size get preferredSize => const Size.fromHeight(64);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 64,
+      decoration: const BoxDecoration(
+        color: NeoBrutal.scaffoldBg,
+        border: Border(
+          bottom: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              NeoBrutalistButton(
+                semanticLabel: 'Geri',
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
+                    border: NeoBrutal.border(2.5),
+                    boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                  ),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.black, size: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Pati Takvimi',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.fredoka(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              NeoBrutalistButton(
+                semanticLabel: 'Bildirim izni',
+                onPressed: () async {
+                  final granted =
+                      await NotificationService.instance.requestPermissions();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          granted
+                              ? 'Bildirim izni verildi ✓'
+                              : 'Bildirim izni reddedildi.',
+                          style: GoogleFonts.poppins(fontSize: 13),
+                        ),
+                        backgroundColor: granted
+                            ? EspatiColors.sageGreen
+                            : EspatiColors.red,
+                        behavior: SnackBarBehavior.floating,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                          side: BorderSide(color: Colors.black, width: 2),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: EspatiColors.sageGreen,
+                    borderRadius: BorderRadius.zero,
+                    border: NeoBrutal.border(2.5),
+                    boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                  ),
+                  child: const Icon(Icons.notifications_active_rounded,
+                      color: Colors.black, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REMINDER CARD — white block, thick black border, hard shadow. Category
+// color still used as an accent (left bar + icon tile), just no longer
+// alpha-tinted-glass — a solid fill with a black border, matching every
+// other icon tile in the app's current design.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ReminderCard extends StatelessWidget {
@@ -158,18 +249,10 @@ class ReminderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
     final now = DateTime.now();
     final isOverdue =
         !reminder.isCompleted && reminder.dateTime.isBefore(now);
-    final accentColor =
-        isOverdue ? AppColors.peach : AppColors.softTeal;
-    final cardColor = reminder.isCompleted
-        ? cs.surface.withValues(alpha: 0.5)
-        : cs.surface;
+    final accentColor = isOverdue ? EspatiColors.red : EspatiColors.sageGreen;
 
     return Dismissible(
       key: ValueKey(reminder.id),
@@ -177,63 +260,39 @@ class ReminderCard extends StatelessWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(16),
+          color: EspatiColors.red,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
         ),
         child: const Icon(Icons.delete_sweep_rounded,
             color: Colors.white, size: 28),
       ),
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('Hatırlatıcıyı sil'),
-                content: Text(
-                    '"${reminder.title}" silinecek. Bu işlem geri alınamaz.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('İptal'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: Text('Sil',
-                        style: TextStyle(color: AppColors.error)),
-                  ),
-                ],
-              ),
-            ) ??
-            false;
-      },
+      confirmDismiss: (_) => _confirmDelete(context),
       onDismissed: (_) => onDelete(),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: reminder.isCompleted
+              ? Colors.white.withValues(alpha: 0.6)
+              : Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+          boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
         ),
         child: Row(
           children: [
             // ── Left color bar ──────────────────────────────────────────────
             Container(
-              width: 5,
-              height: 80,
+              width: 6,
+              height: 84,
               decoration: BoxDecoration(
                 color: reminder.isCompleted
-                    ? cs.onSurface.withValues(alpha: 0.2)
+                    ? Colors.black.withValues(alpha: 0.15)
                     : accentColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
+                border: const Border(
+                  right: BorderSide(color: Colors.black, width: 2),
                 ),
               ),
             ),
@@ -244,19 +303,20 @@ class ReminderCard extends StatelessWidget {
             Container(
               width: 44,
               height: 44,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: reminder.isCompleted
-                    ? cs.onSurface.withValues(alpha: 0.08)
-                    : reminder.category.color.withValues(
-                        alpha: isDark ? 0.25 : 0.12),
-                borderRadius: BorderRadius.circular(12),
+                    ? Colors.white
+                    : reminder.category.color,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(2),
               ),
               child: Icon(
                 reminder.category.icon,
                 size: 22,
                 color: reminder.isCompleted
-                    ? cs.onSurface.withValues(alpha: 0.3)
-                    : reminder.category.color,
+                    ? Colors.black.withValues(alpha: 0.35)
+                    : Colors.black,
               ),
             ),
 
@@ -264,108 +324,129 @@ class ReminderCard extends StatelessWidget {
 
             // ── Text content ────────────────────────────────────────────────
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    reminder.title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: reminder.isCompleted
-                          ? cs.onSurface.withValues(alpha: 0.4)
-                          : cs.onSurface,
-                      decoration: reminder.isCompleted
-                          ? TextDecoration.lineThrough
-                          : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      reminder.title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: reminder.isCompleted
+                            ? Colors.black.withValues(alpha: 0.4)
+                            : Colors.black,
+                        decoration: reminder.isCompleted
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.schedule_rounded,
-                        size: 12,
-                        color: isOverdue && !reminder.isCompleted
-                            ? AppColors.peach
-                            : cs.onSurface.withValues(alpha: 0.45),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatDateTime(reminder.dateTime),
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 12,
                           color: isOverdue && !reminder.isCompleted
-                              ? AppColors.peach
-                              : cs.onSurface.withValues(alpha: 0.45),
-                          fontWeight: isOverdue && !reminder.isCompleted
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                              ? EspatiColors.red
+                              : Colors.black.withValues(alpha: 0.45),
                         ),
-                      ),
-                      if (petName != null) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.pets_rounded,
-                            size: 12,
-                            color: cs.onSurface.withValues(alpha: 0.35)),
-                        const SizedBox(width: 3),
-                        Text(
-                          petName!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: cs.onSurface.withValues(alpha: 0.45),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            _formatDateTime(reminder.dateTime),
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: isOverdue && !reminder.isCompleted
+                                  ? EspatiColors.red
+                                  : Colors.black.withValues(alpha: 0.45),
+                              fontWeight: isOverdue && !reminder.isCompleted
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                  if (reminder.isRepeating)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Row(
-                        children: [
-                          Icon(Icons.repeat_rounded,
-                              size: 11,
-                              color: AppColors.softTeal.withValues(alpha: 0.7)),
+                        if (petName != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.pets_rounded,
+                              size: 12,
+                              color: Colors.black.withValues(alpha: 0.35)),
                           const SizedBox(width: 3),
-                          Text(
-                            reminder.repeatInterval?.label ?? '',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color:
-                                  AppColors.softTeal.withValues(alpha: 0.7),
+                          Flexible(
+                            child: Text(
+                              petName!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.black.withValues(alpha: 0.45),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                ],
+                    if (reminder.isRepeating)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Row(
+                          children: [
+                            Icon(Icons.repeat_rounded,
+                                size: 11,
+                                color:
+                                    EspatiColors.sageGreen.withValues(alpha: 0.8)),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                reminder.repeatInterval?.label ?? '',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: EspatiColors.sageGreen
+                                      .withValues(alpha: 0.9),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
 
             // ── Complete checkbox ───────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Transform.scale(
-                scale: 1.1,
-                child: Checkbox(
-                  value: reminder.isCompleted,
-                  onChanged: reminder.isCompleted
-                      ? null
-                      : (_) => onComplete(),
-                  activeColor: AppColors.softTeal,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
+              padding: const EdgeInsets.only(right: 14),
+              child: GestureDetector(
+                onTap: reminder.isCompleted ? null : onComplete,
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: reminder.isCompleted
+                        ? EspatiColors.sageGreen
+                        : Colors.white,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(
+                      color: isOverdue && !reminder.isCompleted
+                          ? EspatiColors.red
+                          : Colors.black,
+                      width: 1.5,
+                    ),
                   ),
-                  side: BorderSide(
-                    color: isOverdue
-                        ? AppColors.peach
-                        : cs.onSurface.withValues(alpha: 0.3),
-                    width: 1.5,
-                  ),
+                  child: reminder.isCompleted
+                      ? const Icon(Icons.check_rounded,
+                          size: 17, color: Colors.black)
+                      : null,
                 ),
               ),
             ),
@@ -373,6 +454,91 @@ class ReminderCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(3),
+                boxShadow: NeoBrutal.shadow(const Offset(4, 4)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Hatırlatıcıyı sil',
+                    style: GoogleFonts.fredoka(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                        color: Colors.black),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '"${reminder.title}" silinecek. Bu işlem geri alınamaz.',
+                    style: GoogleFonts.poppins(
+                        fontSize: 13, color: Colors.black.withValues(alpha: 0.7)),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: NeoBrutalistButton(
+                          semanticLabel: 'İptal',
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.zero,
+                              border: NeoBrutal.border(2),
+                            ),
+                            child: Text('İptal',
+                                style: GoogleFonts.fredoka(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.black)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: NeoBrutalistButton(
+                          semanticLabel: 'Sil',
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: EspatiColors.red,
+                              borderRadius: BorderRadius.zero,
+                              border: NeoBrutal.border(2),
+                              boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                            ),
+                            child: Text('Sil',
+                                style: GoogleFonts.fredoka(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.black)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ) ??
+        false;
   }
 
   String _formatDateTime(DateTime dt) {
@@ -424,33 +590,35 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 120,
-              height: 120,
+              width: 110,
+              height: 110,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.softTeal.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+                color: EspatiColors.sageGreen,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(3),
+                boxShadow: NeoBrutal.shadow(const Offset(4, 4)),
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.calendar_month_rounded,
-                size: 60,
-                color: AppColors.softTeal.withValues(alpha: 0.6),
+                size: 54,
+                color: Colors.black,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
             Text(
               'Henüz hatırlatıcı yok',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
+              style: GoogleFonts.fredoka(
+                fontSize: 19,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
               ),
             ),
             const SizedBox(height: 8),
@@ -459,27 +627,38 @@ class _EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
                 fontSize: 14,
-                color: cs.onSurface.withValues(alpha: 0.55),
+                color: Colors.black.withValues(alpha: 0.6),
                 height: 1.5,
               ),
             ),
             const SizedBox(height: 28),
-            ElevatedButton.icon(
+            NeoBrutalistButton(
+              semanticLabel: 'İlk hatırlatıcını ekle',
               onPressed: onAdd,
-              icon: const Icon(Icons.add_alarm_rounded),
-              label: Text(
-                'İlk hatırlatıcını ekle!',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.softTeal,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                decoration: BoxDecoration(
+                  color: EspatiColors.sageGreen,
+                  borderRadius: BorderRadius.zero,
+                  border: NeoBrutal.border(2.5),
+                  boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
                 ),
-                elevation: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.add_alarm_rounded,
+                        color: Colors.black, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      'İlk hatırlatıcını ekle!',
+                      style: GoogleFonts.fredoka(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                          color: Colors.black),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -490,7 +669,9 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ADD REMINDER BOTTOM SHEET
+// ADD REMINDER BOTTOM SHEET — floats as a white blocky card with margin on
+// every side, same convention as [ActionHubSheet]'s sheets, just recolored
+// to the current white/black-border/hard-shadow system.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _AddReminderSheet extends StatefulWidget {
@@ -553,8 +734,8 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
     return Theme(
       data: Theme.of(context).copyWith(
         colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppColors.softTeal,
-              onPrimary: Colors.white,
+              primary: EspatiColors.sageGreen,
+              onPrimary: Colors.black,
             ),
       ),
       child: child!,
@@ -587,223 +768,261 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + bottomInset),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              // Title
-              Text(
-                'Yeni Hatırlatıcı',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Category selection ────────────────────────────────────────
-              _SectionLabel(label: 'Kategori'),
-              const SizedBox(height: 10),
-              _CategoryGrid(
-                selected: _category,
-                onSelected: (c) => setState(() => _category = c),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Title field ───────────────────────────────────────────────
-              _SectionLabel(label: 'Başlık'),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _titleCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Örn: Luna\'nun karma aşısı',
-                  prefixIcon:
-                      Icon(_category.icon, color: _category.color, size: 20),
-                ),
-                textCapitalization: TextCapitalization.sentences,
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Başlık giriniz.' : null,
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Pet selection ─────────────────────────────────────────────
-              _SectionLabel(label: 'Evcil Hayvan (isteğe bağlı)'),
-              const SizedBox(height: 10),
-              _PetChips(
-                selectedPetId: _selectedPetId,
-                onSelected: (id) =>
-                    setState(() => _selectedPetId = id == _selectedPetId ? null : id),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Date & Time ───────────────────────────────────────────────
-              _SectionLabel(label: 'Tarih & Saat'),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _PickerButton(
-                      icon: Icons.calendar_month_rounded,
-                      label: _formatDate(_date),
-                      color: AppColors.softTeal,
-                      onTap: _pickDate,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 0, 12, 12 + bottomInset),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(3),
+          boxShadow: NeoBrutal.shadow(const Offset(4, 4)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.2),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PickerButton(
-                      icon: Icons.access_time_rounded,
-                      label:
-                          '${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
-                      color: AppColors.primary,
-                      onTap: _pickTime,
+                ),
+
+                // Title
+                Text(
+                  'Yeni Hatırlatıcı',
+                  style: GoogleFonts.fredoka(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Category selection ────────────────────────────────────────
+                const _SectionLabel(label: 'Kategori'),
+                const SizedBox(height: 10),
+                _CategoryGrid(
+                  selected: _category,
+                  onSelected: (c) => setState(() => _category = c),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Title field ───────────────────────────────────────────────
+                const _SectionLabel(label: 'Başlık'),
+                const SizedBox(height: 8),
+                _BlockyField(
+                  child: TextFormField(
+                    controller: _titleCtrl,
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                    decoration: InputDecoration(
+                      hintText: 'Örn: Luna\'nun karma aşısı',
+                      hintStyle: GoogleFonts.poppins(
+                          fontSize: 13.5,
+                          color: Colors.black.withValues(alpha: 0.4)),
+                      prefixIcon:
+                          Icon(_category.icon, color: Colors.black, size: 20),
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 14),
+                      errorStyle:
+                          GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
                     ),
+                    textCapitalization: TextCapitalization.sentences,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Başlık giriniz.'
+                        : null,
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Repeat toggle ─────────────────────────────────────────────
-              Container(
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: SwitchListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                  title: Text(
-                    'Tekrar Et',
-                    style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  subtitle: Text(
-                    'Haftalık veya aylık tekrarlayan hatırlatıcı',
-                    style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: cs.onSurface.withValues(alpha: 0.5)),
-                  ),
-                  value: _isRepeating,
-                  onChanged: (v) => setState(() => _isRepeating = v),
-                  activeThumbColor: AppColors.softTeal,
-                  activeTrackColor: AppColors.softTealLight,
-                  secondary: Icon(Icons.repeat_rounded,
-                      color: _isRepeating
-                          ? AppColors.softTeal
-                          : cs.onSurface.withValues(alpha: 0.4)),
-                ),
-              ),
 
-              // Repeat interval selector
-              if (_isRepeating) ...[
+                const SizedBox(height: 20),
+
+                // ── Pet selection ─────────────────────────────────────────────
+                const _SectionLabel(label: 'Evcil Hayvan (isteğe bağlı)'),
+                const SizedBox(height: 10),
+                _PetChips(
+                  selectedPetId: _selectedPetId,
+                  onSelected: (id) => setState(
+                      () => _selectedPetId = id == _selectedPetId ? null : id),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Date & Time ───────────────────────────────────────────────
+                const _SectionLabel(label: 'Tarih & Saat'),
                 const SizedBox(height: 10),
                 Row(
-                  children: RepeatInterval.values.map((interval) {
-                    final isSelected = _repeatInterval == interval;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _repeatInterval = interval),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          margin: EdgeInsets.only(
-                              right: interval == RepeatInterval.weekly ? 8 : 0),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.softTeal
-                                : cs.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.softTeal
-                                  : theme.dividerColor,
-                            ),
+                  children: [
+                    Expanded(
+                      child: _PickerButton(
+                        icon: Icons.calendar_month_rounded,
+                        label: _formatDate(_date),
+                        onTap: _pickDate,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _PickerButton(
+                        icon: Icons.access_time_rounded,
+                        label:
+                            '${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}',
+                        onTap: _pickTime,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Repeat toggle ─────────────────────────────────────────────
+                _BlockyField(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 6),
+                    child: Row(
+                      children: [
+                        Icon(Icons.repeat_rounded,
+                            color: _isRepeating
+                                ? EspatiColors.sageGreen
+                                : Colors.black.withValues(alpha: 0.4)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tekrar Et',
+                                style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Colors.black),
+                              ),
+                              Text(
+                                'Haftalık veya aylık tekrarlayan hatırlatıcı',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: Colors.black.withValues(alpha: 0.5)),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            interval.label,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: isSelected
-                                  ? Colors.white
-                                  : cs.onSurface.withValues(alpha: 0.7),
+                        ),
+                        Switch(
+                          value: _isRepeating,
+                          onChanged: (v) => setState(() => _isRepeating = v),
+                          activeThumbColor: Colors.white,
+                          activeTrackColor: EspatiColors.sageGreen,
+                          trackOutlineColor:
+                              WidgetStateProperty.all(Colors.black),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Repeat interval selector
+                if (_isRepeating) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: RepeatInterval.values.map((interval) {
+                      final isSelected = _repeatInterval == interval;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                              right:
+                                  interval == RepeatInterval.weekly ? 8 : 0),
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _repeatInterval = interval),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? EspatiColors.sageGreen
+                                    : Colors.white,
+                                borderRadius: BorderRadius.zero,
+                                border: NeoBrutal.border(isSelected ? 2.5 : 2),
+                                boxShadow: isSelected
+                                    ? NeoBrutal.shadow(const Offset(2, 2))
+                                    : null,
+                              ),
+                              child: Text(
+                                interval.label,
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: Colors.black,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 28),
+
+                // ── Save button ───────────────────────────────────────────────
+                NeoBrutalistButton(
+                  semanticLabel: 'Kaydet & Bildir',
+                  onPressed: _isSaving ? null : _save,
+                  child: Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    decoration: BoxDecoration(
+                      color: _isSaving
+                          ? EspatiColors.sageGreen.withValues(alpha: 0.5)
+                          : EspatiColors.sageGreen,
+                      borderRadius: BorderRadius.zero,
+                      border: NeoBrutal.border(2.5),
+                      boxShadow: _isSaving
+                          ? null
+                          : NeoBrutal.shadow(const Offset(3, 3)),
+                    ),
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.black),
+                          )
+                        : Text(
+                            'Kaydet & Bildir',
+                            style: GoogleFonts.fredoka(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              color: Colors.black,
+                            ),
+                          ),
+                  ),
                 ),
               ],
-
-              const SizedBox(height: 28),
-
-              // ── Save button ───────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.softTeal,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        AppColors.softTeal.withValues(alpha: 0.5),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
-                        )
-                      : Text(
-                          'Kaydet & Bildir',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -824,6 +1043,26 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
 // SHEET SUB-WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// White/black-bordered/hard-shadow frame around a plain input — same
+// convention as [ListingFormScreen]'s `_BlockyField`.
+class _BlockyField extends StatelessWidget {
+  final Widget child;
+
+  const _BlockyField({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero,
+        border: NeoBrutal.border(2),
+      ),
+      child: child,
+    );
+  }
+}
+
 class _SectionLabel extends StatelessWidget {
   final String label;
   const _SectionLabel({required this.label});
@@ -835,7 +1074,7 @@ class _SectionLabel extends StatelessWidget {
       style: GoogleFonts.poppins(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        color: Colors.black.withValues(alpha: 0.7),
       ),
     );
   }
@@ -849,7 +1088,6 @@ class _CategoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return GridView.count(
       crossAxisCount: 3,
       shrinkWrap: true,
@@ -861,27 +1099,22 @@ class _CategoryGrid extends StatelessWidget {
         final isSelected = selected == cat;
         return GestureDetector(
           onTap: () => onSelected(cat),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
+          child: Container(
             decoration: BoxDecoration(
-              color: isSelected
-                  ? cat.color.withValues(alpha: 0.15)
-                  : theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? cat.color : theme.dividerColor,
-                width: isSelected ? 2 : 1,
-              ),
+              color: isSelected ? cat.color : Colors.white,
+              borderRadius: BorderRadius.zero,
+              border: NeoBrutal.border(isSelected ? 2.5 : 2),
+              boxShadow:
+                  isSelected ? NeoBrutal.shadow(const Offset(2, 2)) : null,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(cat.icon,
-                    size: 24,
+                    size: 22,
                     color: isSelected
-                        ? cat.color
-                        : theme.colorScheme.onSurface
-                            .withValues(alpha: 0.45)),
+                        ? Colors.black
+                        : Colors.black.withValues(alpha: 0.45)),
                 const SizedBox(height: 4),
                 Text(
                   cat.label,
@@ -889,9 +1122,8 @@ class _CategoryGrid extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: isSelected
-                        ? cat.color
-                        : theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
+                        ? Colors.black
+                        : Colors.black.withValues(alpha: 0.55),
                   ),
                 ),
               ],
@@ -920,43 +1152,26 @@ class _PetChips extends StatelessWidget {
         final isSelected = selectedPetId == name;
         return GestureDetector(
           onTap: () => onSelected(name),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.softTeal.withValues(alpha: 0.15)
-                  : Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected ? AppColors.softTeal : AppColors.divider,
-                width: isSelected ? 1.5 : 1,
-              ),
+              color: isSelected ? EspatiColors.sageGreen : Colors.white,
+              borderRadius: BorderRadius.zero,
+              border: NeoBrutal.border(isSelected ? 2.5 : 2),
+              boxShadow:
+                  isSelected ? NeoBrutal.shadow(const Offset(2, 2)) : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.pets_rounded,
-                    size: 14,
-                    color: isSelected
-                        ? AppColors.softTeal
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.45)),
+                Icon(Icons.pets_rounded, size: 14, color: Colors.black),
                 const SizedBox(width: 5),
                 Text(
                   name,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: isSelected
-                        ? AppColors.softTeal
-                        : Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
                   ),
                 ),
               ],
@@ -971,39 +1186,36 @@ class _PetChips extends StatelessWidget {
 class _PickerButton extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
   final VoidCallback onTap;
 
   const _PickerButton({
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: theme.dividerColor),
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: color),
+            Icon(icon, size: 18, color: Colors.black),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 label,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),

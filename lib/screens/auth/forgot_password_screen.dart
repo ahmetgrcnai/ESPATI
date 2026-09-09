@@ -3,8 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'widgets/auth_text_field.dart';
+import 'widgets/auth_widgets.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -63,8 +66,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   style: GoogleFonts.poppins(fontSize: 13)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+                side: BorderSide(color: Colors.black, width: 2),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
@@ -81,10 +86,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             SnackBar(
               content: Text(authVM.successMessage!,
                   style: GoogleFonts.poppins(fontSize: 13)),
-              backgroundColor: AppColors.success,
+              backgroundColor: EspatiColors.sageGreen,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+                side: BorderSide(color: Colors.black, width: 2),
+              ),
               margin: const EdgeInsets.all(16),
               duration: const Duration(seconds: 4),
             ),
@@ -102,6 +109,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _handleMessages(authVM);
 
     return Scaffold(
+      backgroundColor: NeoBrutal.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -111,30 +119,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // ── Back ─────────────────────────────────────────────────────
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
+                const AuthBackButton(),
 
                 const SizedBox(height: 32),
 
                 // ── Icon ─────────────────────────────────────────────────────
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: AppColors.peach.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_reset_rounded,
-                    size: 46,
-                    color: AppColors.softTeal,
-                  ),
+                const AuthIconBadge(
+                  icon: Icons.lock_reset_rounded,
+                  color: EspatiColors.lightBlue,
                 ),
 
                 const SizedBox(height: 24),
@@ -142,13 +134,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 // ── Heading ───────────────────────────────────────────────────
                 Text(
                   'Şifremi Unuttum',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'E-posta adresinizi girin. Şifre sıfırlama bağlantısını\nhemen gönderelim.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
@@ -169,35 +168,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 28),
 
                 // ── Send button ───────────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: authVM.isSubmitting
-                        ? null
-                        : () => _sendResetEmail(authVM),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.softTeal,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          AppColors.softTeal.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24)),
-                      elevation: 0,
-                    ),
-                    child: authVM.isSubmitting
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : Text(
-                            'Sıfırlama Bağlantısı Gönder',
-                            style: GoogleFonts.poppins(
-                                fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                  ),
+                AuthPrimaryButton(
+                  label: 'Sıfırlama Bağlantısı Gönder',
+                  isLoading: authVM.isSubmitting,
+                  onPressed: () => _sendResetEmail(authVM),
                 ),
 
                 const SizedBox(height: 24),
@@ -209,8 +183,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     'Giriş ekranına dön',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      color: AppColors.softTeal,
-                      fontWeight: FontWeight.w500,
+                      color: EspatiColors.terracotta,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

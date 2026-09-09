@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../core/app_colors.dart';
+
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/notification_model.dart';
 import '../../viewmodels/notification_viewmodel.dart';
+import '../../widgets/common/neo_brutalist_button.dart';
 
-/// Dedicated notification screen with full list and 'Mark all as read' button.
+/// Dedicated notification screen with full list and "Tümünü okundu
+/// işaretle" button — Neo-Brutalist pass, aligned to the app's current
+/// design system (same [NeoBrutal] tokens as Keşfet/[ProfileScreen]).
 ///
 /// All state is managed by [NotificationViewModel].
 class NotificationScreen extends StatelessWidget {
@@ -12,76 +18,51 @@ class NotificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-        title: Text(
-          'Notifications',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            color: cs.onSurface,
-          ),
-        ),
-        actions: [
-          Consumer<NotificationViewModel>(
-            builder: (context, vm, _) {
-              if (vm.notifications.isEmpty) return const SizedBox.shrink();
-              return TextButton.icon(
-                onPressed: () => vm.markAllAsRead(),
-                icon: Icon(Icons.done_all_rounded,
-                    size: 18, color: AppColors.primary),
-                label: Text(
-                  'Mark all read',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-        ],
-      ),
+      backgroundColor: NeoBrutal.scaffoldBg,
+      appBar: _NotificationAppBar(),
       body: Consumer<NotificationViewModel>(
         builder: (context, vm, _) {
           // ── Empty State ──
           if (vm.notifications.isEmpty) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off_rounded,
-                    size: 64,
-                    color: cs.onSurface.withValues(alpha: 0.2),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications yet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface.withValues(alpha: 0.5),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.zero,
+                        border: NeoBrutal.border(2.5),
+                      ),
+                      child: Icon(Icons.notifications_off_rounded,
+                          size: 44, color: Colors.black.withValues(alpha: 0.35)),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Interact with posts and events to see\nnotifications appear here',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: cs.onSurface.withValues(alpha: 0.4),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Henüz bildirim yok',
+                      style: GoogleFonts.fredoka(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      'Gönderi ve etkinliklerle etkileşime geçtiğinde\nbildirimler burada görünecek.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.black.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -91,25 +72,25 @@ class NotificationScreen extends StatelessWidget {
             children: [
               if (vm.hasUnread)
                 Container(
-                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, AppColors.primaryDark],
-                    ),
-                    borderRadius: BorderRadius.circular(14),
+                    color: EspatiColors.terracotta,
+                    borderRadius: BorderRadius.zero,
+                    border: NeoBrutal.border(2),
+                    boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.notifications_active_rounded,
-                          color: Colors.white, size: 20),
+                          color: Colors.black, size: 20),
                       const SizedBox(width: 10),
                       Text(
-                        '${vm.unreadCount} unread notification${vm.unreadCount > 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                        '${vm.unreadCount} okunmamış bildirim',
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
                       ),
@@ -118,7 +99,7 @@ class NotificationScreen extends StatelessWidget {
                 ),
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: vm.notifications.length,
                   itemBuilder: (context, index) {
                     final notif = vm.notifications[index];
@@ -136,6 +117,96 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APP BAR — sharp back block + Fredoka title + "Tümünü okundu işaretle"
+// action, thick black bottom border on the [NeoBrutal.scaffoldBg] canvas.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NotificationAppBar extends StatelessWidget implements PreferredSizeWidget {
+  @override
+  Size get preferredSize => const Size.fromHeight(64);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 64,
+      decoration: const BoxDecoration(
+        color: NeoBrutal.scaffoldBg,
+        border: Border(
+          bottom: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              NeoBrutalistButton(
+                semanticLabel: 'Geri',
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
+                    border: NeoBrutal.border(2.5),
+                    boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                  ),
+                  child: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.black, size: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Bildirimler',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.fredoka(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Consumer<NotificationViewModel>(
+                builder: (context, vm, _) {
+                  if (vm.notifications.isEmpty) return const SizedBox.shrink();
+                  return NeoBrutalistButton(
+                    semanticLabel: 'Tümünü okundu işaretle',
+                    onPressed: () => vm.markAllAsRead(),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: EspatiColors.sageGreen,
+                        borderRadius: BorderRadius.zero,
+                        border: NeoBrutal.border(2.5),
+                        boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                      ),
+                      child: const Icon(Icons.done_all_rounded,
+                          color: Colors.black, size: 20),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION CARD — white block, thick black border; unread cards get an
+// accent-tinted fill, hard shadow, and a square accent dot.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _NotificationCard extends StatelessWidget {
   final NotificationModel notification;
@@ -159,59 +230,57 @@ class _NotificationCard extends StatelessWidget {
     }
   }
 
-  Color get _iconColor {
+  Color get _accentColor {
     switch (notification.type) {
       case NotificationType.like:
-        return AppColors.error;
+        return EspatiColors.red;
       case NotificationType.comment:
-        return AppColors.primary;
+        return EspatiColors.lightBlue;
       case NotificationType.event:
-        return AppColors.success;
+        return EspatiColors.sageGreen;
       case NotificationType.system:
-        return AppColors.warning;
+        return EspatiColors.terracotta;
     }
   }
 
   String _formatTime(DateTime timestamp) {
     final diff = DateTime.now().difference(timestamp);
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inSeconds < 60) return 'Az önce';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}dk önce';
+    if (diff.inHours < 24) return '${diff.inHours}sa önce';
+    return '${diff.inDays}g önce';
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+    return NeoBrutalistButton(
+      semanticLabel: notification.title,
+      onPressed: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? cs.surface
-              : AppColors.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 4,
-              offset: const Offset(0, 1),
-            ),
-          ],
+              ? Colors.white
+              : _accentColor.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+          boxShadow:
+              notification.isRead ? null : NeoBrutal.shadow(const Offset(3, 3)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: _iconColor.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
+                color: _accentColor,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(2),
               ),
-              child: Icon(_icon, color: _iconColor, size: 22),
+              child: Icon(_icon, color: Colors.black, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -223,20 +292,20 @@ class _NotificationCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontWeight: notification.isRead
-                                ? FontWeight.w500
+                                ? FontWeight.w600
                                 : FontWeight.w700,
                             fontSize: 14,
-                            color: cs.onSurface,
+                            color: Colors.black,
                           ),
                         ),
                       ),
                       Text(
                         _formatTime(notification.timestamp),
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 11,
-                          color: cs.onSurface.withValues(alpha: 0.4),
+                          color: Colors.black.withValues(alpha: 0.4),
                         ),
                       ),
                     ],
@@ -244,9 +313,9 @@ class _NotificationCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: cs.onSurface.withValues(alpha: 0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -259,9 +328,10 @@ class _NotificationCard extends StatelessWidget {
               Container(
                 width: 10,
                 height: 10,
+                margin: const EdgeInsets.only(top: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
+                  color: _accentColor,
+                  border: Border.all(color: Colors.black, width: 1),
                 ),
               ),
             ],

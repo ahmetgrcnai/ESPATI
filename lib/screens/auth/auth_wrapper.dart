@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../main_screen.dart';
 import 'login_screen.dart';
@@ -25,10 +27,10 @@ class AuthWrapper extends StatelessWidget {
 
     return switch (authVM.authState) {
       AuthState.unknown => const Scaffold(
-          backgroundColor: Color(0xFFFFEEBF), // AppColors.background
+          backgroundColor: NeoBrutal.scaffoldBg,
           body: Center(
             child: CircularProgressIndicator(
-              color: Color(0xFF4DB6AC), // AppColors.softTeal
+              color: EspatiColors.terracotta,
             ),
           ),
         ),

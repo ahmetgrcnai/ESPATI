@@ -7,18 +7,25 @@ import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../core/constants/app_colors.dart' show EspatiColors;
 import '../core/eskisehir_districts.dart';
+import '../core/neo_brutalist_tokens.dart';
 import '../data/models/listing_model.dart';
 import '../services/content_moderation_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/form_viewmodel.dart';
+import '../widgets/common/neo_brutalist_button.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LISTING FORM SCREEN (Neo-Brutalist pass)
+// LISTING FORM SCREEN (Neo-Brutalist pass — aligned to the app's actual
+// current design system)
 //
-// Shared form for Sahiplendirme / Kayıp-Buluntu / Bakıcı listing creation —
-// same cream-on-dark-brown blocky visual language as [CreatePostScreen]
-// (Design System Step 32) so every content-creation screen reached from the
-// "Oluştur" hub ([action_hub_sheet.dart]) reads as one family.
+// Shared form for Sahiplendirme / Kayıp-Buluntu / Bakıcı listing creation.
+// Same [NeoBrutal] tokens (white/near-white canvas, solid black borders,
+// hard black offset shadows) as every other current-generation screen —
+// Keşfet ([AlgorithmicFeedScreen]), Paties, Pati-AI & Akademi, guide
+// detail. The cream/dark-brown palette ([CreatePostScreen],
+// [action_hub_sheet.dart]) is an earlier design-system generation this
+// screen no longer follows — see the app's own "Step 66" migration note
+// on [AlgorithmicFeedScreen] ("was the dark-brown scaffold").
 //
 // [ListingStatus.bakici] is a service listing, not an animal listing, so it
 // swaps the "Hayvan Bilgileri" section for "Hizmet Bilgileri" (service
@@ -278,7 +285,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: EspatiColors.darkBrown, width: 2),
+          side: BorderSide(color: Colors.black, width: 2),
         ),
       ),
     );
@@ -293,16 +300,10 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: EspatiColors.cream,
+            color: Colors.white,
             borderRadius: BorderRadius.zero,
-            border: Border.all(color: EspatiColors.darkBrown, width: 3),
-            boxShadow: const [
-              BoxShadow(
-                color: EspatiColors.darkBrown,
-                offset: Offset(4, 4),
-                blurRadius: 0,
-              ),
-            ],
+            border: NeoBrutal.border(3),
+            boxShadow: NeoBrutal.shadow(const Offset(4, 4)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -314,10 +315,10 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 decoration: BoxDecoration(
                   color: EspatiColors.sageGreen,
                   borderRadius: BorderRadius.zero,
-                  border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
+                  border: NeoBrutal.border(2.5),
                 ),
                 child: const Icon(Icons.check_rounded,
-                    color: EspatiColors.darkBrown, size: 32),
+                    color: Colors.black, size: 32),
               ),
               const SizedBox(height: 16),
               Text(
@@ -326,7 +327,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 style: GoogleFonts.fredoka(
                   fontWeight: FontWeight.w600,
                   fontSize: 19,
-                  color: EspatiColors.darkBrown,
+                  color: Colors.black,
                 ),
               ),
               const SizedBox(height: 8),
@@ -335,12 +336,13 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: EspatiColors.darkBrown.withValues(alpha: 0.7),
+                  color: Colors.black.withValues(alpha: 0.65),
                 ),
               ),
               const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () {
+              NeoBrutalistButton(
+                semanticLabel: 'Harika',
+                onPressed: () {
                   Navigator.pop(ctx);      // close dialog
                   Navigator.pop(context);  // return to caller
                 },
@@ -351,21 +353,15 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                   decoration: BoxDecoration(
                     color: EspatiColors.sageGreen,
                     borderRadius: BorderRadius.zero,
-                    border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: EspatiColors.darkBrown,
-                        offset: Offset(3, 3),
-                        blurRadius: 0,
-                      ),
-                    ],
+                    border: NeoBrutal.border(2.5),
+                    boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
                   ),
                   child: Text(
                     'Harika!',
                     style: GoogleFonts.fredoka(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
-                        color: EspatiColors.darkBrown),
+                        color: Colors.black),
                   ),
                 ),
               ),
@@ -380,21 +376,21 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Consumer<FormViewModel>(
       builder: (context, vm, _) {
         return Stack(
           children: [
             Scaffold(
-              backgroundColor: theme.scaffoldBackgroundColor,
-              appBar: _buildAppBar(),
+              // Same canvas as Keşfet/Paties/Pati-AI & Akademi — not the
+              // global theme's dark-brown scaffold default.
+              backgroundColor: NeoBrutal.scaffoldBg,
+              appBar: _ListingFormAppBar(title: _screenTitle),
               body: AbsorbPointer(
                 absorbing: vm.isSubmitting,
                 child: Form(
                   key: _formKey,
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     children: [
                       // ── Type banner ─────────────────────────────────────
                       _TypeBanner(type: widget.type),
@@ -416,8 +412,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedDistrict,
                           style: GoogleFonts.poppins(
-                              fontSize: 14, color: EspatiColors.darkBrown),
-                          dropdownColor: EspatiColors.cream,
+                              fontSize: 14, color: Colors.black),
+                          dropdownColor: Colors.white,
                           decoration: _fieldDecoration(
                             hintText: _isBakici
                                 ? 'Hizmet verdiğiniz ilçeyi seçin'
@@ -430,7 +426,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                     child: Text(d,
                                         style: GoogleFonts.poppins(
                                             fontSize: 14,
-                                            color: EspatiColors.darkBrown)),
+                                            color: Colors.black)),
                                   ))
                               .toList(),
                           onChanged: (v) => setState(() => _selectedDistrict = v),
@@ -448,8 +444,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                         child: DropdownButtonFormField<String?>(
                           initialValue: _selectedGroupId,
                           style: GoogleFonts.poppins(
-                              fontSize: 14, color: EspatiColors.darkBrown),
-                          dropdownColor: EspatiColors.cream,
+                              fontSize: 14, color: Colors.black),
+                          dropdownColor: Colors.white,
                           decoration: _fieldDecoration(
                             hintText: 'Genel (isteğe bağlı)',
                             prefixIcon: Icons.forum_rounded,
@@ -460,14 +456,14 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                               child: Text('Genel',
                                   style: GoogleFonts.poppins(
                                       fontSize: 14,
-                                      color: EspatiColors.darkBrown)),
+                                      color: Colors.black)),
                             ),
                             ...vm.chatGroups.map((g) => DropdownMenuItem<String?>(
                                   value: g.id,
                                   child: Text(g.name,
                                       style: GoogleFonts.poppins(
                                           fontSize: 14,
-                                          color: EspatiColors.darkBrown)),
+                                          color: Colors.black)),
                                 )),
                           ],
                           onChanged: (v) => setState(() => _selectedGroupId = v),
@@ -496,7 +492,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                         style: GoogleFonts.poppins(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
-                                            color: EspatiColors.darkBrown),
+                                            color: Colors.black),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -504,8 +500,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                         'hayvanlar için kullanın.',
                                         style: GoogleFonts.poppins(
                                           fontSize: 11,
-                                          color: EspatiColors.darkBrown
-                                              .withValues(alpha: 0.6),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.55),
                                         ),
                                       ),
                                     ],
@@ -515,11 +511,10 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                   value: _isUrgent,
                                   onChanged: (v) =>
                                       setState(() => _isUrgent = v),
-                                  activeThumbColor: EspatiColors.cream,
+                                  activeThumbColor: Colors.white,
                                   activeTrackColor: EspatiColors.red,
                                   trackOutlineColor:
-                                      WidgetStateProperty.all(
-                                          EspatiColors.darkBrown),
+                                      WidgetStateProperty.all(Colors.black),
                                 ),
                               ],
                             ),
@@ -537,7 +532,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                           maxLines: 5,
                           maxLength: _maxDescLength,
                           style: GoogleFonts.poppins(
-                              fontSize: 14, color: EspatiColors.darkBrown),
+                              fontSize: 14, color: Colors.black),
                           decoration: _fieldDecoration(
                             hintText: _descriptionHint,
                             alignLabelTop: true,
@@ -563,7 +558,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                         'En az 1, en fazla $_maxImages fotoğraf ekleyin.',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
-                          color: EspatiColors.cream.withValues(alpha: 0.6),
+                          color: Colors.black.withValues(alpha: 0.5),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -619,7 +614,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'İsim (Örn: Rocky, Mimi)',
             prefixIcon: Icons.badge_rounded,
@@ -631,8 +626,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedSpecies,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
-          dropdownColor: EspatiColors.cream,
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          dropdownColor: Colors.white,
           decoration: _fieldDecoration(
               hintText: 'Hayvan türünü seçin', prefixIcon: Icons.category_rounded),
           items: _species
@@ -640,7 +635,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                     value: s,
                     child: Text(s,
                         style: GoogleFonts.poppins(
-                            fontSize: 14, color: EspatiColors.darkBrown)),
+                            fontSize: 14, color: Colors.black)),
                   ))
               .toList(),
           onChanged: (v) => setState(() => _selectedSpecies = v),
@@ -651,7 +646,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _breedCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'Irk / Cins (Örn: Golden Retriever, Tekir)',
             prefixIcon: Icons.info_outline_rounded,
@@ -671,7 +666,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 style: GoogleFonts.poppins(
-                    fontSize: 14, color: EspatiColors.darkBrown),
+                    fontSize: 14, color: Colors.black),
                 decoration:
                     _fieldDecoration(hintText: 'Yaş', prefixIcon: Icons.cake_rounded),
                 validator: _requiredValidator('Yaş'),
@@ -685,8 +680,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedGender,
                 style: GoogleFonts.poppins(
-                    fontSize: 14, color: EspatiColors.darkBrown),
-                dropdownColor: EspatiColors.cream,
+                    fontSize: 14, color: Colors.black),
+                dropdownColor: Colors.white,
                 decoration:
                     _fieldDecoration(hintText: 'Cinsiyet', prefixIcon: Icons.wc_rounded),
                 items: _genders
@@ -694,7 +689,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                           value: g,
                           child: Text(g,
                               style: GoogleFonts.poppins(
-                                  fontSize: 14, color: EspatiColors.darkBrown)),
+                                  fontSize: 14, color: Colors.black)),
                         ))
                     .toList(),
                 onChanged: (v) => setState(() => _selectedGender = v),
@@ -712,7 +707,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'İlan Başlığı (Örn: Deneyimli Köpek Bakıcısı)',
             prefixIcon: Icons.badge_rounded,
@@ -724,8 +719,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedSpecies,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
-          dropdownColor: EspatiColors.cream,
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          dropdownColor: Colors.white,
           decoration: _fieldDecoration(
               hintText: 'Baktığınız türü seçin', prefixIcon: Icons.category_rounded),
           items: [..._species, _allSpecies]
@@ -733,7 +728,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                     value: s,
                     child: Text(s,
                         style: GoogleFonts.poppins(
-                            fontSize: 14, color: EspatiColors.darkBrown)),
+                            fontSize: 14, color: Colors.black)),
                   ))
               .toList(),
           onChanged: (v) => setState(() => _selectedSpecies = v),
@@ -744,7 +739,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _priceCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: EspatiColors.darkBrown),
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'Fiyat Bilgisi (Örn: 150₺/gün, saatlik 50₺)',
             prefixIcon: Icons.sell_rounded,
@@ -758,7 +753,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
         style: GoogleFonts.poppins(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: EspatiColors.cream.withValues(alpha: 0.85),
+          color: Colors.black.withValues(alpha: 0.85),
         ),
       ),
       const SizedBox(height: 8),
@@ -783,29 +778,6 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     ];
   }
 
-  // ── AppBar ────────────────────────────────────────────────────────────────
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: EspatiColors.darkBrown,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.close_rounded, color: EspatiColors.cream),
-        onPressed: () => Navigator.pop(context),
-        tooltip: 'Kapat',
-      ),
-      title: Text(
-        _screenTitle,
-        style: GoogleFonts.fredoka(
-          fontWeight: FontWeight.w600,
-          fontSize: 18,
-          color: EspatiColors.cream,
-        ),
-      ),
-      centerTitle: true,
-    );
-  }
-
   // ── Shared field decoration ──────────────────────────────────────────────
 
   InputDecoration _fieldDecoration({
@@ -816,12 +788,12 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     return InputDecoration(
       hintText: hintText,
       hintStyle: GoogleFonts.poppins(
-          fontSize: 13.5, color: EspatiColors.darkBrown.withValues(alpha: 0.45)),
+          fontSize: 13.5, color: Colors.black.withValues(alpha: 0.4)),
       prefixIcon: prefixIcon == null
           ? null
           : Padding(
               padding: alignLabelTop ? const EdgeInsets.only(bottom: 88) : EdgeInsets.zero,
-              child: Icon(prefixIcon, size: 19, color: EspatiColors.darkBrown.withValues(alpha: 0.6)),
+              child: Icon(prefixIcon, size: 19, color: Colors.black.withValues(alpha: 0.55)),
             ),
       filled: false,
       border: InputBorder.none,
@@ -831,7 +803,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       focusedErrorBorder: InputBorder.none,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       counterStyle: GoogleFonts.poppins(
-          fontSize: 11, color: EspatiColors.darkBrown.withValues(alpha: 0.5)),
+          fontSize: 11, color: Colors.black.withValues(alpha: 0.45)),
       errorStyle: GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
     );
   }
@@ -847,9 +819,75 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
 // SUPPORTING WIDGETS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Blocky cream/dark-brown/hard-shadow frame around a plain (border-less,
+/// Custom app bar — sharp close block (left) + Fredoka title, thick black
+/// bottom border on the [NeoBrutal.scaffoldBg] canvas. Same convention as
+/// [AiVetScreen]'s own app bar / [GuideDetailScreen]'s back button.
+class _ListingFormAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+
+  const _ListingFormAppBar({required this.title});
+
+  static const double _height = 64;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(_height);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: _height,
+      decoration: const BoxDecoration(
+        color: NeoBrutal.scaffoldBg,
+        border: Border(
+          bottom: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              NeoBrutalistButton(
+                semanticLabel: 'Kapat',
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.zero,
+                    border: NeoBrutal.border(2.5),
+                    boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+                  ),
+                  child: const Icon(Icons.close_rounded,
+                      color: Colors.black, size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.fredoka(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// White/black-bordered/hard-shadow frame around a plain (border-less,
 /// unfilled) input — every field on this screen reads as one consistent
-/// Neo-Brutalist block, same convention as [CreatePostScreen]'s `_BlockyField`.
+/// Neo-Brutalist block, matching [NeoBrutal] tokens used everywhere else.
 class _BlockyField extends StatelessWidget {
   final Widget child;
 
@@ -859,16 +897,10 @@ class _BlockyField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: EspatiColors.cream,
+        color: Colors.white,
         borderRadius: BorderRadius.zero,
-        border: Border.all(color: EspatiColors.darkBrown, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: EspatiColors.darkBrown,
-            offset: Offset(3, 3),
-            blurRadius: 0,
-          ),
-        ],
+        border: NeoBrutal.border(2),
+        boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
       ),
       child: child,
     );
@@ -900,14 +932,8 @@ class _TypeBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: type.accentColor,
         borderRadius: BorderRadius.zero,
-        border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
-        boxShadow: const [
-          BoxShadow(
-            color: EspatiColors.darkBrown,
-            offset: Offset(3, 3),
-            blurRadius: 0,
-          ),
-        ],
+        border: NeoBrutal.border(2.5),
+        boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
       ),
       child: Row(
         children: [
@@ -916,11 +942,11 @@ class _TypeBanner extends StatelessWidget {
             height: 44,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: EspatiColors.cream,
+              color: Colors.white,
               borderRadius: BorderRadius.zero,
-              border: Border.all(color: EspatiColors.darkBrown, width: 2),
+              border: NeoBrutal.border(2),
             ),
-            child: Icon(type.icon, color: EspatiColors.darkBrown, size: 22),
+            child: Icon(type.icon, color: Colors.black, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -932,7 +958,7 @@ class _TypeBanner extends StatelessWidget {
                   style: GoogleFonts.fredoka(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
-                    color: EspatiColors.darkBrown,
+                    color: Colors.black,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -940,7 +966,7 @@ class _TypeBanner extends StatelessWidget {
                   _subtitle,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: EspatiColors.darkBrown.withValues(alpha: 0.8),
+                    color: Colors.black.withValues(alpha: 0.75),
                   ),
                 ),
               ],
@@ -952,7 +978,7 @@ class _TypeBanner extends StatelessWidget {
   }
 }
 
-/// Section label sitting directly on the dark-brown scaffold.
+/// Section label sitting directly on the [NeoBrutal.scaffoldBg] canvas.
 class _SectionLabel extends StatelessWidget {
   final String text;
 
@@ -965,7 +991,7 @@ class _SectionLabel extends StatelessWidget {
       style: GoogleFonts.poppins(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: EspatiColors.cream.withValues(alpha: 0.85),
+        color: Colors.black.withValues(alpha: 0.85),
       ),
     );
   }
@@ -992,26 +1018,17 @@ class _ServiceChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? EspatiColors.lightBlue : EspatiColors.cream,
+          color: isSelected ? EspatiColors.lightBlue : Colors.white,
           borderRadius: BorderRadius.zero,
-          border: Border.all(
-              color: EspatiColors.darkBrown, width: isSelected ? 2.5 : 2),
-          boxShadow: isSelected
-              ? const [
-                  BoxShadow(
-                    color: EspatiColors.darkBrown,
-                    offset: Offset(2, 2),
-                    blurRadius: 0,
-                  ),
-                ]
-              : null,
+          border: NeoBrutal.border(isSelected ? 2.5 : 2),
+          boxShadow:
+              isSelected ? NeoBrutal.shadow(const Offset(2, 2)) : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isSelected) ...[
-              const Icon(Icons.check_rounded,
-                  size: 15, color: EspatiColors.darkBrown),
+              const Icon(Icons.check_rounded, size: 15, color: Colors.black),
               const SizedBox(width: 4),
             ],
             Text(
@@ -1019,7 +1036,7 @@ class _ServiceChip extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: EspatiColors.darkBrown,
+                color: Colors.black,
               ),
             ),
           ],
@@ -1072,7 +1089,7 @@ class _ImagePickerSection extends StatelessWidget {
                 fontSize: 12,
                 color: images.isEmpty && hasError
                     ? EspatiColors.red
-                    : EspatiColors.cream.withValues(alpha: 0.55),
+                    : Colors.black.withValues(alpha: 0.5),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1119,33 +1136,28 @@ class _PickerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    return NeoBrutalistButton(
+      semanticLabel: label,
+      onPressed: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: EspatiColors.cream,
+          color: Colors.white,
           borderRadius: BorderRadius.zero,
-          border: Border.all(color: EspatiColors.darkBrown, width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: EspatiColors.darkBrown,
-              offset: Offset(2, 2),
-              blurRadius: 0,
-            ),
-          ],
+          border: NeoBrutal.border(2),
+          boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 17, color: EspatiColors.darkBrown),
+            Icon(icon, size: 17, color: Colors.black),
             const SizedBox(width: 6),
             Text(
               label,
               style: GoogleFonts.poppins(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: EspatiColors.darkBrown,
+                color: Colors.black,
               ),
             ),
           ],
@@ -1169,7 +1181,7 @@ class _ImageThumb extends StatelessWidget {
       height: 90,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.zero,
-        border: Border.all(color: EspatiColors.darkBrown, width: 2),
+        border: NeoBrutal.border(2),
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -1185,12 +1197,12 @@ class _ImageThumb extends StatelessWidget {
                 height: 22,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: EspatiColors.cream,
+                  color: Colors.white,
                   borderRadius: BorderRadius.zero,
-                  border: Border.all(color: EspatiColors.darkBrown, width: 1.5),
+                  border: NeoBrutal.border(1.5),
                 ),
                 child: const Icon(Icons.close_rounded,
-                    size: 14, color: EspatiColors.darkBrown),
+                    size: 14, color: Colors.black),
               ),
             ),
           ),
@@ -1218,11 +1230,17 @@ class _SubmitBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: EspatiColors.darkBrown,
+      decoration: const BoxDecoration(
+        color: NeoBrutal.scaffoldBg,
+        border: Border(
+          top: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
+        ),
+      ),
       padding: EdgeInsets.fromLTRB(
           16, 10, 16, 10 + MediaQuery.of(context).padding.bottom),
-      child: GestureDetector(
-        onTap: isSubmitting ? null : onSubmit,
+      child: NeoBrutalistButton(
+        semanticLabel: label,
+        onPressed: isSubmitting ? null : onSubmit,
         child: Container(
           width: double.infinity,
           alignment: Alignment.center,
@@ -1230,21 +1248,8 @@ class _SubmitBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSubmitting ? accentColor.withValues(alpha: 0.5) : accentColor,
             borderRadius: BorderRadius.zero,
-            border: Border.all(color: EspatiColors.darkBrown, width: 3),
-            boxShadow: isSubmitting
-                ? null
-                : const [
-                    BoxShadow(
-                      color: EspatiColors.cream,
-                      offset: Offset(0, 0),
-                      blurRadius: 0,
-                    ),
-                    BoxShadow(
-                      color: EspatiColors.darkBrown,
-                      offset: Offset(4, 4),
-                      blurRadius: 0,
-                    ),
-                  ],
+            border: NeoBrutal.border(3),
+            boxShadow: isSubmitting ? null : NeoBrutal.shadow(const Offset(4, 4)),
           ),
           child: isSubmitting
               ? Row(
@@ -1255,8 +1260,7 @@ class _SubmitBar extends StatelessWidget {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(EspatiColors.darkBrown),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1265,7 +1269,7 @@ class _SubmitBar extends StatelessWidget {
                       style: GoogleFonts.fredoka(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: EspatiColors.darkBrown),
+                          color: Colors.black),
                     ),
                   ],
                 )
@@ -1274,7 +1278,7 @@ class _SubmitBar extends StatelessWidget {
                   style: GoogleFonts.fredoka(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: EspatiColors.darkBrown,
+                    color: Colors.black,
                     letterSpacing: 0.3,
                   ),
                 ),

@@ -233,12 +233,12 @@ class _ActionHubSheet extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: EspatiColors.cream,
-          borderRadius: BorderRadius.circular(2),
-          border: Border.all(color: EspatiColors.darkBrown, width: 3),
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: Colors.black, width: 3),
           boxShadow: const [
             BoxShadow(
-              color: EspatiColors.darkBrown,
+              color: Colors.black,
               offset: Offset(4, 4),
               blurRadius: 0,
             ),
@@ -256,8 +256,8 @@ class _ActionHubSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: EspatiColors.darkBrown.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(2),
+                    color: Colors.black.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
               ),
@@ -267,14 +267,14 @@ class _ActionHubSheet extends StatelessWidget {
                 style: GoogleFonts.fredoka(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: EspatiColors.darkBrown,
+                  color: Colors.black,
                 ),
               ),
               Text(
                 'Ne paylaşmak istersin?',
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: EspatiColors.darkBrown.withValues(alpha: 0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 18),
@@ -354,11 +354,11 @@ class _ActionBlock extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 10),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(2),
-          border: Border.all(color: EspatiColors.darkBrown, width: 2),
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: Colors.black, width: 2),
           boxShadow: const [
             BoxShadow(
-              color: EspatiColors.darkBrown,
+              color: Colors.black,
               offset: Offset(3, 3),
               blurRadius: 0,
             ),
@@ -367,7 +367,7 @@ class _ActionBlock extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 30, color: EspatiColors.darkBrown),
+            Icon(icon, size: 30, color: Colors.black),
             const SizedBox(height: 10),
             Text(
               label,
@@ -375,7 +375,7 @@ class _ActionBlock extends StatelessWidget {
               style: GoogleFonts.fredoka(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: EspatiColors.darkBrown,
+                color: Colors.black,
               ),
             ),
           ],
@@ -415,12 +415,12 @@ class _ListingTypeSheet extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: EspatiColors.cream,
+          color: Colors.white,
           borderRadius: BorderRadius.zero,
-          border: Border.all(color: EspatiColors.darkBrown, width: 3),
+          border: Border.all(color: Colors.black, width: 3),
           boxShadow: const [
             BoxShadow(
-              color: EspatiColors.darkBrown,
+              color: Colors.black,
               offset: Offset(4, 4),
               blurRadius: 0,
             ),
@@ -438,8 +438,8 @@ class _ListingTypeSheet extends StatelessWidget {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: EspatiColors.darkBrown.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(2),
+                    color: Colors.black.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
               ),
@@ -449,14 +449,14 @@ class _ListingTypeSheet extends StatelessWidget {
                 style: GoogleFonts.fredoka(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: EspatiColors.darkBrown,
+                  color: Colors.black,
                 ),
               ),
               Text(
                 'Oluşturmak istediğiniz ilan türünü seçin',
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: EspatiColors.darkBrown.withValues(alpha: 0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 18),
@@ -489,7 +489,7 @@ class _ListingTypeSheet extends StatelessWidget {
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   style: TextButton.styleFrom(
-                    foregroundColor: EspatiColors.darkBrown.withValues(alpha: 0.6),
+                    foregroundColor: Colors.black.withValues(alpha: 0.6),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: Text(
@@ -537,10 +537,10 @@ class _ListingTypeBlock extends StatelessWidget {
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.zero,
-          border: Border.all(color: EspatiColors.darkBrown, width: 2.5),
+          border: Border.all(color: Colors.black, width: 2.5),
           boxShadow: const [
             BoxShadow(
-              color: EspatiColors.darkBrown,
+              color: Colors.black,
               offset: Offset(4, 4),
               blurRadius: 0,
             ),
@@ -553,11 +553,11 @@ class _ListingTypeBlock extends StatelessWidget {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: EspatiColors.cream,
+                color: Colors.white,
                 borderRadius: BorderRadius.zero,
-                border: Border.all(color: EspatiColors.darkBrown, width: 2),
+                border: Border.all(color: Colors.black, width: 2),
               ),
-              child: Icon(icon, color: EspatiColors.darkBrown, size: 24),
+              child: Icon(icon, color: Colors.black, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -569,7 +569,7 @@ class _ListingTypeBlock extends StatelessWidget {
                     style: GoogleFonts.fredoka(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
-                      color: EspatiColors.darkBrown,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -577,7 +577,7 @@ class _ListingTypeBlock extends StatelessWidget {
                     subtitle,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: EspatiColors.darkBrown.withValues(alpha: 0.75),
+                      color: Colors.black.withValues(alpha: 0.75),
                     ),
                   ),
                 ],

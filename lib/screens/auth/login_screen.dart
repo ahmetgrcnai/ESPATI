@@ -3,10 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 import 'widgets/auth_text_field.dart';
+import 'widgets/auth_widgets.dart';
 import 'widgets/google_sign_in_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -73,8 +76,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: GoogleFonts.poppins(fontSize: 13)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+                side: BorderSide(color: Colors.black, width: 2),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
@@ -91,6 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _showErrorIfNeeded(authVM);
 
     return Scaffold(
+      backgroundColor: NeoBrutal.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -102,20 +108,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
 
                 // ── Logo ────────────────────────────────────────────────────
-                _Logo(),
+                const _Logo(),
 
                 const SizedBox(height: 36),
 
                 // ── Heading ─────────────────────────────────────────────────
                 Text(
                   'Hoş Geldiniz 🐾',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Patili dostlarınızla buluşmak için giriş yapın.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
@@ -157,8 +170,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Şifremi Unuttum',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
-                        color: AppColors.softTeal,
-                        fontWeight: FontWeight.w500,
+                        color: EspatiColors.terracotta,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -167,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
 
                 // ── Sign in button ───────────────────────────────────────────
-                _PrimaryButton(
+                AuthPrimaryButton(
                   label: 'Giriş Yap',
                   isLoading: authVM.isSubmitting,
                   onPressed: () => _signIn(authVM),
@@ -176,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
 
                 // ── Divider ──────────────────────────────────────────────────
-                _OrDivider(),
+                const AuthOrDivider(),
 
                 const SizedBox(height: 24),
 
@@ -194,7 +207,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       'Hesabınız yok mu?',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: GoogleFonts.poppins(
+                          fontSize: 13, color: Colors.black.withValues(alpha: 0.65)),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pushReplacement(
@@ -206,8 +220,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Kayıt Olun',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: AppColors.softTeal,
-                          fontWeight: FontWeight.w600,
+                          color: EspatiColors.terracotta,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -225,95 +239,23 @@ class _LoginScreenState extends State<LoginScreen> {
 // ── Private sub-widgets ───────────────────────────────────────────────────────
 
 class _Logo extends StatelessWidget {
+  const _Logo();
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 88,
-          height: 88,
-          decoration: BoxDecoration(
-            color: AppColors.softTeal.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.pets,
-            size: 46,
-            color: AppColors.softTeal,
-          ),
-        ),
-        const SizedBox(height: 12),
+        const AuthIconBadge(icon: Icons.pets_rounded),
+        const SizedBox(height: 14),
         Text(
           'ESPATI',
-          style: GoogleFonts.poppins(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: AppColors.softTeal,
+          style: GoogleFonts.fredoka(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            color: Colors.black,
             letterSpacing: 2,
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.softTeal,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.softTeal.withValues(alpha: 0.5),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              )
-            : Text(
-                label,
-                style: GoogleFonts.poppins(
-                    fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-      ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'veya',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-        const Expanded(child: Divider()),
       ],
     );
   }

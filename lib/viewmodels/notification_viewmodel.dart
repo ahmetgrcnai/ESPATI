@@ -52,8 +52,8 @@ class NotificationViewModel extends ChangeNotifier {
     addNotification(NotificationModel(
       id: 'notif_like_${DateTime.now().millisecondsSinceEpoch}',
       type: NotificationType.like,
-      title: 'New Like ❤️',
-      message: '$userName liked your post',
+      title: 'Yeni Beğeni ❤️',
+      message: '$userName gönderini beğendi',
       timestamp: DateTime.now(),
     ));
   }
@@ -63,8 +63,8 @@ class NotificationViewModel extends ChangeNotifier {
     addNotification(NotificationModel(
       id: 'notif_comment_${DateTime.now().millisecondsSinceEpoch}',
       type: NotificationType.comment,
-      title: 'New Comment 💬',
-      message: '$userName commented: "$comment"',
+      title: 'Yeni Yorum 💬',
+      message: '$userName yorum yaptı: "$comment"',
       timestamp: DateTime.now(),
     ));
   }
@@ -74,8 +74,8 @@ class NotificationViewModel extends ChangeNotifier {
     addNotification(NotificationModel(
       id: 'notif_event_${DateTime.now().millisecondsSinceEpoch}',
       type: NotificationType.event,
-      title: 'Event Joined 🎉',
-      message: 'You have joined "$eventTitle". See you there!',
+      title: 'Etkinliğe Katıldın 🎉',
+      message: '"$eventTitle" etkinliğine katıldın. Orada görüşürüz!',
       timestamp: DateTime.now(),
     ));
   }

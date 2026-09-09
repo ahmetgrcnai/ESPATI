@@ -3,9 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import 'login_screen.dart';
 import 'widgets/auth_text_field.dart';
+import 'widgets/auth_widgets.dart';
 import 'widgets/google_sign_in_button.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -89,8 +92,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   style: GoogleFonts.poppins(fontSize: 13)),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+                side: BorderSide(color: Colors.black, width: 2),
+              ),
               margin: const EdgeInsets.all(16),
             ),
           );
@@ -107,6 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _showErrorIfNeeded(authVM);
 
     return Scaffold(
+      backgroundColor: NeoBrutal.scaffoldBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -116,38 +122,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // ── Back button ──────────────────────────────────────────────
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    onPressed: () => Navigator.pop(context),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
+                const AuthBackButton(),
 
                 const SizedBox(height: 16),
 
                 // ── Heading ──────────────────────────────────────────────────
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: AppColors.peach.withValues(alpha: 0.25),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.pets,
-                      size: 38, color: AppColors.softTeal),
-                ),
+                const AuthIconBadge(icon: Icons.pets_rounded, size: 72),
                 const SizedBox(height: 16),
                 Text(
                   'Hesap Oluştur',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: GoogleFonts.fredoka(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'ESPATI ailesine katılın!',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
                   textAlign: TextAlign.center,
                 ),
 
@@ -201,7 +198,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 28),
 
                 // ── Sign up button ────────────────────────────────────────────
-                _PrimaryButton(
+                AuthPrimaryButton(
                   label: 'Kayıt Ol',
                   isLoading: authVM.isSubmitting,
                   onPressed: () => _signUp(authVM),
@@ -210,7 +207,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 24),
 
                 // ── Divider ───────────────────────────────────────────────────
-                _OrDivider(),
+                const AuthOrDivider(),
 
                 const SizedBox(height: 24),
 
@@ -228,7 +225,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   children: [
                     Text(
                       'Zaten hesabınız var mı?',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: GoogleFonts.poppins(
+                          fontSize: 13, color: Colors.black.withValues(alpha: 0.65)),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pushReplacement(
@@ -240,8 +238,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         'Giriş Yapın',
                         style: GoogleFonts.poppins(
                           fontSize: 14,
-                          color: AppColors.softTeal,
-                          fontWeight: FontWeight.w600,
+                          color: EspatiColors.terracotta,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -252,70 +250,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ── Private sub-widgets ───────────────────────────────────────────────────────
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.softTeal,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.softTeal.withValues(alpha: 0.5),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          elevation: 0,
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              )
-            : Text(
-                label,
-                style: GoogleFonts.poppins(
-                    fontSize: 15, fontWeight: FontWeight.w600),
-              ),
-      ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'veya',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-        const Expanded(child: Divider()),
-      ],
     );
   }
 }
