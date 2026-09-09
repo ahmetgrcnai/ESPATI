@@ -5,15 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../core/app_colors.dart';
 import '../core/constants/app_colors.dart' show EspatiColors;
-import '../core/result.dart';
 import '../data/models/listing_model.dart';
 import '../data/repositories/interfaces/i_pet_repository.dart';
 import '../data/repositories/interfaces/i_post_repository.dart';
+import '../screens/discovery/pati_video_composer_screen.dart';
 import '../screens/listing_form_screen.dart';
 import '../screens/social/create_post_screen.dart';
-import '../services/paties_service.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/create_post_viewmodel.dart';
 
@@ -120,12 +118,13 @@ void _openCreatePost(BuildContext context) {
   );
 }
 
-/// Picks a video from the device gallery and uploads it via [PatiesService].
+/// Picks a video from the device gallery and pushes [PatiVideoComposerScreen]
+/// to let the user preview it and write a caption before it's actually
+/// uploaded via [PatiesService].
 ///
 /// [context] is [MainScreen]'s long-lived context, same as [_openCreatePost]
 /// — reused after the hub sheet pops itself, both for the picker (no UI
-/// dependency, but keeps the pattern consistent) and for the loading dialog
-/// / result SnackBar shown once the upload settles.
+/// dependency, but keeps the pattern consistent) and for the push below.
 Future<void> _uploadPatiVideo(BuildContext context) async {
   Navigator.pop(context); // close the hub first
 
@@ -140,63 +139,17 @@ Future<void> _uploadPatiVideo(BuildContext context) async {
   final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
   if (picked == null || !context.mounted) return; // user cancelled the picker
 
-  showDialog<void>(
-    context: context,
-    barrierDismissible: false,
-    builder: (_) => const _UploadingDialog(),
-  );
-
-  final result = await PatiesService.instance.uploadVideo(
-    videoFile: File(picked.path),
-    authorId: user.id,
-    authorName: user.name.isNotEmpty ? user.name : user.email,
-    authorPhoto: user.profilePicture,
-  );
-
-  if (!context.mounted) return;
-  Navigator.pop(context); // close the uploading dialog
-
-  switch (result) {
-    case Success():
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pati videon paylaşıldı! 🐾')),
-      );
-    case Failure(:final message):
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: AppColors.error),
-      );
-  }
-}
-
-/// Blocking "uploading" dialog shown while [PatiesService.uploadVideo] runs.
-class _UploadingDialog extends StatelessWidget {
-  const _UploadingDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: AppColors.softTeal, strokeWidth: 3),
-            const SizedBox(height: 16),
-            Text(
-              'Video yükleniyor...',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface,
-              ),
-            ),
-          ],
-        ),
+  Navigator.push<void>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => PatiVideoComposerScreen(
+        videoFile: File(picked.path),
+        authorId: user.id,
+        authorName: user.name.isNotEmpty ? user.name : user.email,
+        authorPhoto: user.profilePicture,
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// Pastel accents for the 2×2 action grid that aren't (yet) part of the core
