@@ -9,72 +9,136 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # ── Core UI ──────────────────────────────────────────────────────────────────
   cupertino_icons: ^1.0.6
   google_fonts: ^6.1.0
-  cached_network_image: ^3.3.1
-  image_picker: ^1.0.7
-  flutter_staggered_grid_view: ^0.7.0
-  google_maps_flutter: ^2.5.3
-  provider: ^6.1.1
-  geolocator: ^13.0.2
-  http: ^1.2.0
-  google_generative_ai: ^0.4.6
-  flutter_markdown: ^0.7.4
-  lottie: ^3.1.2
-  flutter_local_notifications: ^17.0.0
-  timezone: ^0.9.2
-  shared_preferences: ^2.2.3
-  firebase_core: ^3.1.1
-  firebase_auth: ^5.1.1
+  lottie: ^3.1.2                      # Lottie animations (AI vet, splash, etc.)
+  flutter_staggered_grid_view: ^0.7.0 # Masonry / staggered post grids
+  flutter_animate: ^4.5.0             # Micro-animations: like-heart bounce, card
+                                      # entrances, button press effects
+  smooth_page_indicator: ^1.2.0+3     # Carousel dots for multi-image posts
+  go_router: ^14.6.3                  # Official Flutter routing — deep links for
+                                      # share feature (espati://post/abc123)
+
+  # ── Loading & Skeletons ───────────────────────────────────────────────────────
+  shimmer: ^3.0.0                     # Instagram-style shimmer skeletons
+
+  # ── Image & Video Handling ────────────────────────────────────────────────────
+  cached_network_image: ^3.3.1        # Memory + disk image cache with placeholder
+  image_picker: ^1.0.7                # Gallery / camera picker
+  camera: ^0.11.0+2                   # Live camera preview + capture — StoryCameraScreen
+  flutter_image_compress: ^2.4.0      # Client-side JPEG/WebP compression before
+                                      # Storage upload — directly reduces Firebase costs
+  image_cropper: ^12.2.1              # Crop profile photos after selection
+  path_provider: ^2.1.4               # Temp file system access — required for the
+                                      # compress → temp file → Storage upload pipeline
+  video_player: ^2.9.2                # Play pet videos in feed and post detail
+  chewie: ^1.8.5                      # Professional video controls UI on top of
+                                      # video_player (play/pause, seek, fullscreen)
+  flutter_compress: ^2.0.0            # Client-side video transcode (HEVC/HDR →
+                                      # H.264 SDR) before Paties Storage upload —
+                                      # source phones often record in formats the
+                                      # viewing device's decoder can't play back
+
+  # ── Data Formatting ───────────────────────────────────────────────────────────
+  intl: ^0.20.2                       # Locale-aware date/number formatting (tr_TR)
+  timeago: ^3.7.1                     # "2 dakika önce" — replaces 4× manual
+                                      # _formatTimeAgo() functions in the codebase
+  uuid: ^4.5.3                        # RFC-4122 UUID generation for local IDs
+
+  # ── State Management ─────────────────────────────────────────────────────────
+  provider: ^6.1.2                    # ChangeNotifier-based MVVM state management
+
+  # ── Networking & Sharing ──────────────────────────────────────────────────────
+  http: ^1.2.2                        # Claude/Vision REST API calls in
+                                      # ClaudeService / ContentModerationService
+  dio: ^5.7.0                         # HTTP client with interceptors (auth tokens,
+                                      # retry, cancellation)
+  url_launcher: ^6.3.2                # Open vet sites, pet-shop links, event URLs
+  share_plus: ^13.0.0                 # Native share sheet ("Paylaş" — all buttons
+                                      # currently wired to empty no-op callbacks)
+  connectivity_plus: ^7.1.1           # Network state monitoring; show offline banner
+
+  # ── Maps & Location ───────────────────────────────────────────────────────────
+  google_maps_flutter: ^2.5.3         # Interactive map for pet-friendly places
+  geolocator: ^13.0.2                 # GPS position (lat/lng)
+  geocoding: ^4.0.0                   # Reverse-geocode LatLng → street address
+                                      # ("Porsuk Caddesi 12, Tepebaşı")
+  widget_to_marker: ^1.0.6            # Renders NeoBrutalistMapPin widgets to
+                                      # BitmapDescriptor for custom map markers
+
+  # ── Permissions ───────────────────────────────────────────────────────────────
+  permission_handler: ^12.0.1         # Unified permission flow for location,
+                                      # camera, notifications (Android + iOS)
+
+  # ── Feed & Pagination ────────────────────────────────────────────────────────
+  infinite_scroll_pagination: ^4.1.0  # Cursor-based Firestore pagination for feed —
+                                      # the #1 performance requirement for social apps
+
+  # ── Storage & Preferences ────────────────────────────────────────────────────
+  shared_preferences: ^2.2.3          # Lightweight key-value persistence
+  collection: ^1.18.0                 # Dart collection utilities
+
+  # ── Notifications (Local) ─────────────────────────────────────────────────────
+  flutter_local_notifications: ^17.0.0 # Scheduled local push (Pati Takvimi)
+  timezone: ^0.9.2                    # IANA timezone database for scheduled notifs
+
+  # ── Firebase ─────────────────────────────────────────────────────────────────
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0               # Email/password + Google Sign-In
+  cloud_firestore: ^6.0.0             # Realtime database
+  firebase_storage: ^13.0.0           # Profile photos + post media
+  firebase_messaging: ^16.2.0         # FCM push notifications (new followers,
+                                      # likes, comments — currently 0 FCM code)
+  firebase_crashlytics: ^5.2.0        # Automatic crash reporting for production
+  firebase_analytics: ^12.3.0         # User behavior tracking — which features are
+                                      # actually used (feed, map, AI vet)
+  # cloud_functions — add when AI vet backend is built; pin to version compatible
+  # with firebase_core ^4.x (check FlutterFire compatibility matrix at that time)
+
+  # ── Auth ──────────────────────────────────────────────────────────────────────
   google_sign_in: ^6.2.1
+
+  # ── Markdown & Content ────────────────────────────────────────────────────────
+  flutter_markdown_plus: ^1.0.4       # AI vet markdown rendering
+
+  # ── App Info ──────────────────────────────────────────────────────────────────
+  package_info_plus: ^10.0.0          # App version/build number for settings screen
+
+  # ── Secrets ───────────────────────────────────────────────────────────────────
+  flutter_dotenv: ^5.2.1              # Loads .env at runtime (ANTHROPIC_API_KEY,
+                                      # VISION_API_KEY) — .env is gitignored, never committed
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.1
   flutter_launcher_icons: ^0.14.1
-  flutter_native_splash: ^2.4.1
 
 flutter:
   uses-material-design: true
   assets:
+    - assets/
     - assets/images/
     - assets/animations/
-
-flutter_native_splash:
-  # ── Logo ──────────────────────────────────────────────────────────────────
-  # Centered, never stretched. PNG with transparency so the bg color shows.
-  image: assets/images/splash_logo.png
-
-  # ── Covers full screen (hides status/nav bars during splash on Android) ──
-  fullscreen: true
-
-  # ── Light mode ────────────────────────────────────────────────────────────
-  color: "#FFCBA4"               # Deep Peach (AppColors.splashPeach)
-
-  # ── Dark mode ─────────────────────────────────────────────────────────────
-  color_dark: "#1E1E1E"          # AppTheme._darkSurf — AMOLED-safe dark grey
-  image_dark: assets/images/splash_logo.png
-
-  # ── Android 12+ native splash (windowSplashScreenAnimatedIcon) ────────────
-  # Icon safe zone: 768×768 px centered in a 1152×1152 px canvas.
-  android_12:
-    image: assets/images/splash_logo_android12.png
-    icon_background_color: "#FFCBA4"
-    icon_background_color_dark: "#1E1E1E"
-    color: "#FFCBA4"
-    color_dark: "#1E1E1E"
+    - .env
 
 flutter_launcher_icons:
   # ── Source image ──────────────────────────────────────────────────────────
-  # Place your logo at assets/images/app_icon.png (1024×1024 px, PNG, no padding)
-  image_path: "assets/images/app_icon.png"
+  # New sticker logo, 1024×1024 JPEG.
+  image_path: "assets/app_icon.jpg"
 
   # ── Android ───────────────────────────────────────────────────────────────
   android: true
   min_sdk_android: 21          # Android 5.0+ (covers Samsung A53)
-  adaptive_icon_foreground: "assets/images/app_icon_foreground.png"
-  adaptive_icon_background: "#FFEEBD"   # AppColors.background (peach-cream)
+  # No adaptive_icon_foreground/background: those pointed at the old logo's
+  # dedicated foreground-only layer (assets/images/app_icon_foreground.png),
+  # which doesn't exist for this new flat sticker image. Pairing that old
+  # foreground layer with the new base image would produce a mismatched
+  # adaptive icon, so this generates a standard (non-adaptive-optimized)
+  # icon from image_path until a proper foreground-only cutout of the new
+  # logo is provided.
 
   # ── iOS ───────────────────────────────────────────────────────────────────
   ios: true

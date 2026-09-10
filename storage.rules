@@ -1,0 +1,66 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// ESPATI — Firebase Storage Security Rules
+// ─────────────────────────────────────────────────────────────────────────
+//
+// ⚠️ DO NOT DEPLOY THIS FILE AS-IS — see the identical warning in
+// firestore.rules. This only covers paths this pass could verify directly
+// from repository code:
+//
+//   - users/{uid}/profile_image.jpg           (FirestoreUserRepository)
+//   - users/{uid}/pets/{petId}.jpg             (FirestorePetRepository)
+//   - posts/{authorId}/{fileName}              (FirestorePostRepository)
+//   - listings/{authorId}/{listingId}/{n}.jpg  ← new in Phase 1
+//
+// Merge the `listings` block into your existing Storage rules rather than
+// deploying this file wholesale.
+// ─────────────────────────────────────────────────────────────────────────
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // 5 MB per file — generous for a single compressed listing/post photo,
+    // tight enough to block abuse.
+    function underSizeLimit() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    match /users/{uid}/profile_image.jpg {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && isImage() && underSizeLimit();
+    }
+
+    match /users/{uid}/pets/{petId}.jpg {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && isImage() && underSizeLimit();
+    }
+
+    match /posts/{authorId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(authorId) && isImage() && underSizeLimit();
+    }
+
+    // listings/{authorId}/{listingId}/{index}.jpg — Phase 1.
+    match /listings/{authorId}/{listingId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(authorId) && isImage() && underSizeLimit();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

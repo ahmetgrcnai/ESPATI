@@ -1,0 +1,103 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// ESPATI — Firestore Security Rules
+// ─────────────────────────────────────────────────────────────────────────
+//
+// ⚠️ DO NOT DEPLOY THIS FILE AS-IS. ⚠️
+//
+// This project currently has no version-controlled rules file — rules were
+// (presumably) being managed by hand in the Firebase Console. This file was
+// authored during the Phase 1 "Listings" migration and only covers the
+// collections that were directly read/written by the repository code
+// inspected during that work:
+//
+//   - users/{uid}                    (+ users/{uid}/pets/{petId})
+//   - posts/{postId}                 (+ posts/{postId}/likes/{uid})
+//   - listings/{listingId}           ← new in Phase 1
+//
+// It deliberately does NOT define rules for collections this pass did not
+// touch or verify — most importantly **chats / chat rooms**, and anything
+// backing Reminders, the Academy/Vet-Q&A content, or the seeded Map
+// `places` collection. Firestore denies any path with no matching rule by
+// default, so deploying this file unmodified would almost certainly break
+// messaging and any other un-covered feature currently working in
+// production.
+//
+// Before deploying:
+//   1. Pull your current Console-managed rules (Firebase Console → Firestore
+//      Database → Rules → "..." → download, or `firebase firestore:rules
+//      get` if already using the CLI).
+//   2. Merge the `listings` match block below into that existing file.
+//   3. Diff the `users`/`posts` blocks below against your current rules —
+//      keep whichever is actually correct; they're included here only
+//      because this pass could verify their exact document shape.
+//   4. Only then run `firebase deploy --only firestore:rules`.
+//
+// ─────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ── users/{uid} ──────────────────────────────────────────────────────
+    // Profiles are readable by any signed-in user (social feed author info,
+    // user search, listing author cards all read other users' documents).
+    // Only the owner may write their own document.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid);
+
+      // users/{uid}/pets/{petId} — see FirestorePetRepository.
+      match /pets/{petId} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(uid);
+      }
+    }
+
+    // ── posts/{postId} ───────────────────────────────────────────────────
+    // Social feed — public within the app (any signed-in user), writes
+    // restricted to the post's own author.
+    match /posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        resource.data.authorId == request.auth.uid;
+
+      // posts/{postId}/likes/{uid} — see FirestorePostRepository.togglePati.
+      // Doc ID *is* the liking user's uid, so ownership is a direct ID check.
+      match /likes/{likeUid} {
+        allow read: if isSignedIn();
+        allow write: if isOwner(likeUid);
+      }
+    }
+
+    // ── listings/{listingId} ─────────────────────────────────────────────
+    // Lost/Found + Adoption listings (Phase 1). Readable by any signed-in
+    // user. Creation requires the caller to write themselves in as author;
+    // only the author may edit or delete their own listing.
+    match /listings/{listingId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        resource.data.authorId == request.auth.uid;
+    }
+
+    // ── Everything else ──────────────────────────────────────────────────
+    // Explicit default-deny. Add chats/chat_rooms, reminders, academy, and
+    // places/map rules here before this file is treated as authoritative —
+    // see the warning at the top of this file.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -40,11 +40,32 @@ android {
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
     }
 
+    val keystorePath = localProperties.getProperty("KEYSTORE_PATH")
+
+    if (keystorePath != null) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD")
+                    ?: error("KEYSTORE_PASSWORD missing from local.properties")
+                keyAlias = localProperties.getProperty("KEY_ALIAS")
+                    ?: error("KEY_ALIAS missing from local.properties")
+                keyPassword = localProperties.getProperty("KEY_PASSWORD")
+                    ?: error("KEY_PASSWORD missing from local.properties")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePath != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Enables R8 full-mode shrinking and resource shrinking for release APK.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
