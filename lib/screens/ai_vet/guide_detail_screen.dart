@@ -47,7 +47,7 @@ class GuideDetailScreen extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${guide.readMinutes} dk okuma',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 12,
                           color: Colors.black.withValues(alpha: 0.5),
                         ),
@@ -60,7 +60,7 @@ class GuideDetailScreen extends StatelessWidget {
                   // Title
                   Text(
                     guide.title,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontSize: 22,
                       fontWeight: FontWeight.w900,
                       color: Colors.black,
@@ -73,7 +73,7 @@ class GuideDetailScreen extends StatelessWidget {
                   // Summary
                   Text(
                     guide.summary,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 14,
                       color: Colors.black.withValues(alpha: 0.65),
                       height: 1.5,
@@ -103,12 +103,12 @@ class GuideDetailScreen extends StatelessWidget {
   }
 
   MarkdownStyleSheet _buildStyleSheet() {
-    final body = GoogleFonts.poppins(fontSize: 15, color: Colors.black, height: 1.6);
-    final h1 = GoogleFonts.fredoka(
+    final body = GoogleFonts.nunitoSans(fontSize: 15, color: Colors.black, height: 1.6);
+    final h1 = GoogleFonts.baloo2(
         fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black, height: 1.4);
-    final h2 = GoogleFonts.fredoka(
+    final h2 = GoogleFonts.baloo2(
         fontSize: 17, fontWeight: FontWeight.w800, color: Colors.black, height: 1.4);
-    final h3 = GoogleFonts.fredoka(
+    final h3 = GoogleFonts.baloo2(
         fontSize: 15, fontWeight: FontWeight.w700, color: Colors.black, height: 1.4);
 
     return MarkdownStyleSheet(
@@ -116,8 +116,8 @@ class GuideDetailScreen extends StatelessWidget {
       h1: h1,
       h2: h2,
       h3: h3,
-      strong: GoogleFonts.poppins(fontWeight: FontWeight.w800, color: Colors.black),
-      em: GoogleFonts.poppins(
+      strong: GoogleFonts.nunitoSans(fontWeight: FontWeight.w800, color: Colors.black),
+      em: GoogleFonts.nunitoSans(
           fontStyle: FontStyle.italic, color: Colors.black.withValues(alpha: 0.85)),
       listBullet: body,
       blockquoteDecoration: BoxDecoration(
@@ -126,14 +126,14 @@ class GuideDetailScreen extends StatelessWidget {
           left: BorderSide(color: Colors.black, width: NeoBrutal.borderWidth),
         ),
       ),
-      blockquote: GoogleFonts.poppins(
+      blockquote: GoogleFonts.nunitoSans(
           fontSize: 14,
           fontStyle: FontStyle.italic,
           color: Colors.black.withValues(alpha: 0.8)),
       blockquotePadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      tableHead: GoogleFonts.poppins(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black),
-      tableBody: GoogleFonts.poppins(fontSize: 13, color: Colors.black),
+      tableHead: GoogleFonts.nunitoSans(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black),
+      tableBody: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.black),
       tableBorder: TableBorder.all(color: Colors.black, width: 1.5),
       tableHeadAlign: TextAlign.left,
       tableCellsPadding:
@@ -251,7 +251,7 @@ class _CategoryChip extends StatelessWidget {
       ),
       child: Text(
         guide.categoryLabel,
-        style: GoogleFonts.poppins(
+        style: GoogleFonts.nunitoSans(
           fontSize: 12,
           fontWeight: FontWeight.w800,
           color: Colors.black,

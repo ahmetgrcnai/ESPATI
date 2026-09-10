@@ -45,7 +45,7 @@ class MessageRequestsBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 'Gelen İstekler',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                   color: Colors.black,
@@ -66,7 +66,7 @@ class MessageRequestsBanner extends StatelessWidget {
                 ),
                 child: Text(
                   requestCount > 99 ? '99+' : '$requestCount',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                     color: Colors.white,

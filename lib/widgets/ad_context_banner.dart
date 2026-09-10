@@ -64,7 +64,7 @@ class AdContextBanner extends StatelessWidget {
               text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
                 color: Colors.black,

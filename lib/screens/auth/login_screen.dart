@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -73,8 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ..showSnackBar(
             SnackBar(
               content: Text(authVM.errorMessage!,
-                  style: GoogleFonts.poppins(fontSize: 13)),
-              backgroundColor: AppColors.error,
+                  style: GoogleFonts.nunitoSans(fontSize: 13)),
+              backgroundColor: EspatiColors.red,
               behavior: SnackBarBehavior.floating,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
@@ -115,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // ── Heading ─────────────────────────────────────────────────
                 Text(
                   'Hoş Geldiniz 🐾',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
@@ -125,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'Patili dostlarınızla buluşmak için giriş yapın.',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 13,
                     color: Colors.black.withValues(alpha: 0.6),
                   ),
@@ -168,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       'Şifremi Unuttum',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 13,
                         color: EspatiColors.terracotta,
                         fontWeight: FontWeight.w600,
@@ -207,18 +206,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       'Hesabınız yok mu?',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                           fontSize: 13, color: Colors.black.withValues(alpha: 0.65)),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushReplacement(
+                      // Push (not pushReplacement) — SignUpScreen's own back
+                      // button just pops back to this exact screen; a
+                      // replace here left nothing underneath it to pop to,
+                      // which is exactly why that back button did nothing.
+                      onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
                             builder: (_) => const SignUpScreen()),
                       ),
                       child: Text(
                         'Kayıt Olun',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 14,
                           color: EspatiColors.terracotta,
                           fontWeight: FontWeight.w700,
@@ -249,7 +252,7 @@ class _Logo extends StatelessWidget {
         const SizedBox(height: 14),
         Text(
           'ESPATI',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontSize: 26,
             fontWeight: FontWeight.w900,
             color: Colors.black,

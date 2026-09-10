@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -89,7 +90,7 @@ class GroupDetailScreen extends StatelessWidget {
             Expanded(
               child: Text(
                 group.name,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w700,
                   fontSize: 18,
                   color: Colors.black,
@@ -145,12 +146,28 @@ class GroupDetailScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GROUP INFO BANNER
+// GROUP INFO BANNER — description + real member count + real "Katıl" button.
+//
+// [ChatGroupModel.memberCount] is a denormalized counter kept in sync by
+// [FirestoreSocialRepository.toggleGroupMembership]'s transaction, but
+// [FormViewModel.loadAll]/`getChatGroups()` is a one-time fetch, not a live
+// listener (see that method's own doc comment) — so without
+// [FormViewModel.adjustGroupMemberCount] the count shown here would stay
+// stale immediately after the user's own join/leave until the next full
+// reload, even though the real Firestore value already changed.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _GroupInfoBanner extends StatelessWidget {
   final ChatGroupModel group;
   const _GroupInfoBanner({required this.group});
+
+  void _toggleMembership(BuildContext context, bool wasMember) {
+    HapticFeedback.selectionClick();
+    context.read<SocialViewModel>().toggleGroupMembership(group.id);
+    context
+        .read<FormViewModel>()
+        .adjustGroupMemberCount(group.id, wasMember ? -1 : 1);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +184,9 @@ class _GroupInfoBanner extends StatelessWidget {
         children: [
           Text(
             group.description,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.black),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.black),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Row(
             children: [
               Icon(Icons.people_alt_rounded,
@@ -177,8 +194,48 @@ class _GroupInfoBanner extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 '${group.memberCount} üye',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                     fontSize: 11, color: Colors.black.withValues(alpha: 0.5)),
+              ),
+              const Spacer(),
+              Selector<SocialViewModel, bool>(
+                selector: (_, vm) => vm.isGroupMember(group.id),
+                builder: (context, isMember, _) => NeoBrutalistButton(
+                  semanticLabel: isMember ? 'Gruptan ayrıl' : 'Gruba katıl',
+                  onPressed: () => _toggleMembership(context, isMember),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: isMember ? Colors.white : EspatiColors.sageGreen,
+                      borderRadius: BorderRadius.zero,
+                      border: NeoBrutal.border(2),
+                      boxShadow:
+                          isMember ? null : NeoBrutal.shadow(const Offset(2, 2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isMember
+                              ? Icons.check_circle_rounded
+                              : Icons.add_rounded,
+                          size: 16,
+                          color: Colors.black,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          isMember ? 'Üyesin' : 'Katıl',
+                          style: GoogleFonts.baloo2(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -265,7 +322,7 @@ class _CommunityListingCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       listing.name,
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                         color: Colors.black,
@@ -374,7 +431,7 @@ class _CommunityPostCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           post.authorName,
-                          style: GoogleFonts.fredoka(
+                          style: GoogleFonts.baloo2(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
                             color: Colors.black,
@@ -385,7 +442,7 @@ class _CommunityPostCard extends StatelessWidget {
                       ),
                       Text(
                         _formatTimeAgo(post.timestamp),
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 11,
                           color: Colors.black.withValues(alpha: 0.4),
                         ),
@@ -395,7 +452,7 @@ class _CommunityPostCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     post.description,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 12,
                       color: Colors.black.withValues(alpha: 0.7),
                     ),
@@ -408,14 +465,14 @@ class _CommunityPostCard extends StatelessWidget {
                       const Icon(Icons.pets, size: 13, color: EspatiColors.sageGreen),
                       const SizedBox(width: 3),
                       Text('${post.patiCount}',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 11, color: Colors.black.withValues(alpha: 0.55))),
                       const SizedBox(width: 10),
                       Icon(Icons.chat_bubble_outline_rounded,
                           size: 13, color: Colors.black.withValues(alpha: 0.4)),
                       const SizedBox(width: 3),
                       Text('${post.commentsCount}',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 11, color: Colors.black.withValues(alpha: 0.55))),
                     ],
                   ),
@@ -444,7 +501,7 @@ class _EmptyFeed extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Bu toplulukta henüz içerik yok',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 14,
                 color: Colors.black.withValues(alpha: 0.5),
               ),

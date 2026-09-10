@@ -87,7 +87,7 @@ class RequestChatTile extends StatelessWidget {
                       username,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: Colors.black,
@@ -98,7 +98,7 @@ class RequestChatTile extends StatelessWidget {
                       messageSnippet,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 13,
                         color: Colors.black.withValues(alpha: 0.65),
                       ),
@@ -129,7 +129,7 @@ class RequestChatTile extends StatelessWidget {
                   ),
                   child: Text(
                     'Sil',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       color: Colors.black,
@@ -160,7 +160,7 @@ class RequestChatTile extends StatelessWidget {
                   ),
                   child: Text(
                     'Kabul Et',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       color: Colors.black,

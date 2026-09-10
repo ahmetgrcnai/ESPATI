@@ -58,10 +58,10 @@ class _AcademyTabViewState extends State<AcademyTabView> {
                   child: TextField(
                     controller: _searchCtrl,
                     onChanged: vm.setAcademySearch,
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                    style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Rehber ara…',
-                      hintStyle: GoogleFonts.poppins(
+                      hintStyle: GoogleFonts.nunitoSans(
                         fontSize: 14,
                         color: Colors.black.withValues(alpha: 0.4),
                       ),
@@ -139,7 +139,7 @@ class _AcademyTabViewState extends State<AcademyTabView> {
             const SizedBox(height: 12),
             Text(
               'Rehber bulunamadı',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Colors.black.withValues(alpha: 0.6),
@@ -216,7 +216,7 @@ class _CategoryChipState extends State<_CategoryChip> {
         ),
         child: Text(
           widget.label,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.nunitoSans(
             fontSize: 12.5,
             fontWeight: FontWeight.w800,
             color: content,
@@ -285,7 +285,7 @@ class _AcademyCard extends StatelessWidget {
                       ),
                       child: Text(
                         guide.categoryLabel,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
                           color: Colors.black,
@@ -297,7 +297,7 @@ class _AcademyCard extends StatelessWidget {
 
                     Text(
                       guide.title,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w800,
                         color: Colors.black,
@@ -311,7 +311,7 @@ class _AcademyCard extends StatelessWidget {
 
                     Text(
                       guide.summary,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 12,
                         color: Colors.black.withValues(alpha: 0.6),
                         height: 1.4,
@@ -329,7 +329,7 @@ class _AcademyCard extends StatelessWidget {
                         const SizedBox(width: 3),
                         Text(
                           '${guide.readMinutes} dk',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                             fontSize: 11,
                             color: Colors.black.withValues(alpha: 0.45),
                           ),

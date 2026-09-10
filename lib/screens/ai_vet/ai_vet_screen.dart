@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart' show EspatiColors;
+import '../../core/map_launcher_service.dart';
 import '../../core/neo_brutalist_tokens.dart';
-import '../../data/sample_data.dart';
+import '../../data/models/map_point.dart';
+import '../../viewmodels/map_viewmodel.dart';
+import '../../widgets/common/neo_brutalist_button.dart';
+import '../discovery/poi_map_screen.dart';
 import 'academy_tab_view.dart';
 import 'pati_ai_screen.dart';
 
@@ -15,8 +21,17 @@ import 'pati_ai_screen.dart';
 //                    truth, no duplicate chat implementation here anymore.
 //   2. Akademi    — [AcademyTabView], searchable guide library (unchanged
 //                    for now — visual restyle is a separate step).
-//   3. Veteriner  — [_AskVetTab], static community Q&A listing (unchanged
-//                    for now — visual restyle is a separate step).
+//   3. Veteriner  — [VeterinaryTabView]: real emergency-vet CTA (deep-links
+//                    to [PoiMapScreen] pre-filtered to vets) + a live,
+//                    distance-sorted-by-proximity vet clinic list off
+//                    [MapViewModel]. Recovered from `health_education_hub_
+//                    screen.dart` (Step 78's unwired "successor" hub, which
+//                    duplicated this screen's own tab layout and was never
+//                    actually adopted) — that file's static-Q&A placeholder
+//                    tab is gone now that a real feature exists to show
+//                    instead; the rest of that file (its own Academy tab
+//                    rebuild, the never-wired [PatiAiScreen]) was dead code
+//                    and has been removed rather than left stranded.
 //
 // The tab bar itself is a custom Neo-Brutalist row ([_NeoTabRow]) instead
 // of Flutter's Material [TabBar] — still driven by a real [TabController]
@@ -80,7 +95,7 @@ class _AiVetScreenState extends State<AiVetScreen>
               children: const [
                 PatiAiChatBody(),
                 AcademyTabView(),
-                _AskVetTab(),
+                VeterinaryTabView(),
               ],
             ),
           ),
@@ -137,7 +152,7 @@ class _AiVetAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Text(
                   'Pati-AI & Akademi',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w900,
                     fontSize: 19,
                     color: Colors.black,
@@ -205,7 +220,7 @@ class _NeoTabRow extends StatelessWidget {
   static const List<_TabSpec> _tabs = [
     _TabSpec(label: 'Pati AI', icon: Icons.smart_toy_rounded),
     _TabSpec(label: 'Akademi', icon: Icons.menu_book_rounded),
-    _TabSpec(label: 'Veterinere Sor', icon: Icons.medical_services_rounded),
+    _TabSpec(label: 'Veteriner', icon: Icons.medical_services_rounded),
   ];
 
   @override
@@ -287,7 +302,7 @@ class _NeoTabItemState extends State<_NeoTabItem> {
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontWeight: FontWeight.w800,
                 fontSize: 12.5,
                 color: content,
@@ -301,150 +316,150 @@ class _NeoTabItemState extends State<_NeoTabItem> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB 3 — VETERİNER SORU-CEVAP (unchanged — visual restyle is a later step)
+// TAB 3 — VETERİNER: real emergency-vet CTA + a live, distance-annotated vet
+// clinic list off [MapViewModel] — recovered from the dead
+// `health_education_hub_screen.dart` (see file header). Not mocked: the same
+// [MapViewModel.allPoints]/[MapViewModel.currentCenter] [PoiMapScreen] itself
+// renders on the Harita tab.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AskVetTab extends StatelessWidget {
-  const _AskVetTab();
+class VeterinaryTabView extends StatelessWidget {
+  const VeterinaryTabView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // ── CTA banner — solid peach block, thick border, hard shadow ────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: GestureDetector(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Veterinere soru sor — yakında geliyor!',
-                  style: GoogleFonts.poppins(fontSize: 13),
+    return Consumer<MapViewModel>(
+      builder: (context, vm, _) {
+        final vetPoints = vm.allPoints
+            .where((p) => p.category == MapPointCategory.vet)
+            .toList();
+
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
+          children: [
+            _EmergencyVetButton(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PoiMapScreen(initialFilter: 'Veteriner'),
                 ),
-                backgroundColor: EspatiColors.lightBlue,
-                behavior: SnackBarBehavior.floating,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                  side: BorderSide(color: Colors.black, width: 2),
-                ),
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               ),
             ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: EspatiColors.peach,
-                borderRadius: BorderRadius.zero,
-                border: NeoBrutal.border(),
-                boxShadow: NeoBrutal.shadow(),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.zero,
-                      border: NeoBrutal.border(2),
-                    ),
-                    child: const Icon(Icons.medical_services_rounded,
-                        color: Colors.black, size: 22),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Veterinere Sor',
-                          style: GoogleFonts.fredoka(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Patiliniz için uzman görüşü alın',
-                          style: GoogleFonts.poppins(
-                            color: Colors.black.withValues(alpha: 0.7),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+            const SizedBox(height: 18),
+            if (vm.isLoading && vm.allPoints.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(color: EspatiColors.sageGreen),
+                ),
+              )
+            else if (vetPoints.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'Yakında veteriner kliniği bulunamadı',
+                    style: GoogleFonts.nunitoSans(
+                      fontSize: 13,
+                      color: Colors.black.withValues(alpha: 0.5),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward_ios_rounded,
-                      color: Colors.black, size: 18),
-                ],
-              ),
-            ),
-          ),
-        ),
-
-        // ── Section header ────────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(
-                'Son Sorular',
-                style: GoogleFonts.fredoka(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  color: Colors.black,
                 ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {},
-                child: Text(
-                  'Tümünü Gör',
-                  style: GoogleFonts.poppins(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13),
+              )
+            else
+              for (final point in vetPoints)
+                VetClinicCard(
+                  point: point,
+                  distanceKm: Geolocator.distanceBetween(
+                        vm.currentCenter.latitude,
+                        vm.currentCenter.longitude,
+                        point.latitude,
+                        point.longitude,
+                      ) /
+                      1000,
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        // ── Q&A list ──────────────────────────────────────────────────────────
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            itemCount: SampleData.vetQuestions.length,
-            itemBuilder: (context, index) {
-              final q = SampleData.vetQuestions[index];
-              return _VetQuestionCard(
-                category: q['category'] as String,
-                question: q['question'] as String,
-                answersCount: q['answers'] as int,
-                author: q['author'] as String,
-              );
-            },
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
 
-class _VetQuestionCard extends StatelessWidget {
-  final String category;
-  final String question;
-  final int answersCount;
-  final String author;
+/// Massive full-width CTA — hands off to [PoiMapScreen] pre-filtered to
+/// vets, reusing the real Eskişehir vet-clinic map instead of duplicating
+/// that data/UI here.
+class _EmergencyVetButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _EmergencyVetButton({required this.onTap});
 
-  const _VetQuestionCard({
-    required this.category,
-    required this.question,
-    required this.answersCount,
-    required this.author,
+  @override
+  Widget build(BuildContext context) {
+    return NeoBrutalistButton(
+      onPressed: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: EspatiColors.terracotta,
+          borderRadius: BorderRadius.zero,
+          border: Border.fromBorderSide(
+            BorderSide(color: Colors.black, width: 3),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black,
+              offset: Offset(6, 6),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Text(
+          '🚨 Nöbetçi Veteriner Bul',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.baloo2(
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Thick-bordered clinic card: name + distance tag on the left, "Ara" /
+/// "Yol Tarifi" blocky action buttons on the right.
+class VetClinicCard extends StatelessWidget {
+  final MapPoint point;
+  final double distanceKm;
+
+  const VetClinicCard({
+    super.key,
+    required this.point,
+    required this.distanceKm,
   });
+
+  void _call(BuildContext context) {
+    // [MapPoint] has no phone field yet — an honest "not available" toast
+    // beats fabricating a number nobody should actually dial.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bu klinik için telefon numarası henüz eklenmedi.',
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white),
+          ),
+          backgroundColor: Colors.black,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+            side: BorderSide(color: Colors.white, width: 1.5),
+          ),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -460,55 +475,118 @@ class _VetQuestionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            point.name,
+            style: GoogleFonts.baloo2(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            point.address,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.nunitoSans(
+              fontSize: 11.5,
+              color: Colors.black.withValues(alpha: 0.55),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.zero,
+              border: Border.all(color: EspatiColors.sageGreen, width: 2),
+            ),
+            child: Text(
+              '${distanceKm.toStringAsFixed(1)} km',
+              style: GoogleFonts.nunitoSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: EspatiColors.peach,
-                  border: Border.all(color: Colors.black, width: 1.5),
-                ),
-                child: Text(
-                  category,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.black,
-                    fontWeight: FontWeight.w800,
-                  ),
+              Expanded(
+                child: _ClinicActionButton(
+                  label: 'Ara',
+                  icon: Icons.call_rounded,
+                  color: EspatiColors.sageGreen,
+                  onTap: () => _call(context),
                 ),
               ),
-              const Spacer(),
-              const Icon(Icons.question_answer_rounded,
-                  size: 14, color: Colors.black),
-              const SizedBox(width: 4),
-              Text(
-                '$answersCount yanıt',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: Colors.black.withValues(alpha: 0.5),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ClinicActionButton(
+                  label: 'Yol Tarifi',
+                  icon: Icons.navigation_rounded,
+                  color: Colors.white,
+                  onTap: () => MapLauncherService.launchGoogleMaps(
+                      point.latitude, point.longitude, NavMode.driving),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            question,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '$author tarafından',
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: Colors.black.withValues(alpha: 0.45),
-            ),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _ClinicActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ClinicActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return NeoBrutalistButton(
+      onPressed: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black,
+              offset: Offset(2, 2),
+              blurRadius: 0,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.black),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: GoogleFonts.nunitoSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

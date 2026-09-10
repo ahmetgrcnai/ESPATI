@@ -89,7 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -112,7 +112,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           'Profili Düzenle',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black,
@@ -239,7 +239,7 @@ class _SaveButton extends StatelessWidget {
               )
             : Text(
                 'Kaydet',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   color: Colors.black,
@@ -357,7 +357,7 @@ class _AvatarPicker extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Fotoğrafı Değiştir',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                     color: Colors.black,

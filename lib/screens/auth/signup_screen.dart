@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
-import 'login_screen.dart';
 import 'widgets/auth_text_field.dart';
 import 'widgets/auth_widgets.dart';
 import 'widgets/google_sign_in_button.dart';
@@ -89,8 +87,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ..showSnackBar(
             SnackBar(
               content: Text(authVM.errorMessage!,
-                  style: GoogleFonts.poppins(fontSize: 13)),
-              backgroundColor: AppColors.error,
+                  style: GoogleFonts.nunitoSans(fontSize: 13)),
+              backgroundColor: EspatiColors.red,
               behavior: SnackBarBehavior.floating,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
@@ -131,7 +129,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Hesap Oluştur',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
@@ -141,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'ESPATI ailesine katılın!',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 13,
                     color: Colors.black.withValues(alpha: 0.6),
                   ),
@@ -225,18 +223,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   children: [
                     Text(
                       'Zaten hesabınız var mı?',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                           fontSize: 13, color: Colors.black.withValues(alpha: 0.65)),
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const LoginScreen()),
-                      ),
+                      // This screen is only ever reached by pushing it on
+                      // top of LoginScreen (see login_screen.dart), so the
+                      // login screen the user wants is already directly
+                      // beneath this one — pop back to it instead of
+                      // pushing a second, separate instance on top.
+                      onPressed: () => Navigator.pop(context),
                       child: Text(
                         'Giriş Yapın',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 14,
                           color: EspatiColors.terracotta,
                           fontWeight: FontWeight.w700,

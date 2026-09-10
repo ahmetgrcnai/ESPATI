@@ -74,7 +74,7 @@ class _NeoBrutalistTextFieldState extends State<NeoBrutalistTextField> {
           children: [
             Text(
               widget.label,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
                 color: Colors.black,
@@ -111,13 +111,13 @@ class _NeoBrutalistTextFieldState extends State<NeoBrutalistTextField> {
             textCapitalization: widget.textCapitalization,
             keyboardType: widget.keyboardType,
             validator: widget.validator,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 14,
               color: Colors.black,
             ),
             decoration: InputDecoration(
               hintText: widget.hintText,
-              hintStyle: GoogleFonts.poppins(
+              hintStyle: GoogleFonts.nunitoSans(
                 fontSize: 14,
                 color: Colors.black.withValues(alpha: 0.35),
               ),
@@ -129,7 +129,7 @@ class _NeoBrutalistTextFieldState extends State<NeoBrutalistTextField> {
               focusedErrorBorder: InputBorder.none,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              errorStyle: GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
+              errorStyle: GoogleFonts.nunitoSans(fontSize: 11, color: EspatiColors.red),
             ),
           ),
         ),

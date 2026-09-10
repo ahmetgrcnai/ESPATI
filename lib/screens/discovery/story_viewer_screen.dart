@@ -370,7 +370,7 @@ class _UsernameBadge extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: GoogleFonts.fredoka(
+        style: GoogleFonts.baloo2(
           fontWeight: FontWeight.w600,
           fontSize: 13,
           color: Colors.black,
@@ -449,10 +449,10 @@ class _ReplyBar extends StatelessWidget {
               minLines: 1,
               maxLines: 4,
               style:
-                  GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                  GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
               decoration: InputDecoration(
                 hintText: 'Yanıtla...',
-                hintStyle: GoogleFonts.poppins(
+                hintStyle: GoogleFonts.nunitoSans(
                   fontSize: 14,
                   color: Colors.black.withValues(alpha: 0.45),
                 ),

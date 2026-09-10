@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -63,8 +62,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ..showSnackBar(
             SnackBar(
               content: Text(authVM.errorMessage!,
-                  style: GoogleFonts.poppins(fontSize: 13)),
-              backgroundColor: AppColors.error,
+                  style: GoogleFonts.nunitoSans(fontSize: 13)),
+              backgroundColor: EspatiColors.red,
               behavior: SnackBarBehavior.floating,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.zero,
@@ -85,7 +84,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ..showSnackBar(
             SnackBar(
               content: Text(authVM.successMessage!,
-                  style: GoogleFonts.poppins(fontSize: 13)),
+                  style: GoogleFonts.nunitoSans(fontSize: 13)),
               backgroundColor: EspatiColors.sageGreen,
               behavior: SnackBarBehavior.floating,
               shape: const RoundedRectangleBorder(
@@ -134,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 // ── Heading ───────────────────────────────────────────────────
                 Text(
                   'Şifremi Unuttum',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
                     color: Colors.black,
@@ -144,7 +143,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'E-posta adresinizi girin. Şifre sıfırlama bağlantısını\nhemen gönderelim.',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 13,
                     color: Colors.black.withValues(alpha: 0.6),
                   ),
@@ -181,7 +180,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Giriş ekranına dön',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 14,
                       color: EspatiColors.terracotta,
                       fontWeight: FontWeight.w600,

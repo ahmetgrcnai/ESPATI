@@ -1,14 +1,25 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' show LatLng;
 import '../core/result.dart';
 import '../data/models/map_point.dart';
 import '../data/repositories/interfaces/i_map_repository.dart';
+import '../widgets/common/map_pin.dart' show mapPinColor, mapPinIcon;
 
-/// ViewModel for the Map screen.
+/// ViewModel for the Map (Harita) tab.
 ///
-/// Manages map points, category filtering, marker generation,
-/// selected point state, and user location.
+/// Loads [MapPoint]s and tracks the user's live location. Filtering,
+/// marker/pin building, and selected-point UI state used to live here too,
+/// but [PoiMapScreen] (the screen that actually replaced the old
+/// `MapScreen`/`UnifiedDiscoveryScreen` this ViewModel predates) reimplements
+/// all of that itself as local State — its markers are custom-rendered
+/// Neo-Brutalist bitmaps, not the plain [Marker]s this class used to build,
+/// and its filter/selection are single-screen concerns with no other
+/// consumer. That left `filterByCategory`/`selectPoint`/`clearSelection`/
+/// `animateToPoint`/`animateToCenter`/`onMapCreated` and their backing
+/// fields dead — nothing in the live app called them, confirmed by search
+/// before removal. [currentCenter]/[hasUserLocation]/[updateUserLocation]
+/// survive because [HealthEducationHubScreen]'s vet-clinic distance display
+/// genuinely reads [currentCenter] — see [updateUserLocation]'s doc comment.
 class MapViewModel extends ChangeNotifier {
   final IMapRepository _mapRepository;
 
@@ -17,7 +28,7 @@ class MapViewModel extends ChangeNotifier {
   }
 
   // ── Eskişehir Center ──
-  static const LatLng eskisehirCenter = LatLng(39.7713, 30.5107);
+  static const LatLng eskisehirCenter = LatLng(39.7767, 30.5206);
 
   // ── State Fields ──
 
@@ -28,45 +39,39 @@ class MapViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   List<MapPoint> _allPoints = [];
-  List<MapPoint> _filteredPoints = [];
-  List<MapPoint> get filteredPoints => List.unmodifiable(_filteredPoints);
 
-  MapPointCategory? _selectedCategory;
-  MapPointCategory? get selectedCategory => _selectedCategory;
-
-  MapPoint? _selectedPoint;
-  MapPoint? get selectedPoint => _selectedPoint;
-
-  Set<Marker> _markers = {};
-  Set<Marker> get markers => _markers;
+  /// Every loaded point, unfiltered — [PoiMapScreen] applies its own
+  /// category filter over this list itself.
+  List<MapPoint> get allPoints => List.unmodifiable(_allPoints);
 
   LatLng _currentCenter = eskisehirCenter;
+
+  /// The user's live location once [updateUserLocation] has been called,
+  /// otherwise [eskisehirCenter]. [PoiMapScreen] tracks its own copy of this
+  /// for its map camera (a View-layer concern) and calls [updateUserLocation]
+  /// once Geolocator resolves it, so this ViewModel's copy — read by
+  /// [HealthEducationHubScreen] for its vet-clinic distance display — stays
+  /// in sync instead of silently drifting from what the map itself is
+  /// centered on.
   LatLng get currentCenter => _currentCenter;
 
-  GoogleMapController? _mapController;
+  bool _hasUserLocation = false;
+  bool get hasUserLocation => _hasUserLocation;
 
-  // ── Category Colors ──
-  static const Map<MapPointCategory, Color> categoryColors = {
-    MapPointCategory.vet: Color(0xFF2196F3),
-    MapPointCategory.park: Color(0xFF4CAF50),
-    MapPointCategory.cafe: Color(0xFF8D6E63),
-    MapPointCategory.petShop: Color(0xFF9C27B0),
+  // ── Category Colors/Icons ──
+  // Derived from [mapPinColor]/[mapPinIcon] (the same palette
+  // [NeoBrutalistMapPin] paints on the map itself) instead of their own
+  // separate Material palette, so a category always looks the same whether
+  // it's a pin on the map or the icon chip in [PoiMapScreen]'s info card.
+  static final Map<MapPointCategory, Color> categoryColors = {
+    for (final c in MapPointCategory.values) c: mapPinColor(c),
   };
 
-  // ── Category Icons ──
-  static const Map<MapPointCategory, IconData> categoryIcons = {
-    MapPointCategory.vet: Icons.local_hospital_rounded,
-    MapPointCategory.park: Icons.park_rounded,
-    MapPointCategory.cafe: Icons.coffee_rounded,
-    MapPointCategory.petShop: Icons.store_rounded,
+  static final Map<MapPointCategory, IconData> categoryIcons = {
+    for (final c in MapPointCategory.values) c: mapPinIcon(c),
   };
 
   // ── Public Methods ──
-
-  /// Sets the GoogleMapController when the map is created.
-  void onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
-  }
 
   /// Loads all map points from the repository.
   Future<void> loadMapPoints() async {
@@ -79,7 +84,6 @@ class MapViewModel extends ChangeNotifier {
     switch (result) {
       case Success(:final data):
         _allPoints = data;
-        _applyFilter();
       case Failure(:final message):
         _errorMessage = message;
     }
@@ -88,45 +92,12 @@ class MapViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Filters points by [category]. Pass `null` to show all.
-  void filterByCategory(MapPointCategory? category) {
-    _selectedCategory = category;
-    _applyFilter();
-    notifyListeners();
-  }
-
-  /// Selects a point (triggers bottom sheet in UI).
-  void selectPoint(MapPoint point) {
-    _selectedPoint = point;
-    notifyListeners();
-  }
-
-  /// Clears the selected point (dismisses bottom sheet).
-  void clearSelection() {
-    _selectedPoint = null;
-    notifyListeners();
-  }
-
-  /// Animates the map camera to a specific point.
-  Future<void> animateToPoint(MapPoint point) async {
-    await _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(
-        LatLng(point.latitude, point.longitude),
-        16.0,
-      ),
-    );
-  }
-
-  /// Animates the map camera to the user's location or Eskişehir center.
-  Future<void> animateToCenter() async {
-    await _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(_currentCenter, 13.0),
-    );
-  }
-
-  /// Updates the current center position (e.g., from geolocator).
+  /// Updates the current center position — called by [PoiMapScreen] once
+  /// Geolocator resolves the user's real position, so [currentCenter]
+  /// reflects it here too instead of staying frozen at [eskisehirCenter].
   void updateUserLocation(double lat, double lng) {
     _currentCenter = LatLng(lat, lng);
+    _hasUserLocation = true;
     notifyListeners();
   }
 
@@ -134,55 +105,5 @@ class MapViewModel extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
-  }
-
-  // ── Private Methods ──
-
-  /// Applies the current category filter and regenerates markers.
-  void _applyFilter() {
-    if (_selectedCategory == null) {
-      _filteredPoints = List.from(_allPoints);
-    } else {
-      _filteredPoints =
-          _allPoints.where((p) => p.category == _selectedCategory).toList();
-    }
-    _generateMarkers();
-  }
-
-  /// Generates Google Map markers from the filtered points.
-  void _generateMarkers() {
-    _markers = _filteredPoints.map((point) {
-      final color = _markerHue(point.category);
-      return Marker(
-        markerId: MarkerId(point.id),
-        position: LatLng(point.latitude, point.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(color),
-        infoWindow: InfoWindow(
-          title: point.name,
-          snippet: '${point.category.label} • ⭐ ${point.rating}',
-        ),
-        onTap: () => selectPoint(point),
-      );
-    }).toSet();
-  }
-
-  /// Maps categories to marker hue values.
-  double _markerHue(MapPointCategory category) {
-    switch (category) {
-      case MapPointCategory.vet:
-        return BitmapDescriptor.hueAzure;
-      case MapPointCategory.park:
-        return BitmapDescriptor.hueGreen;
-      case MapPointCategory.cafe:
-        return BitmapDescriptor.hueOrange;
-      case MapPointCategory.petShop:
-        return BitmapDescriptor.hueViolet;
-    }
-  }
-
-  @override
-  void dispose() {
-    _mapController?.dispose();
-    super.dispose();
   }
 }

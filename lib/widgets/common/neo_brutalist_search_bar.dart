@@ -100,13 +100,13 @@ class _NeoBrutalistSearchBarState extends State<NeoBrutalistSearchBar> {
               focusNode: _focusNode,
               autofocus: widget.autofocus,
               onChanged: widget.onChanged,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: fontSize,
                 color: Colors.black,
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
-                hintStyle: GoogleFonts.poppins(
+                hintStyle: GoogleFonts.nunitoSans(
                   fontSize: fontSize,
                   color: Colors.black.withValues(alpha: 0.4),
                 ),

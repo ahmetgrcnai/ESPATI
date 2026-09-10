@@ -1,21 +1,33 @@
+
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'core/app_theme.dart';
 import 'core/notification_service.dart';
 import 'core/service_locator.dart';
 import 'viewmodels/theme_viewmodel.dart';
-import 'screens/auth/auth_wrapper.dart';
+import 'screens/splash/splash_screen.dart';
 
 /// Espati — A social media app for pet owners.
 /// Main entry point.
 Future<void> main() async {
-  // Preserve the native splash until Flutter is ready to draw its first frame.
-  final binding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: binding);
+  // Step 65 — flutter_native_splash has been removed entirely (package
+  // uninstalled, native Android/iOS launch-screen configs reverted to
+  // Flutter's plain unbranded defaults). There's no native splash left to
+  // preserve/remove a handoff for; ths OS's own brief, blank default
+  // launch screen is unavoidable (every Android/iOS app has *some* native
+  // resource covering the gap before a first frame renders — that's
+  // platform-level, not something any Flutter package can fully erase),
+  // but zero branding lives there now. All of it — logo, slogan, colors,
+  // animation — is the custom SplashScreen widget below.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load secrets from .env (gitignored) before any service that needs them
+  // (ClaudeService) is constructed.
+  await dotenv.load(fileName: '.env');
 
   // --- YENİ: Firebase Başlatma ---
   try {
@@ -30,9 +42,6 @@ Future<void> main() async {
 
   // Initialise local notification service (Mevcut kodun)
   await NotificationService.instance.init();
-
-  // Remove the native splash — Flutter takes over rendering from here.
-  FlutterNativeSplash.remove();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -61,7 +70,12 @@ class EspatiApp extends StatelessWidget {
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: themeVM.themeMode,
-              home: const AuthWrapper(),
+              // Step 65 — back to a Dart-level SplashScreen as the sole
+              // branded boot moment, now that native splash customization
+              // (flutter_native_splash) has been fully removed. SplashScreen
+              // itself pushReplacement's to AuthWrapper (the real auth-check
+              // gate — Login vs MainScreen) after its branded delay.
+              home: const SplashScreen(),
             );
           },
         ),

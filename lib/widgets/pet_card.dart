@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../core/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/neo_brutalist_tokens.dart';
 
 /// Small card for displaying a user's pet — photo, name, breed.
 class PetCard extends StatelessWidget {
@@ -9,6 +10,7 @@ class PetCard extends StatelessWidget {
   final String imageUrl;
   final String age;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const PetCard({
     super.key,
@@ -17,33 +19,33 @@ class PetCard extends StatelessWidget {
     required this.imageUrl,
     required this.age,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         width: 120,
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          color: Colors.white,
+          borderRadius: BorderRadius.zero,
+          border: NeoBrutal.border(2),
+          boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Pet image
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
+            Container(
+              decoration: const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.black, width: 2),
+                ),
+              ),
               child: CachedNetworkImage(
                 imageUrl: imageUrl,
                 width: 120,
@@ -52,14 +54,14 @@ class PetCard extends StatelessWidget {
                 placeholder: (context, url) => Container(
                   width: 120,
                   height: 90,
-                  color: AppColors.peachLight,
-                  child: Icon(Icons.pets, color: AppColors.peach),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets_rounded, color: Colors.black),
                 ),
                 errorWidget: (context, url, error) => Container(
                   width: 120,
                   height: 90,
-                  color: AppColors.peachLight,
-                  child: Icon(Icons.pets, color: AppColors.peach),
+                  color: NeoBrutal.inactiveFill,
+                  child: const Icon(Icons.pets_rounded, color: Colors.black),
                 ),
               ),
             ),
@@ -71,18 +73,18 @@ class PetCard extends StatelessWidget {
                 children: [
                   Text(
                     name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: AppColors.textPrimary,
+                    style: GoogleFonts.baloo2(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '$breed • $age',
-                    style: TextStyle(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 10,
-                      color: AppColors.textPrimary.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.6),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

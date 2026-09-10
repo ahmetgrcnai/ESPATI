@@ -134,7 +134,7 @@ class AdListCard extends StatelessWidget {
                           ),
                           child: Text(
                             statusLabel,
-                            style: GoogleFonts.fredoka(
+                            style: GoogleFonts.baloo2(
                               fontWeight: FontWeight.w900,
                               fontSize: 10,
                               color: Colors.black,
@@ -149,7 +149,7 @@ class AdListCard extends StatelessWidget {
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.fredoka(
+                        style: GoogleFonts.baloo2(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
                           color: Colors.black,
@@ -163,7 +163,7 @@ class AdListCard extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 11,
                           color: Colors.black.withValues(alpha: 0.55),
                         ),

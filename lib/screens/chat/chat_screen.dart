@@ -88,7 +88,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(vm.errorMessage!,
-              style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+              style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
           backgroundColor: Colors.black,
           behavior: SnackBarBehavior.floating,
           shape: const RoundedRectangleBorder(
@@ -197,7 +197,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Text(
                 widget.chatTitle,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold,
                   fontSize: 17,
                   color: Colors.black,
@@ -295,7 +295,7 @@ class _EmptyThread extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Henüz mesaj yok',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -305,7 +305,7 @@ class _EmptyThread extends StatelessWidget {
             Text(
               '$chatTitle ile sohbete başla!',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 13,
                 color: Colors.black.withValues(alpha: 0.6),
               ),
@@ -363,11 +363,11 @@ class ChatInputField extends StatelessWidget {
                     minLines: 1,
                     maxLines: 4,
                     textCapitalization: TextCapitalization.sentences,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                         fontSize: 14, color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Mesaj yaz...',
-                      hintStyle: GoogleFonts.poppins(
+                      hintStyle: GoogleFonts.nunitoSans(
                         fontSize: 14,
                         color: Colors.black.withValues(alpha: 0.45),
                       ),

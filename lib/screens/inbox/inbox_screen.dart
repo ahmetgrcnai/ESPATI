@@ -110,7 +110,7 @@ class _InboxScreenState extends State<InboxScreen> {
         ),
         title: Text(
           'Mesajlar',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 19,
             color: Colors.black,
@@ -216,7 +216,7 @@ class _InboxScreenState extends State<InboxScreen> {
               const SizedBox(width: 8),
               Text(
                 'Yeni',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   color: Colors.white,
@@ -276,7 +276,7 @@ class _EmptyInbox extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Henüz mesaj yok',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 15,
               color: Colors.black.withValues(alpha: 0.5),
             ),
@@ -303,7 +303,7 @@ class _NoSearchResults extends StatelessWidget {
           Text(
             '"$query" için sonuç bulunamadı',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 14,
               color: Colors.black.withValues(alpha: 0.5),
             ),

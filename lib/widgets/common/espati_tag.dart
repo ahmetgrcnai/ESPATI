@@ -42,7 +42,7 @@ class EspatiTag extends StatelessWidget {
           ],
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.black,

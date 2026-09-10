@@ -106,7 +106,7 @@ class InboxChatTile extends StatelessWidget {
                       username,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: Colors.black,
@@ -117,7 +117,7 @@ class InboxChatTile extends StatelessWidget {
                       messageSnippet,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 13,
                         fontWeight: isUnread ? FontWeight.w600 : FontWeight.w400,
                         color: Colors.black
@@ -139,7 +139,7 @@ class InboxChatTile extends StatelessWidget {
                 children: [
                   Text(
                     timeLabel,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 11,
                       fontWeight: isUnread ? FontWeight.w600 : FontWeight.w400,
                       color: Colors.black
@@ -163,7 +163,7 @@ class InboxChatTile extends StatelessWidget {
                       ),
                       child: Text(
                         unreadCount > 99 ? '99+' : '$unreadCount',
-                        style: GoogleFonts.fredoka(
+                        style: GoogleFonts.baloo2(
                           fontWeight: FontWeight.bold,
                           fontSize: 11,
                           color: Colors.white,

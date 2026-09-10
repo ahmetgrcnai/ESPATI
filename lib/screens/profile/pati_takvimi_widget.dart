@@ -55,7 +55,7 @@ extension on _TimelineStatus {
 class PatiTakvimiWidget extends StatefulWidget {
   final List<ReminderModel> reminders;
   final bool isLoading;
-  final ValueChanged<String> onComplete;
+  final Future<bool> Function(String id) onComplete;
   final VoidCallback onSeeAll;
 
   final ValueChanged<ReminderModel> onAdd;
@@ -87,9 +87,18 @@ class _PatiTakvimiWidgetState extends State<PatiTakvimiWidget> {
   /// file-level doc comment above for why this exists.
   final Set<String> _optimisticallyCompleted = {};
 
-  void _handleCheck(ReminderModel reminder) {
+  /// Optimistically marks [reminder] completed immediately, then rolls that
+  /// back if [PatiTakvimiWidget.onComplete] (→
+  /// [ProfileViewModel.completeReminder]) reports the write failed —
+  /// without this, a failed completion left the card permanently and
+  /// invisibly "stuck done" in this widget even after the ViewModel itself
+  /// had correctly reverted [ReminderModel.isCompleted].
+  Future<void> _handleCheck(ReminderModel reminder) async {
     setState(() => _optimisticallyCompleted.add(reminder.id));
-    widget.onComplete(reminder.id);
+    final success = await widget.onComplete(reminder.id);
+    if (!success && mounted) {
+      setState(() => _optimisticallyCompleted.remove(reminder.id));
+    }
   }
 
   @override
@@ -171,7 +180,7 @@ class _PatiTakvimiWidgetState extends State<PatiTakvimiWidget> {
                       // before Step 56/57; cream-on-cream would be invisible).
                       Text(
                         'Pati Takvimi',
-                        style: GoogleFonts.fredoka(
+                        style: GoogleFonts.baloo2(
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                           color: Colors.black,
@@ -401,7 +410,7 @@ class _TimelineCard extends StatelessWidget {
                   isOverdue ? '${reminder.title} Gecikti!' : reminder.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                     color: Colors.black,
@@ -412,7 +421,7 @@ class _TimelineCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _formatDateTime(reminder.dateTime, isCompleted),
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 11.5,
                     fontWeight:
                         isOverdue ? FontWeight.w800 : FontWeight.w400,
@@ -541,7 +550,7 @@ class _CompletedToggleButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               'Tamamlananları ${expanded ? 'Gizle' : 'Göster'} ($count)',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
                 color: Colors.black,
@@ -593,7 +602,7 @@ class _TimelineEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'İlk hatırlatıcını ekle!',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: Colors.black,
@@ -602,7 +611,7 @@ class _TimelineEmptyState extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Aşı, mama, ilaç takvimini takip et',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12,
                 color: Colors.black.withValues(alpha: 0.6),
               ),
@@ -644,7 +653,7 @@ class _AllDoneCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Tüm bakımlar tamam!',
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.baloo2(
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: Colors.black,
@@ -654,7 +663,7 @@ class _AllDoneCard extends StatelessWidget {
           Text(
             'Bekleyen aşı, mama veya ilaç hatırlatıcın yok.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 12,
               color: Colors.black.withValues(alpha: 0.7),
             ),
@@ -705,7 +714,7 @@ class _AddTaskButton extends StatelessWidget {
             const SizedBox(width: 4),
             Text(
               'Yeni',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
                 color: Colors.black,
@@ -811,10 +820,15 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.poppins(fontSize: 13)),
+        content: Text(message,
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: _coral,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Colors.black, width: 1.5),
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       ),
     );
   }
@@ -864,7 +878,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               const SizedBox(height: 16),
               Text(
                 'Yeni Hatırlatıcı',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: Colors.black,
@@ -890,11 +904,11 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                 child: TextField(
                   controller: _titleController,
                   textCapitalization: TextCapitalization.sentences,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                       fontSize: 14, color: Colors.black),
                   decoration: InputDecoration(
                     hintText: "Örn: Luna'nın karma aşısı",
-                    hintStyle: GoogleFonts.poppins(
+                    hintStyle: GoogleFonts.nunitoSans(
                       fontSize: 14,
                       color: Colors.black.withValues(alpha: 0.4),
                     ),
@@ -909,7 +923,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
               // ── Category selector ────────────────────────────────────────
               Text(
                 'Kategori',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: Colors.black.withValues(alpha: 0.7),
@@ -957,7 +971,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                             const SizedBox(width: 6),
                             Text(
                               cat.label,
-                              style: GoogleFonts.fredoka(
+                              style: GoogleFonts.baloo2(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 13,
                                 color: Colors.black,
@@ -999,7 +1013,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                       const SizedBox(width: 10),
                       Text(
                         _date == null ? 'Tarih Seç' : _formatPicked(_date!),
-                        style: GoogleFonts.fredoka(
+                        style: GoogleFonts.baloo2(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
                           color: Colors.black,
@@ -1032,7 +1046,7 @@ class _AddTaskSheetState extends State<_AddTaskSheet> {
                   ),
                   child: Text(
                     'KAYDET',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w700,
                       fontSize: 17,
                       color: Colors.black,

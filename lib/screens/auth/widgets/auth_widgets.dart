@@ -52,7 +52,7 @@ class AuthPrimaryButton extends StatelessWidget {
               )
             : Text(
                 label,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                     fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black),
               ),
       ),
@@ -73,7 +73,7 @@ class AuthOrDivider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'veya',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.black.withValues(alpha: 0.4),

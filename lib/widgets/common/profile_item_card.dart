@@ -97,7 +97,7 @@ class ProfileItemCard extends StatelessWidget {
                     ),
                     child: Text(
                       badgeLabel,
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.bold,
                         fontSize: 11,
                         color: Colors.black,
@@ -122,7 +122,7 @@ class ProfileItemCard extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                       color: Colors.black,
@@ -133,7 +133,7 @@ class ProfileItemCard extends StatelessWidget {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 12,
                       color: Colors.black.withValues(alpha: 0.6),
                     ),

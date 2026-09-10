@@ -1,30 +1,46 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/result.dart';
 import '../data/models/listing_model.dart';
 import '../data/models/chat_group_model.dart';
-import '../data/models/direct_message_model.dart';
 import '../data/repositories/interfaces/i_form_repository.dart';
 
 /// Inbox sub-tab selection.
 enum InboxView { groups, messages }
 
-/// ViewModel for [FormHubScreen].
+/// Manages state for two domains:
+/// - İlanlar: pet listing filter + real-time data ([IFormRepository.watchListings]).
+///   Consumed by [ListingFormScreen], [FeedDetailScreen]'s mini-map data,
+///   and the Topluluk tab's [GroupDetailScreen] mixed feed.
+/// - Gruplar: community group list ([ChatGroupModel], one-time fetch from
+///   the `communityGroups` Firestore collection as of Step 70) — the
+///   backbone of [CommunityHubScreen]'s Topluluk group list (Phase 2 Step 4),
+///   not a Forum sub-tab.
 ///
-/// Manages state for three domains:
-/// - İlanlar: pet listing filter + data
-/// - Gruplar: community group list
-/// - Mesajlar: direct message conversations
+/// Mesajlar (1-on-1 chats) is owned by [ChatViewModel] instead — real,
+/// Firestore-backed messaging (Sprint 8), surfaced via [InboxScreen].
 ///
 /// UI layer must use [Consumer<FormViewModel>] and never hold business logic.
 class FormViewModel extends ChangeNotifier {
   final IFormRepository _repository;
 
+  StreamSubscription<List<ListingModel>>? _listingsSubscription;
+
   FormViewModel(this._repository) {
+    _subscribeToListings();
     loadAll();
   }
 
-  // ── Loading & Error State ──────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _listingsSubscription?.cancel();
+    super.dispose();
+  }
+
+  // ── Loading & Error State (Groups) ──────────────────────────────────────────
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -34,19 +50,39 @@ class FormViewModel extends ChangeNotifier {
 
   // ── Listings ──────────────────────────────────────────────────────────────
 
+  /// True until the first [IFormRepository.watchListings] emission arrives.
+  bool _isListingsLoading = true;
+  bool get isListingsLoading => _isListingsLoading;
+
+  String? _listingsError;
+  String? get listingsError => _listingsError;
+
   List<ListingModel> _allListings = [];
 
-  /// Active filter. One of: 'all' | 'kayip' | 'sahiplendirme'.
+  /// Unfiltered live listings — for consumers (e.g. the unified Discovery
+  /// map) that need their own independent filter without mutating
+  /// [_listingFilter], which is shared UI state read by the Forum tab.
+  List<ListingModel> get allListings => List.unmodifiable(_allListings);
+
+  /// Active filter. One of: 'all' | 'kayip' | 'sahiplendirme' | 'acil'.
   String _listingFilter = 'all';
   String get listingFilter => _listingFilter;
 
   /// Listings filtered by the current [_listingFilter].
   List<ListingModel> get filteredListings {
-    if (_listingFilter == 'all') return List.unmodifiable(_allListings);
-    final target = _listingFilter == 'kayip'
-        ? ListingStatus.kayip
-        : ListingStatus.sahiplendirme;
-    return _allListings.where((l) => l.status == target).toList();
+    switch (_listingFilter) {
+      case 'kayip':
+        return _allListings.where((l) => l.status == ListingStatus.kayip).toList();
+      case 'sahiplendirme':
+        return _allListings
+            .where((l) => l.status == ListingStatus.sahiplendirme)
+            .toList();
+      case 'acil':
+        return _allListings.where((l) => l.isUrgent).toList();
+      case 'all':
+      default:
+        return List.unmodifiable(_allListings);
+    }
   }
 
   int get lostCount =>
@@ -55,67 +91,77 @@ class FormViewModel extends ChangeNotifier {
   int get adoptionCount =>
       _allListings.where((l) => l.status == ListingStatus.sahiplendirme).length;
 
+  int get urgentCount => _allListings.where((l) => l.isUrgent).length;
+
+  /// Listings authored by [authorId] — powers "Benim İlanlarım" on the
+  /// Profile tab. Reuses the already-live [_allListings] stream rather than
+  /// issuing a separate Firestore query.
+  List<ListingModel> listingsByAuthor(String authorId) => _allListings
+      .where((l) => l.authorId == authorId)
+      .toList();
+
   // ── Community Groups ──────────────────────────────────────────────────────
 
   List<ChatGroupModel> _chatGroups = [];
   List<ChatGroupModel> get chatGroups => List.unmodifiable(_chatGroups);
 
-  int get totalGroupUnread =>
-      _chatGroups.fold(0, (sum, g) => sum + g.unreadCount);
-
-  // ── Direct Messages ───────────────────────────────────────────────────────
-
-  List<DirectMessageModel> _directMessages = [];
-  List<DirectMessageModel> get directMessages =>
-      List.unmodifiable(_directMessages);
-
-  int get totalDmUnread =>
-      _directMessages.fold(0, (sum, d) => sum + d.unreadCount);
-
-  int get totalInboxUnread => totalGroupUnread + totalDmUnread;
+  /// Locally nudges a group's displayed member count by [delta] (+1/-1)
+  /// right when the user joins/leaves it. [loadAll] fetches groups with a
+  /// one-time `.get()`, not a live listener (see its own doc comment), so
+  /// without this the count shown would stay stale until the next full
+  /// reload even though [SocialViewModel.toggleGroupMembership] already
+  /// confirmed the real change in Firestore.
+  void adjustGroupMemberCount(String groupId, int delta) {
+    final idx = _chatGroups.indexWhere((g) => g.id == groupId);
+    if (idx == -1) return;
+    final current = _chatGroups[idx];
+    _chatGroups = List<ChatGroupModel>.from(_chatGroups)
+      ..[idx] = current.copyWith(
+          memberCount: (current.memberCount + delta).clamp(0, 1 << 31));
+    notifyListeners();
+  }
 
   // ── Inbox sub-tab ─────────────────────────────────────────────────────────
 
   InboxView _inboxView = InboxView.groups;
   InboxView get inboxView => _inboxView;
 
+  // ── Listings stream ────────────────────────────────────────────────────────
+
+  void _subscribeToListings() {
+    _listingsSubscription = _repository.watchListings().listen(
+      (listings) {
+        _allListings = listings;
+        _isListingsLoading = false;
+        _listingsError = null;
+        notifyListeners();
+      },
+      onError: (e) {
+        _isListingsLoading = false;
+        _listingsError = 'İlanlar yüklenemedi.';
+        debugPrint('[FormViewModel] watchListings error: $e');
+        notifyListeners();
+      },
+    );
+  }
+
   // ── Public Actions ────────────────────────────────────────────────────────
 
-  /// Fetches all data concurrently. Safe to call multiple times.
+  /// Fetches Groups (one-time — real `communityGroups` Firestore read as of
+  /// Step 70). Listings update live via the [_subscribeToListings] stream
+  /// and don't need a manual reload.
   Future<void> loadAll() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    final results = await Future.wait([
-      _repository.getListings(),
-      _repository.getChatGroups(),
-      _repository.getDirectMessages(),
-    ]);
+    final result = await _repository.getChatGroups();
 
-    final listingsResult = results[0] as Result<List<ListingModel>>;
-    final groupsResult = results[1] as Result<List<ChatGroupModel>>;
-    final dmsResult = results[2] as Result<List<DirectMessageModel>>;
-
-    switch (listingsResult) {
-      case Success(:final data):
-        _allListings = data;
-      case Failure(:final message):
-        _errorMessage = message;
-    }
-
-    switch (groupsResult) {
+    switch (result) {
       case Success(:final data):
         _chatGroups = data;
       case Failure(:final message):
-        _errorMessage ??= message;
-    }
-
-    switch (dmsResult) {
-      case Success(:final data):
-        _directMessages = data;
-      case Failure(:final message):
-        _errorMessage ??= message;
+        _errorMessage = message;
     }
 
     _isLoading = false;
@@ -136,24 +182,6 @@ class FormViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Marks all messages in a group as read. Call when user opens a group.
-  void markGroupRead(String groupId) {
-    final idx = _chatGroups.indexWhere((g) => g.id == groupId);
-    if (idx == -1 || _chatGroups[idx].unreadCount == 0) return;
-    _chatGroups = List<ChatGroupModel>.from(_chatGroups)
-      ..[idx] = _chatGroups[idx].copyWith(unreadCount: 0);
-    notifyListeners();
-  }
-
-  /// Marks a DM conversation as read. Call when user opens a DM thread.
-  void markDmRead(String dmId) {
-    final idx = _directMessages.indexWhere((d) => d.id == dmId);
-    if (idx == -1 || _directMessages[idx].unreadCount == 0) return;
-    _directMessages = List<DirectMessageModel>.from(_directMessages)
-      ..[idx] = _directMessages[idx].copyWith(unreadCount: 0);
-    notifyListeners();
-  }
-
   // ── Listing Creation ──────────────────────────────────────────────────────
 
   bool _isSubmitting = false;
@@ -162,11 +190,15 @@ class FormViewModel extends ChangeNotifier {
   String? _submitError;
   String? get submitError => _submitError;
 
-  /// Persists [listing] via the repository, prepends it locally on success.
+  /// Uploads [images] and persists [listing] via the repository.
+  ///
+  /// Does not update [filteredListings] locally — the live
+  /// [_subscribeToListings] stream picks up the new document on its own,
+  /// same as [ProfileViewModel.addPet] relies on its pets stream.
   ///
   /// Returns `true` on success, `false` on failure.
   /// The UI should observe [isSubmitting] to show a loading indicator.
-  Future<bool> createListing(ListingModel listing) async {
+  Future<bool> createListing(ListingModel listing, List<File> images) async {
     if (_isSubmitting) {
       debugPrint('[FormViewModel] createListing blocked — already submitting.');
       return false;
@@ -177,12 +209,10 @@ class FormViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _repository.createListing(listing);
+      final result = await _repository.createListing(listing, images);
 
       switch (result) {
         case Success():
-          // Prepend so the new listing appears at the top of the list.
-          _allListings = [listing, ..._allListings];
           _isSubmitting = false;
           notifyListeners();
           return true;
@@ -201,6 +231,56 @@ class FormViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  // ── Listing Deletion ("Benim İlanlarım" management) ────────────────────────
+
+  bool _isDeletingListing = false;
+  bool get isDeletingListing => _isDeletingListing;
+
+  String? _deleteListingError;
+  String? get deleteListingError => _deleteListingError;
+
+  /// Deletes [listingId] via the repository.
+  ///
+  /// Does not remove it from [filteredListings] locally — the live
+  /// [_subscribeToListings] stream reflects the deletion on its own.
+  /// Returns `true` on success, `false` on failure.
+  Future<bool> deleteListing(String listingId) async {
+    if (_isDeletingListing) return false;
+
+    _isDeletingListing = true;
+    _deleteListingError = null;
+    notifyListeners();
+
+    try {
+      final result = await _repository.deleteListing(listingId);
+
+      switch (result) {
+        case Success():
+          _isDeletingListing = false;
+          notifyListeners();
+          return true;
+        case Failure(:final message):
+          _deleteListingError = message;
+          debugPrint('[FormViewModel] deleteListing failure: $message');
+          _isDeletingListing = false;
+          notifyListeners();
+          return false;
+      }
+    } catch (e) {
+      _deleteListingError = 'İlan silinemedi. Lütfen tekrar deneyin.';
+      debugPrint('[FormViewModel] deleteListing exception: $e');
+      _isDeletingListing = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void clearDeleteListingError() {
+    if (_deleteListingError == null) return;
+    _deleteListingError = null;
+    notifyListeners();
   }
 
   /// Clears any pending submission error.

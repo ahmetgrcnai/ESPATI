@@ -102,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
                 Text(
                   'Burada kuralları patiler koyar',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,

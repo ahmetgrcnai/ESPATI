@@ -46,7 +46,7 @@ class NotificationScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                     Text(
                       'Henüz bildirim yok',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
@@ -56,7 +56,7 @@ class NotificationScreen extends StatelessWidget {
                     Text(
                       'Gönderi ve etkinliklerle etkileşime geçtiğinde\nbildirimler burada görünecek.',
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 13,
                         color: Colors.black.withValues(alpha: 0.45),
                       ),
@@ -88,7 +88,7 @@ class NotificationScreen extends StatelessWidget {
                       const SizedBox(width: 10),
                       Text(
                         '${vm.unreadCount} okunmamış bildirim',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           color: Colors.black,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -165,7 +165,7 @@ class _NotificationAppBar extends StatelessWidget implements PreferredSizeWidget
                 child: Text(
                   'Bildirimler',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                     color: Colors.black,
@@ -292,7 +292,7 @@ class _NotificationCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                             fontWeight: notification.isRead
                                 ? FontWeight.w600
                                 : FontWeight.w700,
@@ -303,7 +303,7 @@ class _NotificationCard extends StatelessWidget {
                       ),
                       Text(
                         _formatTime(notification.timestamp),
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 11,
                           color: Colors.black.withValues(alpha: 0.4),
                         ),
@@ -313,7 +313,7 @@ class _NotificationCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 13,
                       color: Colors.black.withValues(alpha: 0.6),
                     ),

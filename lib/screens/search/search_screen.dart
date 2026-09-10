@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/user_model.dart';
@@ -77,8 +76,8 @@ class _SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content:
-              Text(vm.errorMessage!, style: GoogleFonts.poppins(fontSize: 13)),
-          backgroundColor: AppColors.error,
+              Text(vm.errorMessage!, style: GoogleFonts.nunitoSans(fontSize: 13)),
+          backgroundColor: EspatiColors.red,
           behavior: SnackBarBehavior.floating,
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.zero,
@@ -220,7 +219,7 @@ class _SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                           controller: controller,
                           focusNode: focusNode,
                           onChanged: onChanged,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                             fontSize: 14,
                             color: Colors.black,
                           ),
@@ -228,7 +227,7 @@ class _SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
                             filled: false,
                             border: InputBorder.none,
                             hintText: 'Kullanıcı ara...',
-                            hintStyle: GoogleFonts.poppins(
+                            hintStyle: GoogleFonts.nunitoSans(
                               fontSize: 14,
                               color: Colors.black.withValues(alpha: 0.4),
                             ),
@@ -473,7 +472,7 @@ class _UserTile extends StatelessWidget {
                 children: [
                   Text(
                     user.name.isNotEmpty ? user.name : user.email,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       color: Colors.black,
@@ -485,7 +484,7 @@ class _UserTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       user.bio,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 12,
                         color: Colors.black.withValues(alpha: 0.5),
                       ),
@@ -496,7 +495,7 @@ class _UserTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       user.locationDistrict,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: EspatiColors.lightBlue,
@@ -551,7 +550,7 @@ class _FollowBlock extends StatelessWidget {
         ),
         child: Text(
           isFollowed ? 'Takibi Bırak' : 'Takip Et',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.nunitoSans(
             fontSize: 11.5,
             fontWeight: FontWeight.w700,
             color: Colors.black,
@@ -596,7 +595,7 @@ class _IdleSplash extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Pati dostu ara',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 19,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -606,7 +605,7 @@ class _IdleSplash extends StatelessWidget {
             Text(
               'İsim yazarak Espati\'deki\npet sahiplerini bul ve takip et 🐾',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 14,
                 color: Colors.black.withValues(alpha: 0.5),
                 height: 1.55,
@@ -651,7 +650,7 @@ class _NoResultsView extends StatelessWidget {
             Text(
               '"$query" için sonuç bulunamadı',
               textAlign: TextAlign.center,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -660,7 +659,7 @@ class _NoResultsView extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Farklı bir isim deneyebilirsin.',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 13,
                 color: Colors.black.withValues(alpha: 0.45),
               ),

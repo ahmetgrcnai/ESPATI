@@ -74,7 +74,7 @@ class _NewChatSearchScreenState extends State<NewChatSearchScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -173,7 +173,7 @@ class _NewChatSearchScreenState extends State<NewChatSearchScreen> {
                   const SizedBox(width: 12),
                   Text(
                     'Yeni Mesaj',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
                       color: Colors.black,
@@ -252,7 +252,7 @@ class _IdlePrompt extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             'Kime mesaj atmak istiyorsun?',
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.baloo2(
               fontWeight: FontWeight.w600,
               fontSize: 17,
               color: Colors.black,
@@ -261,7 +261,7 @@ class _IdlePrompt extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Kullanıcı adı yazarak ara',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 13,
               color: Colors.black.withValues(alpha: 0.55),
             ),
@@ -288,7 +288,7 @@ class _NoResults extends StatelessWidget {
           Text(
             '"$query" için sonuç bulunamadı',
             textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 14,
               color: Colors.black.withValues(alpha: 0.5),
             ),

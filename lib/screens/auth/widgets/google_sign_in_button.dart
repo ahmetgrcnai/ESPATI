@@ -47,7 +47,7 @@ class GoogleSignInButton extends StatelessWidget {
                   const SizedBox(width: 12),
                   Text(
                     'Google ile devam et',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -78,7 +78,7 @@ class _GoogleLogo extends StatelessWidget {
           children: [
             TextSpan(
               text: 'G',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 // Google blue — the most recognisable part of the "G"

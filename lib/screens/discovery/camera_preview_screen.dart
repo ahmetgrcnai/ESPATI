@@ -118,7 +118,7 @@ class CameraPreviewScreen extends StatelessWidget {
                     ),
                     child: Text(
                       'İLERİ',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                         color: Colors.black,

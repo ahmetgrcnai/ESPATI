@@ -85,7 +85,7 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -139,7 +139,7 @@ class _MessageRequestsScreenState extends State<MessageRequestsScreen> {
         ),
         title: Text(
           'Gelen İstekler',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 19,
             color: Colors.black,
@@ -180,7 +180,7 @@ class _EmptyRequests extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Bekleyen istek yok',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 15,
               color: Colors.black.withValues(alpha: 0.5),
             ),

@@ -89,12 +89,21 @@ class AuthViewModel extends ChangeNotifier {
   }) async {
     _beginSubmit();
 
-    final result = await _authRepository.signInWithEmail(
-      email: email,
-      password: password,
-    );
-
-    return _handleResult(result);
+    try {
+      final result = await _authRepository.signInWithEmail(
+        email: email,
+        password: password,
+      );
+      return _handleResult(result);
+    } catch (e) {
+      // Guards against isSubmitting getting stuck forever (spinner never
+      // clears) if the repository throws instead of returning a Failure —
+      // e.g. an unexpected platform/type error that its own try/catch
+      // didn't anticipate.
+      _errorMessage = 'Giriş yapılamadı. Lütfen tekrar deneyin.';
+      _endSubmit();
+      return false;
+    }
   }
 
   /// Registers a new account with [email], [password], and [displayName].
@@ -105,13 +114,22 @@ class AuthViewModel extends ChangeNotifier {
   }) async {
     _beginSubmit();
 
-    final result = await _authRepository.signUpWithEmail(
-      email: email,
-      password: password,
-      displayName: displayName,
-    );
-
-    return _handleResult(result);
+    try {
+      final result = await _authRepository.signUpWithEmail(
+        email: email,
+        password: password,
+        displayName: displayName,
+      );
+      return _handleResult(result);
+    } catch (e) {
+      // Same guard as signInWithEmail — without this, an unexpected throw
+      // (e.g. a Firestore write hanging/erroring in a way the repository's
+      // try/catch didn't cover) leaves the "Kayıt Ol" button spinning
+      // forever instead of surfacing an error.
+      _errorMessage = 'Kayıt oluşturulamadı. Lütfen tekrar deneyin.';
+      _endSubmit();
+      return false;
+    }
   }
 
   // ── Google ─────────────────────────────────────────────────────────────────
@@ -120,9 +138,14 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> signInWithGoogle() async {
     _beginSubmit();
 
-    final result = await _authRepository.signInWithGoogle();
-
-    return _handleResult(result);
+    try {
+      final result = await _authRepository.signInWithGoogle();
+      return _handleResult(result);
+    } catch (e) {
+      _errorMessage = 'Google ile giriş yapılamadı. Lütfen tekrar deneyin.';
+      _endSubmit();
+      return false;
+    }
   }
 
   // ── Session ────────────────────────────────────────────────────────────────
@@ -131,14 +154,18 @@ class AuthViewModel extends ChangeNotifier {
   Future<void> signOut() async {
     _beginSubmit();
 
-    final result = await _authRepository.signOut();
+    try {
+      final result = await _authRepository.signOut();
 
-    switch (result) {
-      case Success():
-        // authStateChanges stream will emit null and update _authState.
-        break;
-      case Failure(:final message):
-        _errorMessage = message;
+      switch (result) {
+        case Success():
+          // authStateChanges stream will emit null and update _authState.
+          break;
+        case Failure(:final message):
+          _errorMessage = message;
+      }
+    } catch (e) {
+      _errorMessage = 'Çıkış yapılamadı. Lütfen tekrar deneyin.';
     }
 
     _endSubmit();

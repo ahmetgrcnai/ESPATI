@@ -99,16 +99,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showErrorSnackBar(String message) {
+  // Neo-Brutalist black/white-bordered snackbar — matches every other
+  // snackbar in the app (see e.g. AlgorithmicFeedScreen's "yakında" toast).
+  // This screen's error/coming-soon snackbars used to be a plain rounded
+  // Material shape, the exact "forked design system" drift a dedicated
+  // Profil pass exists to catch.
+  void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: EspatiColors.red,
+        content: Text(message,
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
+        backgroundColor: isError ? EspatiColors.red : Colors.black,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Colors.white, width: 1.5),
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       ),
     );
   }
+
+  void _showErrorSnackBar(String message) =>
+      _showSnackBar(message, isError: true);
+
+  void _showComingSoon(String feature) =>
+      _showSnackBar('$feature — yakında geliyor!');
 
   void _openPetForm(BuildContext context, {PetModel? existing}) {
     Navigator.of(context).push(
@@ -133,59 +149,132 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _confirmDeletePet(
-      BuildContext context, ProfileViewModel vm, PetModel pet) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('${pet.name} silinsin mi?'),
-        content: const Text('Bu işlem geri alınamaz.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('İptal'),
+  /// Shared Neo-Brutalist destructive-action confirm dialog — same shape as
+  /// [SettingsScreen]'s logout confirm and [ReminderManagerScreen]'s delete
+  /// confirm. Replaces this screen's own two rounded, default-Material
+  /// `AlertDialog`s (pet delete / listing delete), which were the one place
+  /// left in Profil still carrying the pre-Neo-Brutalist look.
+  Future<bool> _confirmDestructive(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.zero,
+                border: Border.fromBorderSide(
+                  BorderSide(color: Colors.black, width: 3),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black,
+                    offset: Offset(5, 5),
+                    blurRadius: 0,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: GoogleFonts.baloo2(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.black)),
+                  const SizedBox(height: 8),
+                  Text(message,
+                      style: GoogleFonts.nunitoSans(
+                          fontSize: 13,
+                          color: Colors.black.withValues(alpha: 0.7))),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: NeoBrutalistButton(
+                          onPressed: () => Navigator.of(ctx).pop(false),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.zero,
+                              border: Border.fromBorderSide(
+                                BorderSide(color: Colors.black, width: 2),
+                              ),
+                            ),
+                            child: Text('İptal',
+                                style: GoogleFonts.baloo2(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: NeoBrutalistButton(
+                          onPressed: () => Navigator.of(ctx).pop(true),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: const BoxDecoration(
+                              color: EspatiColors.red,
+                              borderRadius: BorderRadius.zero,
+                              border: Border.fromBorderSide(
+                                BorderSide(color: Colors.black, width: 2),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black,
+                                  offset: Offset(2, 2),
+                                  blurRadius: 0,
+                                ),
+                              ],
+                            ),
+                            child: Text('Sil',
+                                style: GoogleFonts.baloo2(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              vm.deletePet(pet.id);
-            },
-            child: Text('Sil', style: TextStyle(color: EspatiColors.red)),
-          ),
-        ],
-      ),
-    );
+        ) ??
+        false;
   }
 
-  /// Delete confirmation for a listing — mirrors [_confirmDeletePet]'s
-  /// dialog exactly (same file, same shape/style) rather than the more
-  /// elaborate Neo-Brutalist dialog `MyListingsScreen` used to have; this
-  /// screen keeps both destructive-action dialogs looking identical to
-  /// each other.
-  void _confirmDeleteListing(
-      BuildContext context, FormViewModel vm, ListingModel listing) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('"${listing.name}" ilanı silinsin mi?'),
-        content: const Text('Bu işlem geri alınamaz.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              vm.deleteListing(listing.id);
-            },
-            child: Text('Sil', style: TextStyle(color: EspatiColors.red)),
-          ),
-        ],
-      ),
+  Future<void> _confirmDeletePet(
+      BuildContext context, ProfileViewModel vm, PetModel pet) async {
+    final confirmed = await _confirmDestructive(
+      context,
+      title: '${pet.name} silinsin mi?',
+      message: 'Bu işlem geri alınamaz.',
     );
+    if (confirmed) vm.deletePet(pet.id);
+  }
+
+  /// Delete confirmation for a listing — mirrors [_confirmDeletePet] via the
+  /// shared [_confirmDestructive] dialog.
+  Future<void> _confirmDeleteListing(
+      BuildContext context, FormViewModel vm, ListingModel listing) async {
+    final confirmed = await _confirmDestructive(
+      context,
+      title: '"${listing.name}" ilanı silinsin mi?',
+      message: 'Bu işlem geri alınamaz.',
+    );
+    if (confirmed) vm.deleteListing(listing.id);
   }
 
   /// Step 64 — the single dispatch point for the tab-dependent bottom
@@ -224,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 8),
               Text(
                 'Patilerim',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: textColor,
@@ -262,7 +351,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           size: 16, color: Colors.black),
                       const SizedBox(width: 4),
                       Text('Pati Ekle',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               color: Colors.black,
                               fontWeight: FontWeight.w800,
                               fontSize: 13)),
@@ -338,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 8),
               Text(
                 'Gönderilerim',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: textColor,
@@ -390,7 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 8),
               Text(
                 'Benim İlanlarım',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w800,
                   fontSize: 18,
                   color: textColor,
@@ -420,7 +509,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(
                     'Henüz bir ilanınız yok',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: Colors.black,
@@ -539,7 +628,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           user.name.isNotEmpty ? user.name : (user.email.isNotEmpty ? user.email.split('@').first : 'Profil'),
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.w800,
             fontSize: 19,
             color: textColor,
@@ -751,7 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     user.name.isNotEmpty ? user.name : user.email,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w800,
                       fontSize: 19,
                       color: textColor,
@@ -832,9 +921,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       label: 'Profili Paylaş',
                       icon: Icons.share_rounded,
                       backgroundColor: EspatiColors.peach,
-                      // Same no-op as before this restyle — share wasn't
-                      // wired up previously either; only the container changed.
-                      onPressed: () {},
+                      // Was a silent no-op — indistinguishable from a broken
+                      // button. Now surfaces the same "yakında" toast every
+                      // other unbuilt action in this app uses.
+                      onPressed: () => _showComingSoon('Profil paylaşımı'),
                     ),
                   ),
                 ],
@@ -925,7 +1015,7 @@ class _PetsEmptyState extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               'Henüz pati yok!',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: Colors.black,
@@ -935,7 +1025,7 @@ class _PetsEmptyState extends StatelessWidget {
             Text(
               'İlk dostunu tanıtmak için aşağıya dokun',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12,
                 color: Colors.black.withValues(alpha: 0.6),
               ),
@@ -1054,7 +1144,7 @@ class _SegmentButton extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: contentColor,
@@ -1124,7 +1214,7 @@ class _PostsEmptyState extends StatelessWidget {
             Text(
               'Henüz bir gönderi paylaşmadınız.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: Colors.black,
@@ -1133,7 +1223,7 @@ class _PostsEmptyState extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Sosyal akışta ilk gönderini paylaş',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12,
                 color: Colors.black.withValues(alpha: 0.6),
               ),
@@ -1191,7 +1281,7 @@ class _ProfileHeaderButton extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
                 color: Colors.black,
@@ -1224,7 +1314,7 @@ class _StatColumn extends StatelessWidget {
       children: [
         Text(
           value,
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.w800,
             fontSize: 19,
             color: textColor,

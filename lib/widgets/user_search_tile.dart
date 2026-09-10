@@ -77,7 +77,7 @@ class UserSearchTile extends StatelessWidget {
                   username,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                     color: Colors.black,
@@ -105,7 +105,7 @@ class UserSearchTile extends StatelessWidget {
                 ),
                 child: Text(
                   'Mesaj At',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,

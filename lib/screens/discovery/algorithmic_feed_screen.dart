@@ -132,7 +132,7 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
         centerTitle: false,
         title: Text(
           'ESPATİ',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.w900,
             fontSize: 22,
             color: Colors.black,
@@ -281,9 +281,9 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
                             itemBuilder: (context, index) {
                               final item = items[index];
                               if (item is ListingModel) {
-                                return _FeedListingCard(listing: item);
+                                return FeedListingCard(listing: item);
                               }
-                              return _DiscoverFeedPostCard(
+                              return DiscoverFeedPostCard(
                                   post: item as PostModel);
                             },
                           ),
@@ -489,12 +489,19 @@ String _categoryTag(Object item) {
 // FEED LISTING CARD — ListingModel item in the mixed feed, restyled Step 66
 // to the same thick-border/hard-shadow language as DiscoverPostCard so the
 // mixed feed doesn't alternate between two different card languages.
+//
+// Public (Step 69, "Kaydedilenler"): reused as-is by SavedItemsScreen so a
+// saved listing renders identically here and there — one card, not two
+// diverging copies. The bookmark badge (Step 69) is the first save
+// affordance a listing has ever had in this app — see
+// [SocialViewModel.toggleListingBookmark]'s doc comment for why listings
+// didn't have one before.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _FeedListingCard extends StatelessWidget {
+class FeedListingCard extends StatelessWidget {
   final ListingModel listing;
 
-  const _FeedListingCard({required this.listing});
+  const FeedListingCard({super.key, required this.listing});
 
   @override
   Widget build(BuildContext context) {
@@ -530,32 +537,69 @@ class _FeedListingCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: Colors.black, width: 2.5),
+            Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      right: BorderSide(color: Colors.black, width: 2.5),
+                    ),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: listing.imageUrl,
+                    width: 90,
+                    height: 110,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      width: 90,
+                      height: 110,
+                      color: EspatiColors.sageGreen.withValues(alpha: 0.25),
+                      child: const Icon(Icons.pets_rounded,
+                          size: 30, color: Colors.black),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      width: 90,
+                      height: 110,
+                      color: EspatiColors.sageGreen.withValues(alpha: 0.25),
+                      child: const Icon(Icons.pets_rounded,
+                          size: 30, color: Colors.black),
+                    ),
+                  ),
                 ),
-              ),
-              child: CachedNetworkImage(
-                imageUrl: listing.imageUrl,
-                width: 90,
-                height: 110,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  width: 90,
-                  height: 110,
-                  color: EspatiColors.sageGreen.withValues(alpha: 0.25),
-                  child: const Icon(Icons.pets_rounded,
-                      size: 30, color: Colors.black),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Selector<SocialViewModel, bool>(
+                    selector: (_, vm) => vm.isListingBookmarked(listing.id),
+                    builder: (context, isSaved, _) => NeoBrutalistButton(
+                      semanticLabel: isSaved ? 'Kaydedildi' : 'Kaydet',
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        context
+                            .read<SocialViewModel>()
+                            .toggleListingBookmark(listing.id);
+                      },
+                      child: Container(
+                        width: 26,
+                        height: 26,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.zero,
+                          border: Border.all(color: Colors.black, width: 1.5),
+                        ),
+                        child: Icon(
+                          isSaved
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          size: 16,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                errorWidget: (_, __, ___) => Container(
-                  width: 90,
-                  height: 110,
-                  color: EspatiColors.sageGreen.withValues(alpha: 0.25),
-                  child: const Icon(Icons.pets_rounded,
-                      size: 30, color: Colors.black),
-                ),
-              ),
+              ],
             ),
             Expanded(
               child: Padding(
@@ -580,7 +624,7 @@ class _FeedListingCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       listing.name,
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                         color: Colors.black,
@@ -624,18 +668,21 @@ class _FeedListingCard extends StatelessWidget {
 // (lib/widgets/discover_post_card.dart) to real SocialViewModel state: pati
 // (like) toggle, bookmark toggle, share, and the same view-interaction
 // logging + FeedDetailScreen navigation the other feed cards use.
+//
+// Public (Step 69): reused as-is by SavedItemsScreen, same reasoning as
+// [FeedListingCard].
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DiscoverFeedPostCard extends StatefulWidget {
+class DiscoverFeedPostCard extends StatefulWidget {
   final PostModel post;
 
-  const _DiscoverFeedPostCard({required this.post});
+  const DiscoverFeedPostCard({super.key, required this.post});
 
   @override
-  State<_DiscoverFeedPostCard> createState() => _DiscoverFeedPostCardState();
+  State<DiscoverFeedPostCard> createState() => _DiscoverFeedPostCardState();
 }
 
-class _DiscoverFeedPostCardState extends State<_DiscoverFeedPostCard> {
+class _DiscoverFeedPostCardState extends State<DiscoverFeedPostCard> {
   bool _patiCountSeeded = false;
 
   @override
@@ -666,7 +713,7 @@ class _DiscoverFeedPostCardState extends State<_DiscoverFeedPostCard> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Yorumlar — yakında geliyor!',
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -738,7 +785,7 @@ class _EmptyFeed extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Henüz gösterilecek içerik yok',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 14,
               color: Colors.black.withValues(alpha: 0.5),
             ),

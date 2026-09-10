@@ -58,12 +58,12 @@ class NeoBrutalistChatBubble extends StatelessWidget {
           children: [
             Text(
               text,
-              style: GoogleFonts.poppins(fontSize: 14, color: textColor),
+              style: GoogleFonts.nunitoSans(fontSize: 14, color: textColor),
             ),
             const SizedBox(height: 3),
             Text(
               _formatTime(timestamp),
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 10,
                 color: textColor.withValues(alpha: 0.7),
               ),

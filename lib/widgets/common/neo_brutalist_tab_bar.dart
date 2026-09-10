@@ -84,7 +84,7 @@ class NeoBrutalistTabBar extends StatelessWidget {
                         child: Text(
                           labels[index],
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                             fontWeight:
                                 selected ? FontWeight.w700 : FontWeight.w500,
                             fontSize: 12.5,

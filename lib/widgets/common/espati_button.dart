@@ -64,7 +64,7 @@ class EspatiButton extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     label,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                       color: Colors.black,

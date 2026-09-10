@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_compress/flutter_compress.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 
@@ -22,9 +23,18 @@ import '../../services/paties_service.dart';
 // already renders — unlike Stories, which have none. The caption is
 // optional: [PatiesService.uploadVideo]'s `description` parameter already
 // defaults to `''`, so an empty field just shares the video without one.
+//
+// Submitting first transcodes [videoFile] via [FlutterCompress] using the
+// `forSocialMedia()` preset (1080p cap, H.264 — deliberately not H.265/HEVC)
+// before upload. Phone cameras commonly record 4K/60fps HDR (Dolby Vision/
+// HEVC10) video that the *same* device's own hardware decoder can't play
+// back — encode and real-time decode capability aren't symmetric on a lot of
+// mid-range chips — so an un-transcoded upload can be unplayable for every
+// viewer, including its own uploader. Re-encoding to a widely-supported
+// baseline profile fixes that regardless of what the source camera recorded.
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum _UploadStatus { idle, uploading, error }
+enum _UploadStatus { idle, compressing, uploading, error }
 
 class PatiVideoComposerScreen extends StatefulWidget {
   final File videoFile;
@@ -99,17 +109,48 @@ class _PatiVideoComposerScreenState extends State<PatiVideoComposerScreen> {
   }
 
   Future<void> _submit() async {
-    if (_status == _UploadStatus.uploading) return;
+    if (_status == _UploadStatus.compressing ||
+        _status == _UploadStatus.uploading) {
+      return;
+    }
 
+    setState(() => _status = _UploadStatus.compressing);
+
+    final VideoCompressResult compressed;
+    try {
+      compressed = await FlutterCompress.instance.compress(
+        widget.videoFile.path,
+        const VideoCompressConfig.forSocialMedia(),
+      );
+    } on CompressException catch (e) {
+      debugPrint('[PatiVideoComposerScreen] compress failed: ${e.code}');
+      if (!mounted) return;
+      setState(() => _status = _UploadStatus.error);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Video işlenemedi. Lütfen farklı bir video deneyin.'),
+          backgroundColor: EspatiColors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     setState(() => _status = _UploadStatus.uploading);
 
     final result = await PatiesService.instance.uploadVideo(
-      videoFile: widget.videoFile,
+      videoFile: File(compressed.outputPath),
       authorId: widget.authorId,
       authorName: widget.authorName,
       authorPhoto: widget.authorPhoto,
       description: _descriptionCtrl.text.trim(),
     );
+
+    // Only ever a plugin-owned cache file — never the picker's source file,
+    // which `compressed.skipped` would point outputPath back at.
+    if (!compressed.skipped) {
+      await FlutterCompress.instance.releaseOutput(compressed.outputPath);
+    }
 
     if (!mounted) return;
 
@@ -132,7 +173,8 @@ class _PatiVideoComposerScreenState extends State<PatiVideoComposerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isUploading = _status == _UploadStatus.uploading;
+    final busy = _status == _UploadStatus.compressing ||
+        _status == _UploadStatus.uploading;
 
     return Scaffold(
       backgroundColor: NeoBrutal.scaffoldBg,
@@ -141,12 +183,12 @@ class _PatiVideoComposerScreenState extends State<PatiVideoComposerScreen> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          onPressed: isUploading ? null : () => Navigator.of(context).pop(),
+          onPressed: busy ? null : () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close_rounded, color: Colors.black),
         ),
         title: Text(
           'Pati Video Paylaş',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.black,
@@ -169,8 +211,8 @@ class _PatiVideoComposerScreenState extends State<PatiVideoComposerScreen> {
         ],
       ),
       bottomNavigationBar: _SubmitBar(
-        uploading: isUploading,
-        enabled: !isUploading,
+        status: _status,
+        enabled: !busy,
         onSubmit: _submit,
       ),
     );
@@ -251,7 +293,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.poppins(
+      style: GoogleFonts.nunitoSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Colors.black.withValues(alpha: 0.85),
@@ -293,15 +335,15 @@ class _DescriptionField extends StatelessWidget {
         controller: controller,
         maxLines: 4,
         maxLength: 280,
-        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+        style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
         decoration: InputDecoration(
           hintText: 'Pati videon hakkında bir şeyler yazın... 🐾',
-          hintStyle: GoogleFonts.poppins(
+          hintStyle: GoogleFonts.nunitoSans(
               fontSize: 14, color: Colors.black.withValues(alpha: 0.4)),
           filled: false,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(14),
-          counterStyle: GoogleFonts.poppins(
+          counterStyle: GoogleFonts.nunitoSans(
             fontSize: 11,
             color: Colors.black.withValues(alpha: 0.55),
           ),
@@ -313,23 +355,31 @@ class _DescriptionField extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUBMIT BAR — blocky mintGreen "PAYLAŞ" CTA, same convention as
-// [CreatePostScreen]'s `_SubmitBar` (no upload-progress fraction here since
-// [PatiesService.uploadVideo] doesn't report one — just a spinner).
+// [CreatePostScreen]'s `_SubmitBar`. Distinguishes the compress and upload
+// phases with their own label (no combined progress fraction — neither
+// [FlutterCompress.compress] nor [PatiesService.uploadVideo] is wired to a
+// fractional progress callback here — just a spinner + phase label).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _SubmitBar extends StatelessWidget {
-  final bool uploading;
+  final _UploadStatus status;
   final bool enabled;
   final VoidCallback onSubmit;
 
   const _SubmitBar({
-    required this.uploading,
+    required this.status,
     required this.enabled,
     required this.onSubmit,
   });
 
   @override
   Widget build(BuildContext context) {
+    final busyLabel = switch (status) {
+      _UploadStatus.compressing => 'Video hazırlanıyor…',
+      _UploadStatus.uploading => 'Yükleniyor…',
+      _UploadStatus.idle || _UploadStatus.error => null,
+    };
+
     return Container(
       color: NeoBrutal.scaffoldBg,
       padding: EdgeInsets.fromLTRB(
@@ -356,7 +406,7 @@ class _SubmitBar extends StatelessWidget {
                   ]
                 : null,
           ),
-          child: uploading
+          child: busyLabel != null
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -370,8 +420,8 @@ class _SubmitBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Yükleniyor…',
-                      style: GoogleFonts.fredoka(
+                      busyLabel,
+                      style: GoogleFonts.baloo2(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
@@ -384,7 +434,7 @@ class _SubmitBar extends StatelessWidget {
                   children: [
                     Text(
                       'PAYLAŞ',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,

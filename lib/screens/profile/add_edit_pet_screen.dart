@@ -130,12 +130,14 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
 
     final vm = context.read<ProfileViewModel>();
     final existingPet = widget.existingPet;
-    final weight = double.tryParse(
-            _weightController.text.trim().replaceAll(',', '.')) ??
-        0;
+    final parsedWeight = double.tryParse(
+        _weightController.text.trim().replaceAll(',', '.'));
 
     if (widget.isEditing && existingPet != null) {
       // ── Edit mode ────────────────────────────────────────────────────────
+      // Same "clear/invalid input keeps the previous value" fallback [age]
+      // already had — [parsedWeight] used to fall back to 0 unconditionally,
+      // silently zeroing a pet's real weight if the field was ever cleared.
       final updated = existingPet.copyWith(
         name: _nameController.text.trim(),
         breed: _breedController.text.trim(),
@@ -143,7 +145,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         petType: _selectedType,
         gender: _selectedGender,
         bio: _bioController.text.trim(),
-        weight: weight,
+        weight: parsedWeight ?? existingPet.weight,
       );
       await vm.updatePet(updated, newImage: _newImage);
     } else {
@@ -159,7 +161,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         petType: _selectedType,
         photoUrl: '',
         bio: _bioController.text.trim(),
-        weight: weight,
+        weight: parsedWeight ?? 0,
       );
       await vm.addPet(pet, image: _newImage);
     }
@@ -186,7 +188,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           widget.isEditing ? 'Patiyi Düzenle' : 'Yeni Pati Ekle',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 19,
             color: Colors.black,
@@ -214,7 +216,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                 // ── Species chips ───────────────────────────────────────────
                 Text(
                   'Pati Türü',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                     color: Colors.black,
@@ -251,7 +253,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                             ),
                             child: Text(
                               '${_petTypeEmojis[type]} ${_petTypeLabels[type]}',
-                              style: GoogleFonts.poppins(
+                              style: GoogleFonts.nunitoSans(
                                 color: Colors.black,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -333,7 +335,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                 // ── Gender toggle ────────────────────────────────────────────
                 Text(
                   'Cinsiyet',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                     color: Colors.black,
@@ -417,7 +419,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                                 widget.isEditing
                                     ? 'Değişiklikleri Kaydet'
                                     : 'Aileye Kat',
-                                style: GoogleFonts.fredoka(
+                                style: GoogleFonts.baloo2(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 17,
                                   color: Colors.black,
@@ -508,7 +510,7 @@ class _PetPhotoPicker extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             'Fotoğraf Ekle',
-                            style: GoogleFonts.fredoka(
+                            style: GoogleFonts.baloo2(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: Colors.black,
@@ -589,7 +591,7 @@ class _GenderOption extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
                 color: Colors.black,

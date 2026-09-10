@@ -134,7 +134,7 @@ class StoryPreviewScreen extends StatelessWidget {
                     ),
                     child: Text(
                       'Hikayene Ekle 🚀',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
                         color: Colors.black,

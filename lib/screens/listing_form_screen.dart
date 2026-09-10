@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../core/app_colors.dart';
 import '../core/constants/app_colors.dart' show EspatiColors;
 import '../core/eskisehir_districts.dart';
 import '../core/neo_brutalist_tokens.dart';
@@ -280,8 +279,8 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
   void _showSnackBar(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: GoogleFonts.poppins(fontSize: 13)),
-        backgroundColor: isError ? AppColors.error : EspatiColors.sageGreen,
+        content: Text(message, style: GoogleFonts.nunitoSans(fontSize: 13)),
+        backgroundColor: isError ? EspatiColors.red : EspatiColors.sageGreen,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
@@ -324,7 +323,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
               Text(
                 'İlan Yayında!',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w600,
                   fontSize: 19,
                   color: Colors.black,
@@ -334,7 +333,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
               Text(
                 'İlanınız başarıyla oluşturuldu.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.65),
                 ),
@@ -358,7 +357,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                   ),
                   child: Text(
                     'Harika!',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
                         color: Colors.black),
@@ -411,7 +410,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                       _BlockyField(
                         child: DropdownButtonFormField<String>(
                           initialValue: _selectedDistrict,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 14, color: Colors.black),
                           dropdownColor: Colors.white,
                           decoration: _fieldDecoration(
@@ -424,7 +423,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                               .map((d) => DropdownMenuItem(
                                     value: d,
                                     child: Text(d,
-                                        style: GoogleFonts.poppins(
+                                        style: GoogleFonts.nunitoSans(
                                             fontSize: 14,
                                             color: Colors.black)),
                                   ))
@@ -443,7 +442,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                       _BlockyField(
                         child: DropdownButtonFormField<String?>(
                           initialValue: _selectedGroupId,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 14, color: Colors.black),
                           dropdownColor: Colors.white,
                           decoration: _fieldDecoration(
@@ -454,14 +453,14 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                             DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Genel',
-                                  style: GoogleFonts.poppins(
+                                  style: GoogleFonts.nunitoSans(
                                       fontSize: 14,
                                       color: Colors.black)),
                             ),
                             ...vm.chatGroups.map((g) => DropdownMenuItem<String?>(
                                   value: g.id,
                                   child: Text(g.name,
-                                      style: GoogleFonts.poppins(
+                                      style: GoogleFonts.nunitoSans(
                                           fontSize: 14,
                                           color: Colors.black)),
                                 )),
@@ -489,7 +488,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                     children: [
                                       Text(
                                         'Acil olarak işaretle',
-                                        style: GoogleFonts.poppins(
+                                        style: GoogleFonts.nunitoSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             color: Colors.black),
@@ -498,7 +497,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                                       Text(
                                         'Yeni kaybolmuş veya risk altındaki '
                                         'hayvanlar için kullanın.',
-                                        style: GoogleFonts.poppins(
+                                        style: GoogleFonts.nunitoSans(
                                           fontSize: 11,
                                           color: Colors.black
                                               .withValues(alpha: 0.55),
@@ -531,7 +530,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                           controller: _descriptionCtrl,
                           maxLines: 5,
                           maxLength: _maxDescLength,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 14, color: Colors.black),
                           decoration: _fieldDecoration(
                             hintText: _descriptionHint,
@@ -556,7 +555,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'En az 1, en fazla $_maxImages fotoğraf ekleyin.',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 12,
                           color: Colors.black.withValues(alpha: 0.5),
                         ),
@@ -614,7 +613,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'İsim (Örn: Rocky, Mimi)',
             prefixIcon: Icons.badge_rounded,
@@ -626,7 +625,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedSpecies,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           dropdownColor: Colors.white,
           decoration: _fieldDecoration(
               hintText: 'Hayvan türünü seçin', prefixIcon: Icons.category_rounded),
@@ -634,7 +633,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
               .map((s) => DropdownMenuItem(
                     value: s,
                     child: Text(s,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                             fontSize: 14, color: Colors.black)),
                   ))
               .toList(),
@@ -646,7 +645,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _breedCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'Irk / Cins (Örn: Golden Retriever, Tekir)',
             prefixIcon: Icons.info_outline_rounded,
@@ -665,7 +664,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 controller: _ageCtrl,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                     fontSize: 14, color: Colors.black),
                 decoration:
                     _fieldDecoration(hintText: 'Yaş', prefixIcon: Icons.cake_rounded),
@@ -679,7 +678,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
             child: _BlockyField(
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedGender,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                     fontSize: 14, color: Colors.black),
                 dropdownColor: Colors.white,
                 decoration:
@@ -688,7 +687,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                     .map((g) => DropdownMenuItem(
                           value: g,
                           child: Text(g,
-                              style: GoogleFonts.poppins(
+                              style: GoogleFonts.nunitoSans(
                                   fontSize: 14, color: Colors.black)),
                         ))
                     .toList(),
@@ -707,7 +706,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _nameCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'İlan Başlığı (Örn: Deneyimli Köpek Bakıcısı)',
             prefixIcon: Icons.badge_rounded,
@@ -719,7 +718,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: DropdownButtonFormField<String>(
           initialValue: _selectedSpecies,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           dropdownColor: Colors.white,
           decoration: _fieldDecoration(
               hintText: 'Baktığınız türü seçin', prefixIcon: Icons.category_rounded),
@@ -727,7 +726,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
               .map((s) => DropdownMenuItem(
                     value: s,
                     child: Text(s,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                             fontSize: 14, color: Colors.black)),
                   ))
               .toList(),
@@ -739,7 +738,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       _BlockyField(
         child: TextFormField(
           controller: _priceCtrl,
-          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+          style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
           decoration: _fieldDecoration(
             hintText: 'Fiyat Bilgisi (Örn: 150₺/gün, saatlik 50₺)',
             prefixIcon: Icons.sell_rounded,
@@ -750,7 +749,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       const SizedBox(height: 14),
       Text(
         'Verdiğiniz Hizmetler',
-        style: GoogleFonts.poppins(
+        style: GoogleFonts.nunitoSans(
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: Colors.black.withValues(alpha: 0.85),
@@ -772,7 +771,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
         const SizedBox(height: 6),
         Text(
           'En az bir hizmet seçmeniz zorunludur',
-          style: GoogleFonts.poppins(fontSize: 12, color: EspatiColors.red),
+          style: GoogleFonts.nunitoSans(fontSize: 12, color: EspatiColors.red),
         ),
       ],
     ];
@@ -787,7 +786,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: GoogleFonts.poppins(
+      hintStyle: GoogleFonts.nunitoSans(
           fontSize: 13.5, color: Colors.black.withValues(alpha: 0.4)),
       prefixIcon: prefixIcon == null
           ? null
@@ -802,9 +801,9 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
       errorBorder: InputBorder.none,
       focusedErrorBorder: InputBorder.none,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      counterStyle: GoogleFonts.poppins(
+      counterStyle: GoogleFonts.nunitoSans(
           fontSize: 11, color: Colors.black.withValues(alpha: 0.45)),
-      errorStyle: GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
+      errorStyle: GoogleFonts.nunitoSans(fontSize: 11, color: EspatiColors.red),
     );
   }
 
@@ -870,7 +869,7 @@ class _ListingFormAppBar extends StatelessWidget implements PreferredSizeWidget 
                 child: Text(
                   title,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                     color: Colors.black,
@@ -955,7 +954,7 @@ class _TypeBanner extends StatelessWidget {
               children: [
                 Text(
                   type.title,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
                     color: Colors.black,
@@ -964,7 +963,7 @@ class _TypeBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _subtitle,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 12,
                     color: Colors.black.withValues(alpha: 0.75),
                   ),
@@ -988,7 +987,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.poppins(
+      style: GoogleFonts.nunitoSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Colors.black.withValues(alpha: 0.85),
@@ -1033,7 +1032,7 @@ class _ServiceChip extends StatelessWidget {
             ],
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -1085,7 +1084,7 @@ class _ImagePickerSection extends StatelessWidget {
             const Spacer(),
             Text(
               '${images.length}/$maxImages',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12,
                 color: images.isEmpty && hasError
                     ? EspatiColors.red
@@ -1100,7 +1099,7 @@ class _ImagePickerSection extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'En az 1 fotoğraf eklemeniz zorunludur',
-            style: GoogleFonts.poppins(fontSize: 12, color: EspatiColors.red),
+            style: GoogleFonts.nunitoSans(fontSize: 12, color: EspatiColors.red),
           ),
         ],
 
@@ -1154,7 +1153,7 @@ class _PickerButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -1266,7 +1265,7 @@ class _SubmitBar extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       'İlan yayınlanıyor…',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.black),
@@ -1275,7 +1274,7 @@ class _SubmitBar extends StatelessWidget {
                 )
               : Text(
                   label.toUpperCase(),
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,

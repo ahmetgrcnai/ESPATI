@@ -233,7 +233,7 @@ class _AdLocationMapWidgetState extends State<AdLocationMapWidget> {
                       const SizedBox(width: 5),
                       Text(
                         'Yol Tarifi Al',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.black,

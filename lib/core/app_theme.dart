@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
 import 'constants/app_colors.dart' as design;
 import 'neo_brutalist_tokens.dart';
 
@@ -20,9 +19,10 @@ import 'neo_brutalist_tokens.dart';
 ///
 /// Sourced from [design.EspatiColors] (`core/constants/app_colors.dart`) —
 /// the canonical design-system palette, shared with [EspatiCard]/[EspatiTag]
-/// (`widgets/common/`). Imported with a prefix since this file also imports
-/// the legacy `core/app_colors.dart` `AppColors` (for [AppColors.error]) —
-/// two same-named classes can't share an unprefixed import.
+/// (`widgets/common/`). Imported with a prefix only because `design` reads
+/// better than an unprefixed `EspatiColors.` throughout this file's own
+/// palette section below; no legacy `AppColors` dependency left as of the
+/// design-system cleanup pass — [EspatiColors.red] covers `error` now.
 class AppTheme {
   AppTheme._();
 
@@ -60,7 +60,7 @@ class AppTheme {
         onSecondary: _onCard,
         surface: _card,
         onSurface: _onCard,
-        error: AppColors.error,
+        error: design.EspatiColors.red,
         onError: Colors.white,
       ),
 
@@ -83,7 +83,7 @@ class AppTheme {
         foregroundColor: _onBg,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.fredoka(
+        titleTextStyle: GoogleFonts.baloo2(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: _onBg,
@@ -113,11 +113,11 @@ class AppTheme {
           borderRadius: BorderRadius.zero,
           borderSide: BorderSide(color: _accentA, width: 2.5),
         ),
-        hintStyle: GoogleFonts.poppins(
+        hintStyle: GoogleFonts.nunitoSans(
           color: _onCard.withValues(alpha: 0.4),
           fontSize: 14,
         ),
-        labelStyle: GoogleFonts.poppins(color: _onCard, fontSize: 14),
+        labelStyle: GoogleFonts.nunitoSans(color: _onCard, fontSize: 14),
       ),
 
       // ── Cards — neo-brutalist: solid border + hard offset shadow ──
@@ -146,7 +146,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: _accentB,
         selectedColor: _accentA,
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: GoogleFonts.nunitoSans(
             fontSize: 12, fontWeight: FontWeight.w600, color: _onCard),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
@@ -181,31 +181,31 @@ class AppTheme {
   // the theme default (see [_CommunityGroupCard] etc.).
   // ════════════════════════════════════════════════════════════════════════════
   static TextTheme _buildTextTheme() {
-    return GoogleFonts.poppinsTextTheme().copyWith(
+    return GoogleFonts.nunitoSansTextTheme().copyWith(
       // ── Display (Fredoka — heading) ──
-      displayLarge:  GoogleFonts.fredoka(fontSize: 57, fontWeight: FontWeight.w600, color: _onBg),
-      displayMedium: GoogleFonts.fredoka(fontSize: 45, fontWeight: FontWeight.w600, color: _onBg),
-      displaySmall:  GoogleFonts.fredoka(fontSize: 36, fontWeight: FontWeight.w600, color: _onBg),
+      displayLarge:  GoogleFonts.baloo2(fontSize: 57, fontWeight: FontWeight.w600, color: _onBg),
+      displayMedium: GoogleFonts.baloo2(fontSize: 45, fontWeight: FontWeight.w600, color: _onBg),
+      displaySmall:  GoogleFonts.baloo2(fontSize: 36, fontWeight: FontWeight.w600, color: _onBg),
 
       // ── Headline (Fredoka — heading) ──
-      headlineLarge:  GoogleFonts.fredoka(fontSize: 32, fontWeight: FontWeight.w700, color: _onBg),
-      headlineMedium: GoogleFonts.fredoka(fontSize: 24, fontWeight: FontWeight.w700, color: _onBg),
-      headlineSmall:  GoogleFonts.fredoka(fontSize: 20, fontWeight: FontWeight.w600, color: _onBg),
+      headlineLarge:  GoogleFonts.baloo2(fontSize: 32, fontWeight: FontWeight.w700, color: _onBg),
+      headlineMedium: GoogleFonts.baloo2(fontSize: 24, fontWeight: FontWeight.w700, color: _onBg),
+      headlineSmall:  GoogleFonts.baloo2(fontSize: 20, fontWeight: FontWeight.w600, color: _onBg),
 
       // ── Title (Fredoka for Large/Medium — still heading-weight; Small stays body-like) ──
-      titleLarge:  GoogleFonts.fredoka(fontSize: 18, fontWeight: FontWeight.w600, color: _onBg),
-      titleMedium: GoogleFonts.fredoka(fontSize: 16, fontWeight: FontWeight.w600, color: _onBg),
-      titleSmall:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500, color: _onBg),
+      titleLarge:  GoogleFonts.baloo2(fontSize: 18, fontWeight: FontWeight.w600, color: _onBg),
+      titleMedium: GoogleFonts.baloo2(fontSize: 16, fontWeight: FontWeight.w600, color: _onBg),
+      titleSmall:  GoogleFonts.nunitoSans(fontSize: 14, fontWeight: FontWeight.w500, color: _onBg),
 
       // ── Body (Poppins — readable copy) ──
-      bodyLarge:  GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w400, color: _onBg),
-      bodyMedium: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w400, color: _onBg),
-      bodySmall:  GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.7)),
+      bodyLarge:  GoogleFonts.nunitoSans(fontSize: 16, fontWeight: FontWeight.w400, color: _onBg),
+      bodyMedium: GoogleFonts.nunitoSans(fontSize: 14, fontWeight: FontWeight.w400, color: _onBg),
+      bodySmall:  GoogleFonts.nunitoSans(fontSize: 12, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.7)),
 
       // ── Label (Poppins) ──
-      labelLarge:  GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: _onBg),
-      labelMedium: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w500, color: _onBg),
-      labelSmall:  GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.6)),
+      labelLarge:  GoogleFonts.nunitoSans(fontSize: 14, fontWeight: FontWeight.w600, color: _onBg),
+      labelMedium: GoogleFonts.nunitoSans(fontSize: 12, fontWeight: FontWeight.w500, color: _onBg),
+      labelSmall:  GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w400, color: _onBg.withValues(alpha: 0.6)),
     );
   }
 }

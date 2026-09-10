@@ -43,7 +43,7 @@ class CommentBrick extends StatelessWidget {
                   authorName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                     color: Colors.black,
@@ -52,7 +52,7 @@ class CommentBrick extends StatelessWidget {
               ),
               Text(
                 timeAgo,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 11,
                   color: Colors.black.withValues(alpha: 0.45),
                 ),
@@ -62,7 +62,7 @@ class CommentBrick extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             text,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 13,
               color: Colors.black.withValues(alpha: 0.85),
             ),

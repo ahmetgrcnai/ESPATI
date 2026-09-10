@@ -77,7 +77,7 @@ class NeoBrutalistListTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
                       color: Colors.black,
@@ -87,7 +87,7 @@ class NeoBrutalistListTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 12,
                         color: Colors.black.withValues(alpha: 0.6),
                       ),

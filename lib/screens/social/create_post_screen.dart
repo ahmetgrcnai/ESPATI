@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/app_colors.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/chat_group_model.dart';
@@ -186,7 +185,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 const SizedBox(height: 18),
                 Text(
                   'Fotoğraf Seç',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -260,7 +259,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             title: Text(
               'Yeni Gönderi',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 19,
                 color: Colors.black,
@@ -305,7 +304,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       initialValue: vm.location.isEmpty
                           ? _kDistricts.first
                           : vm.location,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                           fontSize: 14, color: Colors.black),
                       dropdownColor: Colors.white,
                       decoration: _plainFieldDecoration(
@@ -315,7 +314,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           .map((d) => DropdownMenuItem(
                                 value: d,
                                 child: Text(d,
-                                    style: GoogleFonts.poppins(
+                                    style: GoogleFonts.nunitoSans(
                                         fontSize: 14,
                                         color: Colors.black)),
                               ))
@@ -334,7 +333,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       return _BlockyField(
                         child: DropdownButtonFormField<String?>(
                           initialValue: vm.groupId,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 14, color: Colors.black),
                           dropdownColor: Colors.white,
                           decoration: _plainFieldDecoration(
@@ -345,7 +344,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             DropdownMenuItem<String?>(
                               value: null,
                               child: Text('Genel',
-                                  style: GoogleFonts.poppins(
+                                  style: GoogleFonts.nunitoSans(
                                       fontSize: 14,
                                       color: Colors.black)),
                             ),
@@ -353,7 +352,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                               (ChatGroupModel g) => DropdownMenuItem<String?>(
                                 value: g.id,
                                 child: Text(g.name,
-                                    style: GoogleFonts.poppins(
+                                    style: GoogleFonts.nunitoSans(
                                         fontSize: 14,
                                         color: Colors.black)),
                               ),
@@ -387,7 +386,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      hintStyle: GoogleFonts.poppins(
+      hintStyle: GoogleFonts.nunitoSans(
           fontSize: 14, color: Colors.black.withValues(alpha: 0.4)),
       prefixIcon: prefixIcon == null
           ? null
@@ -401,8 +400,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   SnackBar _snackBar(String message, {bool isError = false}) => SnackBar(
-        content: Text(message, style: GoogleFonts.poppins(fontSize: 13)),
-        backgroundColor: isError ? AppColors.error : EspatiColors.mintGreen,
+        content: Text(message, style: GoogleFonts.nunitoSans(fontSize: 13)),
+        backgroundColor: isError ? EspatiColors.red : EspatiColors.mintGreen,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
@@ -447,7 +446,7 @@ class _ImageSourceOption extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               label,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
                 color: Colors.black,
@@ -541,7 +540,7 @@ class _ImagePicker extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Fotoğraf ekle',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -631,7 +630,7 @@ class _HorizontalPetSelector extends StatelessWidget {
             Expanded(
               child: Text(
                 'Önce profilinden bir pati ekle; ardından gönderi paylaşabilirsin.',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.75),
                 ),
@@ -732,7 +731,7 @@ class _PetChip extends StatelessWidget {
               pet.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -761,15 +760,15 @@ class _DescriptionField extends StatelessWidget {
         controller: controller,
         maxLines: 4,
         maxLength: 280,
-        style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+        style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
         decoration: InputDecoration(
           hintText: 'Patiniz hakkında bir şeyler yazın... 🐾',
-          hintStyle: GoogleFonts.poppins(
+          hintStyle: GoogleFonts.nunitoSans(
               fontSize: 14, color: Colors.black.withValues(alpha: 0.4)),
           filled: false,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(14),
-          counterStyle: GoogleFonts.poppins(
+          counterStyle: GoogleFonts.nunitoSans(
             fontSize: 11,
             color: Colors.black.withValues(alpha: 0.55),
           ),
@@ -795,7 +794,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.poppins(
+      style: GoogleFonts.nunitoSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Colors.black.withValues(alpha: 0.85),
@@ -902,7 +901,7 @@ class _SubmitBar extends StatelessWidget {
                         const SizedBox(width: 12),
                         Text(
                           _labelFor(status, progress),
-                          style: GoogleFonts.fredoka(
+                          style: GoogleFonts.baloo2(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
@@ -912,7 +911,7 @@ class _SubmitBar extends StatelessWidget {
                     )
                   : Text(
                       'PAYLAŞ',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,

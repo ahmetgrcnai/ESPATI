@@ -40,7 +40,7 @@ class PetActionBottomSheet extends StatelessWidget {
           children: [
             Text(
               'Patiyi Yönet',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w700,
                 fontSize: 18,
                 color: Colors.black,
@@ -49,7 +49,7 @@ class PetActionBottomSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               petName,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 13,
                 color: Colors.black.withValues(alpha: 0.6),
               ),
@@ -131,7 +131,7 @@ class _ActionButton extends StatelessWidget {
             ],
             Text(
               label,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
                 color: textColor,

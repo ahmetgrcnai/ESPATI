@@ -130,7 +130,7 @@ class StoryBubble extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 11,
                   color: Colors.black,
                 ),
@@ -205,7 +205,7 @@ class _AddStoryBubble extends StatelessWidget {
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 11,
                   color: Colors.black,
                 ),

@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../core/notification_service.dart';
+import '../../data/models/pet_model.dart';
 import '../../data/models/reminder_model.dart';
-import '../../data/sample_data.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/common/neo_brutalist_button.dart';
 
@@ -32,7 +32,7 @@ class ReminderManagerScreen extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(vm.errorMessage!,
-                      style: GoogleFonts.poppins(fontSize: 13)),
+                      style: GoogleFonts.nunitoSans(fontSize: 13)),
                   backgroundColor: EspatiColors.red,
                   behavior: SnackBarBehavior.floating,
                   shape: const RoundedRectangleBorder(
@@ -64,7 +64,7 @@ class ReminderManagerScreen extends StatelessWidget {
               final reminder = vm.reminders[index];
               return ReminderCard(
                 reminder: reminder,
-                petName: _petNameFor(reminder.petId),
+                petName: _petNameFor(reminder.petId, vm.pets),
                 onComplete: () => vm.completeReminder(reminder.id),
                 onDelete: () => vm.deleteReminder(reminder.id),
               );
@@ -89,7 +89,7 @@ class ReminderManagerScreen extends StatelessWidget {
               const Icon(Icons.add_alarm_rounded, color: Colors.black, size: 20),
               const SizedBox(width: 8),
               Text('Hatırlatıcı Ekle',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: Colors.black)),
@@ -100,14 +100,17 @@ class ReminderManagerScreen extends StatelessWidget {
     );
   }
 
-  String? _petNameFor(String? petId) {
+  /// Resolves [ReminderModel.petId] (a real [PetModel.id] as of this fix —
+  /// see [_PetChips]'s doc comment) to that pet's current name, from the
+  /// user's real, live [ProfileViewModel.pets] rather than the static
+  /// [SampleData] demo list this used to match against — that made every
+  /// real user's own pets impossible to select or display correctly.
+  String? _petNameFor(String? petId, List<PetModel> pets) {
     if (petId == null) return null;
-    const pets = SampleData.userPets;
-    final match = pets.cast<Map<String, String>?>().firstWhere(
-          (p) => p?['name']?.toLowerCase() == petId.toLowerCase(),
-          orElse: () => null,
-        );
-    return match?['name'];
+    for (final pet in pets) {
+      if (pet.id == petId) return pet.name;
+    }
+    return null;
   }
 
   void _showAddSheet(BuildContext context) {
@@ -168,7 +171,7 @@ class _ReminderAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Text(
                   'Pati Takvimi',
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                     color: Colors.black,
@@ -188,7 +191,7 @@ class _ReminderAppBar extends StatelessWidget implements PreferredSizeWidget {
                           granted
                               ? 'Bildirim izni verildi ✓'
                               : 'Bildirim izni reddedildi.',
-                          style: GoogleFonts.poppins(fontSize: 13),
+                          style: GoogleFonts.nunitoSans(fontSize: 13),
                         ),
                         backgroundColor: granted
                             ? EspatiColors.sageGreen
@@ -332,7 +335,7 @@ class ReminderCard extends StatelessWidget {
                   children: [
                     Text(
                       reminder.title,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: reminder.isCompleted
@@ -359,7 +362,7 @@ class ReminderCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             _formatDateTime(reminder.dateTime),
-                            style: GoogleFonts.poppins(
+                            style: GoogleFonts.nunitoSans(
                               fontSize: 12,
                               color: isOverdue && !reminder.isCompleted
                                   ? EspatiColors.red
@@ -381,7 +384,7 @@ class ReminderCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               petName!,
-                              style: GoogleFonts.poppins(
+                              style: GoogleFonts.nunitoSans(
                                 fontSize: 12,
                                 color: Colors.black.withValues(alpha: 0.45),
                               ),
@@ -405,7 +408,7 @@ class ReminderCard extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 reminder.repeatInterval?.label ?? '',
-                                style: GoogleFonts.poppins(
+                                style: GoogleFonts.nunitoSans(
                                   fontSize: 11,
                                   color: EspatiColors.sageGreen
                                       .withValues(alpha: 0.9),
@@ -475,7 +478,7 @@ class ReminderCard extends StatelessWidget {
                 children: [
                   Text(
                     'Hatırlatıcıyı sil',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
                         color: Colors.black),
@@ -483,7 +486,7 @@ class ReminderCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     '"${reminder.title}" silinecek. Bu işlem geri alınamaz.',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                         fontSize: 13, color: Colors.black.withValues(alpha: 0.7)),
                   ),
                   const SizedBox(height: 20),
@@ -502,7 +505,7 @@ class ReminderCard extends StatelessWidget {
                               border: NeoBrutal.border(2),
                             ),
                             child: Text('İptal',
-                                style: GoogleFonts.fredoka(
+                                style: GoogleFonts.baloo2(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     color: Colors.black)),
@@ -524,7 +527,7 @@ class ReminderCard extends StatelessWidget {
                               boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
                             ),
                             child: Text('Sil',
-                                style: GoogleFonts.fredoka(
+                                style: GoogleFonts.baloo2(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     color: Colors.black)),
@@ -615,7 +618,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 28),
             Text(
               'Henüz hatırlatıcı yok',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontSize: 19,
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
@@ -625,7 +628,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Evcil hayvanlarınızın aşı, mama ve ilaç\ntakvimlerini takip edin.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 14,
                 color: Colors.black.withValues(alpha: 0.6),
                 height: 1.5,
@@ -652,7 +655,7 @@ class _EmptyState extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       'İlk hatırlatıcını ekle!',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
                           color: Colors.black),
@@ -759,9 +762,17 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
       repeatInterval: _isRepeating ? _repeatInterval : null,
     );
 
-    await context.read<ProfileViewModel>().addReminder(reminder);
+    final success = await context.read<ProfileViewModel>().addReminder(reminder);
 
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(context).pop();
+    } else {
+      // Keep the sheet open on failure so the filled-in form isn't lost —
+      // the parent screen's Consumer already surfaces vm.errorMessage as a
+      // snackbar.
+      setState(() => _isSaving = false);
+    }
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -805,7 +816,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                 // Title
                 Text(
                   'Yeni Hatırlatıcı',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -829,10 +840,10 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                 _BlockyField(
                   child: TextFormField(
                     controller: _titleCtrl,
-                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                    style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Örn: Luna\'nun karma aşısı',
-                      hintStyle: GoogleFonts.poppins(
+                      hintStyle: GoogleFonts.nunitoSans(
                           fontSize: 13.5,
                           color: Colors.black.withValues(alpha: 0.4)),
                       prefixIcon:
@@ -846,7 +857,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 14),
                       errorStyle:
-                          GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
+                          GoogleFonts.nunitoSans(fontSize: 11, color: EspatiColors.red),
                     ),
                     textCapitalization: TextCapitalization.sentences,
                     validator: (v) => (v == null || v.trim().isEmpty)
@@ -912,14 +923,14 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                             children: [
                               Text(
                                 'Tekrar Et',
-                                style: GoogleFonts.poppins(
+                                style: GoogleFonts.nunitoSans(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     color: Colors.black),
                               ),
                               Text(
                                 'Haftalık veya aylık tekrarlayan hatırlatıcı',
-                                style: GoogleFonts.poppins(
+                                style: GoogleFonts.nunitoSans(
                                     fontSize: 11,
                                     color: Colors.black.withValues(alpha: 0.5)),
                               ),
@@ -970,7 +981,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                               child: Text(
                                 interval.label,
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.poppins(
+                                style: GoogleFonts.nunitoSans(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 13,
                                   color: Colors.black,
@@ -1013,7 +1024,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                           )
                         : Text(
                             'Kaydet & Bildir',
-                            style: GoogleFonts.fredoka(
+                            style: GoogleFonts.baloo2(
                               fontWeight: FontWeight.w600,
                               fontSize: 15,
                               color: Colors.black,
@@ -1071,7 +1082,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: GoogleFonts.poppins(
+      style: GoogleFonts.nunitoSans(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: Colors.black.withValues(alpha: 0.7),
@@ -1118,7 +1129,7 @@ class _CategoryGrid extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   cat.label,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: isSelected
@@ -1135,6 +1146,11 @@ class _CategoryGrid extends StatelessWidget {
   }
 }
 
+/// Pet picker for a new reminder — real pets from [ProfileViewModel.pets],
+/// keyed by [PetModel.id]. Used to render the static `SampleData` demo pet
+/// list and pass a pet's *name* around as if it were an id, so a real
+/// user's own pets could never be selected and a saved reminder's "petId"
+/// wasn't actually an id at all. See [ReminderManagerScreen._petNameFor].
 class _PetChips extends StatelessWidget {
   final String? selectedPetId;
   final ValueChanged<String> onSelected;
@@ -1143,15 +1159,23 @@ class _PetChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const pets = SampleData.userPets;
+    final pets = context.watch<ProfileViewModel>().pets;
+    if (pets.isEmpty) {
+      return Text(
+        'Henüz bir patin yok — bu hatırlatıcı genel olarak kaydedilecek.',
+        style: GoogleFonts.nunitoSans(
+          fontSize: 12,
+          color: Colors.black.withValues(alpha: 0.5),
+        ),
+      );
+    }
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: pets.map((pet) {
-        final name = pet['name']!;
-        final isSelected = selectedPetId == name;
+        final isSelected = selectedPetId == pet.id;
         return GestureDetector(
-          onTap: () => onSelected(name),
+          onTap: () => onSelected(pet.id),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -1167,8 +1191,8 @@ class _PetChips extends StatelessWidget {
                 Icon(Icons.pets_rounded, size: 14, color: Colors.black),
                 const SizedBox(width: 5),
                 Text(
-                  name,
-                  style: GoogleFonts.poppins(
+                  pet.name,
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -1212,7 +1236,7 @@ class _PickerButton extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,

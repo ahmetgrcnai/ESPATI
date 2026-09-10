@@ -8,6 +8,7 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/theme_viewmodel.dart';
 import '../../widgets/common/neo_brutalist_button.dart';
 import '../../widgets/common/neo_brutalist_list_tile.dart';
+import 'saved_items_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS SCREEN — Neo-Brutalist rebuild (Design System Step 54).
@@ -54,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature — yakında geliyor!',
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -95,13 +96,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Çıkış yapılsın mı?',
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: Colors.black)),
               const SizedBox(height: 8),
               Text('Hesabından çıkış yapmak üzeresin.',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                       fontSize: 13,
                       color: Colors.black.withValues(alpha: 0.7))),
               const SizedBox(height: 20),
@@ -122,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         child: Text('İptal',
-                            style: GoogleFonts.fredoka(
+                            style: GoogleFonts.baloo2(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black)),
                       ),
@@ -151,7 +152,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                         child: Text('Çıkış Yap',
-                            style: GoogleFonts.fredoka(
+                            style: GoogleFonts.baloo2(
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white)),
                       ),
@@ -179,7 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         iconTheme: const IconThemeData(color: Colors.black),
         title: Text(
           'Ayarlar',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 20,
             color: Colors.black,
@@ -203,6 +204,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Hesabı Sil',
             iconBoxColor: EspatiColors.red,
             onTap: () => _comingSoon('Hesap silme'),
+          ),
+          const SizedBox(height: 24),
+
+          const _SectionHeader('İÇERİK'),
+          const SizedBox(height: 10),
+          NeoBrutalistListTile(
+            icon: Icons.bookmark_rounded,
+            title: 'Kaydedilenler',
+            subtitle: 'Kaydettiğin gönderi ve ilanlar',
+            iconBoxColor: EspatiColors.sageGreen,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SavedItemsScreen()),
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -308,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 10),
                   Text(
                     'Çıkış Yap',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
                       color: Colors.white,
@@ -323,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Center(
             child: Text(
               'ESPATI v1.0.0-beta',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                 fontSize: 12,
                 color: Colors.black.withValues(alpha: 0.45),
               ),
@@ -347,7 +361,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: GoogleFonts.fredoka(
+      style: GoogleFonts.baloo2(
         fontWeight: FontWeight.bold,
         fontSize: 13,
         letterSpacing: 1.1,

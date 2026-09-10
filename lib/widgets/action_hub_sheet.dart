@@ -217,7 +217,7 @@ class _ActionHubSheet extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 'Oluştur',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -225,7 +225,7 @@ class _ActionHubSheet extends StatelessWidget {
               ),
               Text(
                 'Ne paylaşmak istersin?',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.6),
                 ),
@@ -325,7 +325,7 @@ class _ActionBlock extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
                 color: Colors.black,
@@ -399,7 +399,7 @@ class _ListingTypeSheet extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 'İlan Türü Seç',
-                style: GoogleFonts.fredoka(
+                style: GoogleFonts.baloo2(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
@@ -407,7 +407,7 @@ class _ListingTypeSheet extends StatelessWidget {
               ),
               Text(
                 'Oluşturmak istediğiniz ilan türünü seçin',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.6),
                 ),
@@ -447,7 +447,7 @@ class _ListingTypeSheet extends StatelessWidget {
                   ),
                   child: Text(
                     'Vazgeç',
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                         fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -519,7 +519,7 @@ class _ListingTypeBlock extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                       color: Colors.black,
@@ -528,7 +528,7 @@ class _ListingTypeBlock extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.nunitoSans(
                       fontSize: 12,
                       color: Colors.black.withValues(alpha: 0.75),
                     ),

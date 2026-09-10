@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart'
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
 /// Generated from: android/app/google-services.json
-/// Project: espati-5c079
+/// Project: espati-b722f
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {

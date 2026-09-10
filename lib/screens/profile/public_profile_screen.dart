@@ -95,7 +95,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               children: [
                 if (user.bio.isNotEmpty) ...[
                   Text(user.bio,
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.nunitoSans(
                           fontSize: 14,
                           color: Colors.black.withValues(alpha: 0.7))),
                   const SizedBox(height: 8),
@@ -107,7 +107,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           size: 14, color: EspatiColors.lightBlue),
                       const SizedBox(width: 4),
                       Text(user.locationDistrict,
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.nunitoSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: EspatiColors.lightBlue)),
@@ -188,7 +188,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Gönderiler yakında burada görünecek',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.nunitoSans(
                             fontSize: 13,
                             color: Colors.black.withValues(alpha: 0.4)),
                       ),
@@ -257,7 +257,7 @@ class _PublicProfileAppBar extends StatelessWidget implements PreferredSizeWidge
                 child: Text(
                   title,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.fredoka(
+                  style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
                     color: Colors.black,
@@ -389,7 +389,7 @@ class _FollowActionButton extends StatelessWidget {
             ),
             child: Text(
               isFollowed ? 'Takibi Bırak' : 'Takip Et',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
                 color: Colors.black,
@@ -441,7 +441,7 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.w800,
             fontSize: 16,
             color: Colors.black,
@@ -466,7 +466,7 @@ class _StatChip extends StatelessWidget {
         children: [
           Text(
             value,
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.baloo2(
               fontWeight: FontWeight.w800,
               fontSize: 20,
               color: Colors.black,
@@ -474,7 +474,7 @@ class _StatChip extends StatelessWidget {
           ),
           Text(
             label,
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.nunitoSans(
               fontSize: 12,
               color: Colors.black.withValues(alpha: 0.6),
             ),

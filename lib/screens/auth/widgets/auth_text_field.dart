@@ -48,7 +48,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
       children: [
         Text(
           widget.label,
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.w600,
             fontSize: 13,
             color: Colors.black,
@@ -68,10 +68,10 @@ class _AuthTextFieldState extends State<AuthTextField> {
             textInputAction: widget.textInputAction,
             validator: widget.validator,
             onFieldSubmitted: widget.onFieldSubmitted,
-            style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+            style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
             decoration: InputDecoration(
               hintText: widget.hint,
-              hintStyle: GoogleFonts.poppins(
+              hintStyle: GoogleFonts.nunitoSans(
                   fontSize: 14, color: Colors.black.withValues(alpha: 0.35)),
               prefixIcon:
                   Icon(widget.prefixIcon, size: 20, color: Colors.black54),
@@ -95,7 +95,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
               focusedErrorBorder: InputBorder.none,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              errorStyle: GoogleFonts.poppins(fontSize: 11, color: EspatiColors.red),
+              errorStyle: GoogleFonts.nunitoSans(fontSize: 11, color: EspatiColors.red),
             ),
           ),
         ),

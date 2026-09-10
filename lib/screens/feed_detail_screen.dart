@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/constants/app_colors.dart' show EspatiColors;
 import '../core/neo_brutalist_tokens.dart';
 import '../core/result.dart';
+import '../data/models/comment_model.dart';
 import '../data/models/listing_model.dart';
 import '../data/models/post_model.dart';
 import '../data/repositories/interfaces/i_chat_repository.dart';
@@ -42,14 +43,15 @@ import 'chat/chat_screen.dart';
 //     feed, Step 66) — this screen never had working like/save buttons
 //     before, only a static count display.
 //
-// New, and honestly not backend-wired: the Follow button (real —
-// [SocialViewModel.toggleFollow]/[isUserFollowed], same as
-// search_screen.dart's Follow pill) is real for both content types. The
-// comment *input* sends nowhere yet (no comments backend exists anywhere in
-// this app) and shows the same "yakında" toast the rest of the app already
-// uses for this gap. The comment *list* below is illustrative UI-demo data
-// via [CommentBrick] — clearly marked in code, not fabricated as real
-// content — since there's no comments collection/model to read from.
+// The Follow button (real — [SocialViewModel.toggleFollow]/[isUserFollowed],
+// same as search_screen.dart's Follow pill) is real for both content types.
+//
+// Comments (posts only — [_CommentsSection], real as of the Topluluk
+// membership/comments pass): [SocialViewModel.addYorum]/[watchComments]
+// wrap `posts/{postId}/comments`, a real Firestore write+read path that
+// existed half-built (write-only, never called) before this pass. Ads
+// (listings) don't get a comments section — [ListingModel] has no
+// `commentsCount`/comments concept at all, out of scope here.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class FeedDetailScreen extends StatefulWidget {
@@ -98,7 +100,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message,
-            style: GoogleFonts.poppins(fontSize: 13, color: Colors.white)),
+            style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.white)),
         backgroundColor: isError ? EspatiColors.red : Colors.black,
         behavior: SnackBarBehavior.floating,
         shape: const RoundedRectangleBorder(
@@ -178,10 +180,27 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
     }
   }
 
-  void _sendComment() {
-    if (_commentController.text.trim().isEmpty) return;
+  Future<void> _sendComment() async {
+    final text = _commentController.text.trim();
+    final post = widget.post;
+    if (text.isEmpty || post == null) return;
+
+    final user = context.read<AuthViewModel>().currentUser;
+    if (user == null) {
+      _showToast('Yorum yapmak için giriş yapmanız gerekiyor.', isError: true);
+      return;
+    }
+
     _commentController.clear();
-    _showToast('Yorumlar — yakında geliyor!');
+    final success = await context.read<SocialViewModel>().addYorum(
+          post.id,
+          text,
+          authorName: user.name.isNotEmpty ? user.name : user.email,
+          authorPhoto: user.profilePicture,
+        );
+    if (!success && mounted) {
+      _showToast('Yorum eklenemedi. Lütfen tekrar deneyin.', isError: true);
+    }
   }
 
   @override
@@ -226,7 +245,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
         ),
         title: Text(
           widget.isAd ? 'İlan Detayı' : 'Gönderi Detayı',
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
             fontWeight: FontWeight.bold,
             fontSize: 18,
             color: Colors.black,
@@ -270,7 +289,7 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                             if (widget.post!.description.isNotEmpty)
                               Text(
                                 widget.post!.description,
-                                style: GoogleFonts.poppins(
+                                style: GoogleFonts.nunitoSans(
                                   fontSize: 14,
                                   height: 1.4,
                                   color: Colors.black,
@@ -278,30 +297,19 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                               ),
                           ],
 
-                          const SizedBox(height: 24),
-                          Text(
-                            'Yorumlar',
-                            style: GoogleFonts.fredoka(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.black,
+                          if (!widget.isAd) ...[
+                            const SizedBox(height: 24),
+                            Text(
+                              'Yorumlar',
+                              style: GoogleFonts.baloo2(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Demo content only — no comments collection/model
-                          // exists yet anywhere in this app. See file header.
-                          const CommentBrick(
-                            authorName: 'Elif',
-                            text: 'Çok tatlıymış! 🐾',
-                            timeAgo: '2sa',
-                            accent: EspatiColors.terracotta,
-                          ),
-                          const CommentBrick(
-                            authorName: 'Mert',
-                            text: 'Bilgi için mesaj attım.',
-                            timeAgo: '5sa',
-                            accent: EspatiColors.sageGreen,
-                          ),
+                            const SizedBox(height: 10),
+                            _CommentsSection(postId: widget.post!.id),
+                          ],
                         ],
                       ),
                     ),
@@ -335,6 +343,91 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
         ),
       ),
     );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMENTS SECTION — real, live [CommentModel] list via
+// [SocialViewModel.watchComments]. Posts only (see file header).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CommentsSection extends StatefulWidget {
+  final String postId;
+  const _CommentsSection({required this.postId});
+
+  @override
+  State<_CommentsSection> createState() => _CommentsSectionState();
+}
+
+class _CommentsSectionState extends State<_CommentsSection> {
+  // Requested once in initState, not on every build — a fresh call to
+  // watchComments() re-attaches a brand-new Firestore listener each time
+  // (it's a thin passthrough, not a cached stream), so grabbing it inline
+  // inside build() would tear down and restart the subscription — and
+  // briefly flash back to the loading state — on every unrelated rebuild
+  // of this screen.
+  late final Stream<List<CommentModel>> _comments =
+      context.read<SocialViewModel>().watchComments(widget.postId);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<CommentModel>>(
+      stream: _comments,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: EspatiColors.sageGreen),
+              ),
+            ),
+          );
+        }
+
+        final comments = snapshot.data!;
+        if (comments.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Henüz yorum yok — ilk yorumu sen yap!',
+              style: GoogleFonts.nunitoSans(
+                fontSize: 13,
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            for (var i = 0; i < comments.length; i++)
+              CommentBrick(
+                authorName: comments[i].authorName.isNotEmpty
+                    ? comments[i].authorName
+                    : 'Pati Dostu',
+                text: comments[i].text,
+                timeAgo: _formatTimeAgo(comments[i].timestamp),
+                accent: i.isEven
+                    ? EspatiColors.terracotta
+                    : EspatiColors.sageGreen,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  static String _formatTimeAgo(DateTime timestamp) {
+    final diff = DateTime.now().difference(timestamp);
+    if (diff.inSeconds < 60) return 'şimdi';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}dk önce';
+    if (diff.inHours < 24) return '${diff.inHours}sa önce';
+    if (diff.inDays < 7) return '${diff.inDays}g önce';
+    return '${(diff.inDays / 7).floor()}h önce';
   }
 }
 
@@ -464,7 +557,7 @@ class _HeroImageState extends State<_HeroImage> {
                   ),
                   child: Text(
                     widget.statusLabel!,
-                    style: GoogleFonts.fredoka(
+                    style: GoogleFonts.baloo2(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       color: Colors.black,
@@ -527,7 +620,7 @@ class _AuthorRow extends StatelessWidget {
             authorName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.fredoka(
+            style: GoogleFonts.baloo2(
               fontWeight: FontWeight.w600,
               fontSize: 16,
               color: Colors.black,
@@ -562,7 +655,7 @@ class _AuthorRow extends StatelessWidget {
                 ),
                 child: Text(
                   isFollowed ? 'Takip Ediliyor' : 'Takip Et',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.black,
@@ -621,7 +714,7 @@ class _PostInteractionBar extends StatelessWidget {
               onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Yorumlar — yakında geliyor!',
-                      style: GoogleFonts.poppins(fontSize: 13)),
+                      style: GoogleFonts.nunitoSans(fontSize: 13)),
                   backgroundColor: Colors.black,
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -685,7 +778,7 @@ class _InteractionIcon extends StatelessWidget {
             if (label != null) ...[
               const SizedBox(width: 6),
               Text(label!,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                       fontSize: 12, fontWeight: FontWeight.w600, color: color)),
             ],
           ],
@@ -711,12 +804,12 @@ class _ListingInfo extends StatelessWidget {
       children: [
         Text(
           listing.name,
-          style: GoogleFonts.fredoka(
+          style: GoogleFonts.baloo2(
               fontWeight: FontWeight.bold, fontSize: 22, color: Colors.black),
         ),
         Text(
           listing.type,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.nunitoSans(
               fontSize: 14, color: Colors.black.withValues(alpha: 0.6)),
         ),
         const SizedBox(height: 10),
@@ -726,7 +819,7 @@ class _ListingInfo extends StatelessWidget {
             const SizedBox(width: 4),
             Expanded(
               child: Text(listing.location,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                       fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black)),
             ),
           ],
@@ -738,12 +831,12 @@ class _ListingInfo extends StatelessWidget {
                 size: 13, color: Colors.black.withValues(alpha: 0.5)),
             const SizedBox(width: 4),
             Text(listing.date,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.nunitoSans(
                     fontSize: 12, color: Colors.black.withValues(alpha: 0.5))),
             if (listing.isUrgent) ...[
               const SizedBox(width: 8),
               Text('· ACİL',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.nunitoSans(
                       fontSize: 12, fontWeight: FontWeight.w700, color: EspatiColors.terracotta)),
             ],
           ],
@@ -751,17 +844,17 @@ class _ListingInfo extends StatelessWidget {
         if (listing.description.isNotEmpty) ...[
           const SizedBox(height: 18),
           Text('Açıklama',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
           const SizedBox(height: 6),
           Text(listing.description,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.nunitoSans(
                   fontSize: 14, height: 1.5, color: Colors.black.withValues(alpha: 0.85))),
         ],
         if (listing.hasLocation) ...[
           const SizedBox(height: 18),
           Text('Son Görülen Konum',
-              style: GoogleFonts.fredoka(
+              style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
           const SizedBox(height: 8),
           AdLocationMapWidget(
@@ -825,7 +918,7 @@ class _MessageOwnerBar extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       'İlan Sahibine Mesaj At',
-                      style: GoogleFonts.fredoka(
+                      style: GoogleFonts.baloo2(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                         color: Colors.white,
@@ -866,10 +959,10 @@ class _CommentInputBar extends StatelessWidget {
                 minLines: 1,
                 maxLines: 4,
                 textCapitalization: TextCapitalization.sentences,
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black),
+                style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.black),
                 decoration: InputDecoration(
                   hintText: 'Yorum ekle...',
-                  hintStyle: GoogleFonts.poppins(
+                  hintStyle: GoogleFonts.nunitoSans(
                     fontSize: 14,
                     color: Colors.black.withValues(alpha: 0.45),
                   ),

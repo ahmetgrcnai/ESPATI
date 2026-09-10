@@ -77,7 +77,7 @@ class _QuickReplyChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.nunitoSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: Colors.black,
