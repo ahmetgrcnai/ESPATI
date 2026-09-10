@@ -150,7 +150,7 @@ class MockMapRepository implements IMapRepository {
       await Future.delayed(_delay);
       return const Success(_eskisehirPoints);
     } on Exception catch (e) {
-      return Failure('Failed to load map points', exception: e);
+      return Failure('Harita noktaları yüklenemedi', exception: e);
     }
   }
 
@@ -163,7 +163,7 @@ class MockMapRepository implements IMapRepository {
           _eskisehirPoints.where((p) => p.category == category).toList();
       return Success(filtered);
     } on Exception catch (e) {
-      return Failure('Failed to load map points', exception: e);
+      return Failure('Harita noktaları yüklenemedi', exception: e);
     }
   }
 }

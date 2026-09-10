@@ -83,6 +83,16 @@ class MockReminderRepository implements IReminderRepository {
     }
   }
 
+  /// SharedPreferences has no push-update mechanism, so this emits a single
+  /// snapshot rather than a live stream — callers only need [Stream] shape
+  /// compatibility with [FirestoreReminderRepository].
+  @override
+  Stream<List<ReminderModel>> watchAll() async* {
+    final reminders = await _loadAll();
+    reminders.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    yield List.unmodifiable(reminders);
+  }
+
   @override
   Future<Result<ReminderModel>> add(ReminderModel reminder) async {
     try {

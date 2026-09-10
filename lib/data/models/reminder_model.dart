@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,6 +147,57 @@ class ReminderModel {
             : null,
         isCompleted: json['isCompleted'] as bool,
       );
+
+  // ── Firestore ───────────────────────────────────────────────────────────────
+
+  /// Creates a [ReminderModel] from a Firestore document.
+  ///
+  /// Critical: Firestore stores [dateTime] as a native [Timestamp], never as
+  /// a String — the SDK always deserialises it that way, so [_parseTimestamp]
+  /// casts defensively rather than calling [DateTime.parse].
+  factory ReminderModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data()!;
+    return ReminderModel(
+      id: doc.id,
+      petId: data['petId'] as String?,
+      title: data['title'] as String? ?? '',
+      category: ReminderCategory.values.byName(
+        data['category'] as String? ?? ReminderCategory.other.name,
+      ),
+      dateTime: _parseTimestamp(data['dateTime']),
+      isRepeating: data['isRepeating'] as bool? ?? false,
+      repeatInterval: data['repeatInterval'] != null
+          ? RepeatInterval.values.byName(data['repeatInterval'] as String)
+          : null,
+      isCompleted: data['isCompleted'] as bool? ?? false,
+    );
+  }
+
+  /// Converts this [ReminderModel] to a Firestore-ready map.
+  ///
+  /// The document ID is held by Firestore itself, so [id] is excluded.
+  /// [dateTime] is written as a native [Timestamp] — not an ISO string —
+  /// so range queries (e.g. "upcoming reminders") stay index-friendly.
+  Map<String, dynamic> toFirestore() => {
+        'petId': petId,
+        'title': title,
+        'category': category.name,
+        'dateTime': Timestamp.fromDate(dateTime),
+        'isRepeating': isRepeating,
+        'repeatInterval': repeatInterval?.name,
+        'isCompleted': isCompleted,
+      };
+
+  /// Safely converts a Firestore [Timestamp] (or a legacy String/int value)
+  /// to a Dart [DateTime].
+  static DateTime _parseTimestamp(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.now();
+  }
 
   @override
   bool operator ==(Object other) =>

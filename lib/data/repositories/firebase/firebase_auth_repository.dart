@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -14,11 +17,14 @@ class FirebaseAuthRepository implements IAuthRepository {
   FirebaseAuthRepository({
     FirebaseAuth? firebaseAuth,
     GoogleSignIn? googleSignIn,
+    FirebaseFirestore? firestore,
   })  : _auth = firebaseAuth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn();
+       _googleSignIn = googleSignIn ?? GoogleSignIn(),
+       _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
+  final FirebaseFirestore _firestore;
 
   // ── State ──────────────────────────────────────────────────────────────────
 
@@ -75,12 +81,41 @@ class FirebaseAuthRepository implements IAuthRepository {
       // (e.g. account remotely disabled between creation and this call).
       await credential.user!.reload();
       final refreshedUser = _auth.currentUser ?? credential.user!;
+      final userModel = _firebaseUserToModel(refreshedUser);
 
-      return Success(_firebaseUserToModel(refreshedUser));
+      // CRITICAL: without a users/{uid} Firestore document,
+      // FirestoreUserRepository.watchCurrentUser() emits null for this
+      // account forever (it does not lazily create the doc the way
+      // getCurrentUser() does), so ProfileViewModel treats a freshly
+      // registered user as signed-out and the profile screen never
+      // populates. Writing it here — before returning Success — keeps
+      // Auth state and Firestore state consistent from the first frame.
+      await _firestore
+          .collection('users')
+          .doc(userModel.id)
+          .set(userModel.toJson())
+          // A flaky connection must not hang the "Kayıt Ol" button forever —
+          // fail loudly after 15s instead so the UI can show an error.
+          .timeout(const Duration(seconds: 15));
+
+      return Success(userModel);
     } on FirebaseAuthException catch (e) {
       return Failure(_mapFirebaseError(e), exception: e);
+    } on TimeoutException {
+      return const Failure(
+        'Kayıt zaman aşımına uğradı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+      );
     } on Exception catch (e) {
       return Failure('Kayıt oluşturulamadı. Lütfen tekrar deneyin.', exception: e);
+    } catch (e) {
+      // Catches non-Exception throwables (e.g. a null-check/TypeError) so
+      // signUpWithEmail never throws past this point and leaves the caller's
+      // isSubmitting flag stuck at true. `e` isn't statically an Exception
+      // here, so it's only attached to Failure when it happens to be one.
+      return Failure(
+        'Kayıt oluşturulamadı. Lütfen tekrar deneyin.',
+        exception: e is Exception ? e : null,
+      );
     }
   }
 
@@ -102,13 +137,26 @@ class FirebaseAuthRepository implements IAuthRepository {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
-      return Success(_firebaseUserToModel(userCredential.user!));
+      final userModel = _firebaseUserToModel(userCredential.user!);
+
+      // Same requirement as signUpWithEmail: a first-time Google sign-in
+      // needs a users/{uid} doc or ProfileViewModel's watchCurrentUser()
+      // stream will treat this account as signed-out. Only seed it when
+      // missing so a returning user's saved bio/pets aren't overwritten.
+      await _ensureUserDocument(userModel);
+
+      return Success(userModel);
     } on FirebaseAuthException catch (e) {
       return Failure(_mapFirebaseError(e), exception: e);
     } on Exception catch (e) {
       return Failure(
         'Google ile giriş yapılamadı. Lütfen tekrar deneyin.',
         exception: e,
+      );
+    } catch (e) {
+      return Failure(
+        'Google ile giriş yapılamadı. Lütfen tekrar deneyin.',
+        exception: e is Exception ? e : null,
       );
     }
   }
@@ -122,12 +170,19 @@ class FirebaseAuthRepository implements IAuthRepository {
       // stream to emit null and trigger navigation to LoginScreen.
       await _auth.signOut();
 
-      // Google sign-out is best-effort: clears the cached account so the
-      // account picker re-appears on next sign-in. Failure here is silenced
+      // Google sign-out/disconnect is best-effort: failure here is silenced
       // because the user IS already signed out from Firebase — surfacing an
       // error at this point would be misleading.
+      //
+      // signOut() alone isn't enough — the Google Play Services layer keeps
+      // a cached "last selected account" independent of our app's session,
+      // so a plain signOut() + signIn() can silently re-authenticate the
+      // same account instead of showing the picker. disconnect() revokes
+      // that cached grant, which is what actually forces the account picker
+      // to appear on the next signInWithGoogle() call.
       try {
         await _googleSignIn.signOut();
+        await _googleSignIn.disconnect();
       } catch (_) {}
 
       return const Success(null);
@@ -154,6 +209,15 @@ class FirebaseAuthRepository implements IAuthRepository {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /// Seeds `users/{uid}` from [user] only if the document doesn't exist yet.
+  Future<void> _ensureUserDocument(UserModel user) async {
+    final ref = _firestore.collection('users').doc(user.id);
+    final doc = await ref.get().timeout(const Duration(seconds: 15));
+    if (!doc.exists) {
+      await ref.set(user.toJson()).timeout(const Duration(seconds: 15));
+    }
+  }
 
   /// Maps a [firebase_auth.User] to ESPATI's domain [UserModel].
   ///

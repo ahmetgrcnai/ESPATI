@@ -9,28 +9,32 @@ enum MapPointCategory {
   String get label {
     switch (this) {
       case MapPointCategory.vet:
-        return 'Vet';
+        return 'Veteriner';
       case MapPointCategory.park:
         return 'Park';
       case MapPointCategory.cafe:
-        return 'Cafe';
+        return 'Kafe';
       case MapPointCategory.petShop:
-        return 'Pet Shop';
+        return 'Pet Mağazası';
     }
   }
 
-  /// Creates a [MapPointCategory] from its string name.
+  /// Creates a [MapPointCategory] from its string representation.
+  ///
+  /// Accepts both the Dart enum name (e.g. `'vet'`) and the Turkish
+  /// UI label (e.g. `'Veteriner'`), so Firestore documents can be
+  /// authored in either format without breaking the parser.
   static MapPointCategory fromString(String value) {
     return MapPointCategory.values.firstWhere(
-      (e) => e.name == value,
+      (e) => e.name == value || e.label == value,
       orElse: () => MapPointCategory.cafe,
     );
   }
 }
 
-/// A single point-of-interest on the Eskişehir Pet Map.
+/// A single point-of-interest on the Eskişehir Pati Haritası.
 ///
-/// Supports JSON serialization for future API/Firebase integration,
+/// Supports JSON serialization for Firebase integration,
 /// immutable updates via [copyWith], and a safe [empty] factory.
 class MapPoint {
   final String id;
@@ -41,6 +45,7 @@ class MapPoint {
   final double rating;
   final String address;
   final String description;
+  final String imageUrl;
 
   const MapPoint({
     required this.id,
@@ -51,6 +56,7 @@ class MapPoint {
     required this.rating,
     required this.address,
     this.description = '',
+    this.imageUrl = '',
   });
 
   /// Creates an empty [MapPoint] to avoid null-pointer errors.
@@ -77,6 +83,7 @@ class MapPoint {
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       address: json['address'] as String? ?? '',
       description: json['description'] as String? ?? '',
+      imageUrl: json['imageUrl'] as String? ?? '',
     );
   }
 
@@ -91,6 +98,7 @@ class MapPoint {
       'rating': rating,
       'address': address,
       'description': description,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -104,6 +112,7 @@ class MapPoint {
     double? rating,
     String? address,
     String? description,
+    String? imageUrl,
   }) {
     return MapPoint(
       id: id ?? this.id,
@@ -114,6 +123,7 @@ class MapPoint {
       rating: rating ?? this.rating,
       address: address ?? this.address,
       description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 

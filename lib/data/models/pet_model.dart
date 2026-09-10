@@ -46,6 +46,9 @@ class PetModel {
   final PetGender gender;
   final String medicalHistorySummary;
   final PetType petType;
+  final String photoUrl;
+  final String bio;
+  final double weight;
 
   const PetModel({
     required this.id,
@@ -56,6 +59,9 @@ class PetModel {
     required this.gender,
     required this.medicalHistorySummary,
     required this.petType,
+    this.photoUrl = '',
+    this.bio = '',
+    this.weight = 0,
   });
 
   /// Creates an empty [PetModel] to avoid null-pointer errors in the UI.
@@ -69,6 +75,9 @@ class PetModel {
       gender: PetGender.unknown,
       medicalHistorySummary: '',
       petType: PetType.other,
+      photoUrl: '',
+      bio: '',
+      weight: 0,
     );
   }
 
@@ -83,7 +92,19 @@ class PetModel {
       gender: PetGender.fromString(json['gender'] as String? ?? ''),
       medicalHistorySummary: json['medicalHistorySummary'] as String? ?? '',
       petType: PetType.fromString(json['petType'] as String? ?? ''),
+      photoUrl: json['photoUrl'] as String? ?? '',
+      bio: json['bio'] as String? ?? '',
+      weight: (json['weight'] as num?)?.toDouble() ?? 0,
     );
+  }
+
+  /// Creates a [PetModel] from a Firestore document data map.
+  ///
+  /// [id] is passed separately because Firestore stores it as the document key,
+  /// not inside the data map.
+  factory PetModel.fromFirestore(Map<String, dynamic> data,
+      {required String id}) {
+    return PetModel.fromJson({'id': id, ...data});
   }
 
   /// Converts this [PetModel] to a JSON map for persistence.
@@ -97,8 +118,14 @@ class PetModel {
       'gender': gender.name,
       'medicalHistorySummary': medicalHistorySummary,
       'petType': petType.name,
+      'photoUrl': photoUrl,
+      'bio': bio,
+      'weight': weight,
     };
   }
+
+  /// Alias for [toJson] — used at Firestore write call-sites for clarity.
+  Map<String, dynamic> toFirestore() => toJson();
 
   /// Returns a copy of this [PetModel] with the given fields replaced.
   PetModel copyWith({
@@ -110,6 +137,9 @@ class PetModel {
     PetGender? gender,
     String? medicalHistorySummary,
     PetType? petType,
+    String? photoUrl,
+    String? bio,
+    double? weight,
   }) {
     return PetModel(
       id: id ?? this.id,
@@ -121,6 +151,9 @@ class PetModel {
       medicalHistorySummary:
           medicalHistorySummary ?? this.medicalHistorySummary,
       petType: petType ?? this.petType,
+      photoUrl: photoUrl ?? this.photoUrl,
+      bio: bio ?? this.bio,
+      weight: weight ?? this.weight,
     );
   }
 

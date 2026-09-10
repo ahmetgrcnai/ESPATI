@@ -47,7 +47,7 @@ class AcademyGuideModel {
   final String summary;
 
   /// Complete guide content in GitHub-flavoured Markdown.
-  /// Rendered by [flutter_markdown] in [GuideDetailScreen].
+  /// Rendered by [flutter_markdown_plus] in [GuideDetailScreen].
   final String contentMarkdown;
 
   /// Material icon used as the guide's visual identifier.

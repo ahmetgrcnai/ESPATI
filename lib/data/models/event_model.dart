@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// A local community event in Eskişehir.
 class EventModel {
   final String id;
@@ -42,6 +44,39 @@ class EventModel {
       description: json['description'] as String? ?? '',
       isJoined: json['isJoined'] as bool? ?? false,
     );
+  }
+
+  /// Firestore dokümanından [EventModel] oluşturur.
+  ///
+  /// [currentUserUid] varsa, katılımcılar listesinde aranarak [isJoined]
+  /// alanı doğru şekilde set edilir.
+  factory EventModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc, {
+    String? currentUserUid,
+  }) {
+    final data = doc.data() ?? {};
+    final participants = List<String>.from(
+      data['participants'] as List? ?? [],
+    );
+    return EventModel(
+      id: doc.id,
+      title: data['title'] as String? ?? '',
+      locationName: data['locationName'] as String? ?? '',
+      dateTime: _parseTimestamp(data['dateTime']),
+      attendeeCount: data['attendeeCount'] as int? ?? 0,
+      description: data['description'] as String? ?? '',
+      isJoined:
+          currentUserUid != null && participants.contains(currentUserUid),
+    );
+  }
+
+  static DateTime _parseTimestamp(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   Map<String, dynamic> toJson() {

@@ -17,10 +17,10 @@ extension PetCategoryX on PetCategory {
 
   IconData get icon {
     switch (this) {
-      case PetCategory.cat:     return Icons.cruelty_free_rounded;
+      case PetCategory.cat:     return Icons.pets_rounded;
       case PetCategory.dog:     return Icons.pets_rounded;
       case PetCategory.bird:    return Icons.flutter_dash;
-      case PetCategory.rabbit:  return Icons.eco_rounded;
+      case PetCategory.rabbit:  return Icons.cruelty_free_rounded;
       case PetCategory.fish:    return Icons.water_rounded;
       case PetCategory.all:     return Icons.groups_rounded;
     }
@@ -38,7 +38,21 @@ extension PetCategoryX on PetCategory {
   }
 }
 
-/// A community group on the ESPATI platform (e.g. "Kedi Sahipleri").
+/// A community group on the ESPATI platform (e.g. "Kedi Sahipleri") —
+/// [CommunityHubScreen]'s "Topluluk" directory entry, backed by the
+/// `communityGroups` Firestore collection.
+///
+/// [isPinned] is a real, admin-curated flag (a document field anyone with
+/// Firestore write access can set) used to keep a handful of groups
+/// (e.g. "ESPATI Genel") at the top of the list — unrelated to messaging.
+///
+/// Earlier versions of this model also carried `lastMessage`/
+/// `lastActivityLabel`/`unreadCount`, inherited from an old Forum "Gruplar"
+/// sub-tab that had a chat-thread concept behind it. That chat thread never
+/// actually existed (tapping a group only marked it locally read, nothing
+/// was ever sent or persisted) — [GroupDetailScreen] is a content feed, not
+/// a chat, so those fields were dropped rather than migrated to Firestore
+/// as dead weight.
 ///
 /// Immutable. JSON serialization ready for Firestore/REST integration.
 class ChatGroupModel {
@@ -47,9 +61,6 @@ class ChatGroupModel {
   final String description;
   final PetCategory petCategory;
   final int memberCount;
-  final String lastMessage;
-  final String lastActivityLabel; // e.g. "3 dk önce"
-  final int unreadCount;
   final bool isPinned;
 
   const ChatGroupModel({
@@ -58,9 +69,6 @@ class ChatGroupModel {
     required this.description,
     required this.petCategory,
     required this.memberCount,
-    required this.lastMessage,
-    required this.lastActivityLabel,
-    this.unreadCount = 0,
     this.isPinned = false,
   });
 
@@ -74,9 +82,6 @@ class ChatGroupModel {
         orElse: () => PetCategory.all,
       ),
       memberCount: json['memberCount'] as int? ?? 0,
-      lastMessage: json['lastMessage'] as String? ?? '',
-      lastActivityLabel: json['lastActivityLabel'] as String? ?? '',
-      unreadCount: json['unreadCount'] as int? ?? 0,
       isPinned: json['isPinned'] as bool? ?? false,
     );
   }
@@ -87,9 +92,6 @@ class ChatGroupModel {
         'description': description,
         'petCategory': petCategory.name,
         'memberCount': memberCount,
-        'lastMessage': lastMessage,
-        'lastActivityLabel': lastActivityLabel,
-        'unreadCount': unreadCount,
         'isPinned': isPinned,
       };
 
@@ -99,9 +101,6 @@ class ChatGroupModel {
     String? description,
     PetCategory? petCategory,
     int? memberCount,
-    String? lastMessage,
-    String? lastActivityLabel,
-    int? unreadCount,
     bool? isPinned,
   }) {
     return ChatGroupModel(
@@ -110,14 +109,9 @@ class ChatGroupModel {
       description: description ?? this.description,
       petCategory: petCategory ?? this.petCategory,
       memberCount: memberCount ?? this.memberCount,
-      lastMessage: lastMessage ?? this.lastMessage,
-      lastActivityLabel: lastActivityLabel ?? this.lastActivityLabel,
-      unreadCount: unreadCount ?? this.unreadCount,
       isPinned: isPinned ?? this.isPinned,
     );
   }
-
-  bool get hasUnread => unreadCount > 0;
 
   @override
   bool operator ==(Object other) =>

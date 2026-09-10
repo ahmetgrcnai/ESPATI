@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import '../../../core/result.dart';
+import '../../models/comment_model.dart';
 import '../../models/event_model.dart';
 import '../interfaces/i_social_repository.dart';
 
@@ -11,8 +14,17 @@ class MockSocialRepository implements ISocialRepository {
   // In-memory pati (like) counts keyed by postId
   final Map<String, int> _patiSayilari = {};
 
-  // In-memory yorum (comment) counts keyed by postId
-  final Map<String, int> _yorumSayilari = {};
+  // In-memory bookmarked post IDs
+  final Set<String> _bookmarkedPosts = {};
+  final Set<String> _bookmarkedListings = {};
+  final Set<String> _joinedGroups = {};
+
+  // In-memory comments keyed by postId, replayed to new subscribers just
+  // like [MockFormRepository.watchListings] does for listings.
+  final Map<String, List<CommentModel>> _comments = {};
+  final Map<String, StreamController<List<CommentModel>>> _commentControllers =
+      {};
+  int _commentIdSeq = 0;
 
   // In-memory attendee counts keyed by eventId
   final Map<String, int> _attendeeCounts = {
@@ -45,14 +57,49 @@ class MockSocialRepository implements ISocialRepository {
   }
 
   @override
-  Future<Result<int>> addYorum(String postId, String yorum) async {
+  Future<Result<bool>> addYorum(
+    String postId,
+    String yorum, {
+    required String authorName,
+    required String authorPhoto,
+  }) async {
     try {
       await Future.delayed(_delay);
-      _yorumSayilari[postId] = (_yorumSayilari[postId] ?? 0) + 1;
-      return Success(_yorumSayilari[postId]!);
+      final trimmed = yorum.trim();
+      if (trimmed.isEmpty) return const Failure('Yorum boş olamaz.');
+
+      final comment = CommentModel(
+        id: 'comment_${_commentIdSeq++}',
+        authorId: 'mock_user',
+        authorName: authorName,
+        authorPhoto: authorPhoto,
+        text: trimmed,
+        timestamp: DateTime.now(),
+      );
+      final list = _comments.putIfAbsent(postId, () => []);
+      list.add(comment);
+      _commentControllers[postId]?.add(List.unmodifiable(list));
+      return const Success(true);
     } on Exception catch (e) {
       return Failure('Yorum eklenemedi. Lütfen tekrar deneyin.', exception: e);
     }
+  }
+
+  @override
+  Stream<List<CommentModel>> watchComments(String postId) {
+    final controller = _commentControllers.putIfAbsent(
+      postId,
+      () => StreamController<List<CommentModel>>.broadcast(),
+    );
+    // Replay current state to a new subscriber, then forward future updates
+    // — mirrors MockFormRepository.watchListings' "immediate current value,
+    // then live updates" behaviour.
+    Stream<List<CommentModel>> replay() async* {
+      yield List.unmodifiable(_comments[postId] ?? const []);
+      yield* controller.stream;
+    }
+
+    return replay();
   }
 
   @override
@@ -95,6 +142,81 @@ class MockSocialRepository implements ISocialRepository {
       return Failure('Etkinliğe katılınamadı.', exception: e);
     }
   }
+
+  @override
+  Future<Result<bool>> toggleBookmark(String postId) async {
+    try {
+      await Future.delayed(_delay);
+      if (_bookmarkedPosts.contains(postId)) {
+        _bookmarkedPosts.remove(postId);
+        return const Success(false);
+      } else {
+        _bookmarkedPosts.add(postId);
+        return const Success(true);
+      }
+    } on Exception catch (e) {
+      return Failure('Kaydet işlemi başarısız.', exception: e);
+    }
+  }
+
+  @override
+  Future<Result<bool>> toggleListingBookmark(String listingId) async {
+    try {
+      await Future.delayed(_delay);
+      if (_bookmarkedListings.contains(listingId)) {
+        _bookmarkedListings.remove(listingId);
+        return const Success(false);
+      } else {
+        _bookmarkedListings.add(listingId);
+        return const Success(true);
+      }
+    } on Exception catch (e) {
+      return Failure('Kaydet işlemi başarısız.', exception: e);
+    }
+  }
+
+  @override
+  Future<Result<bool>> toggleGroupMembership(String groupId) async {
+    try {
+      await Future.delayed(_delay);
+      if (_joinedGroups.contains(groupId)) {
+        _joinedGroups.remove(groupId);
+        return const Success(false);
+      } else {
+        _joinedGroups.add(groupId);
+        return const Success(true);
+      }
+    } on Exception catch (e) {
+      return Failure('İşlem başarısız.', exception: e);
+    }
+  }
+
+  @override
+  Future<Result<Set<String>>> getFollowingIds() async {
+    await Future.delayed(_delay);
+    return const Success({});
+  }
+
+  @override
+  Future<Result<Set<String>>> getBookmarkedPostIds() async {
+    await Future.delayed(_delay);
+    return Success(Set<String>.from(_bookmarkedPosts));
+  }
+
+  @override
+  Future<Result<Set<String>>> getBookmarkedListingIds() async {
+    await Future.delayed(_delay);
+    return Success(Set<String>.from(_bookmarkedListings));
+  }
+
+  @override
+  Future<Result<Set<String>>> getJoinedGroupIds() async {
+    await Future.delayed(_delay);
+    return Success(Set<String>.from(_joinedGroups));
+  }
+
+  @override
+  Stream<bool> isFollowingStream(String targetUid) => Stream.value(false);
 
   /// Eskişehir seed events.
   static final List<EventModel> _eskisehirEvents = [

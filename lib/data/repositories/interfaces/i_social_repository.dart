@@ -1,4 +1,5 @@
 import '../../../core/result.dart';
+import '../../models/comment_model.dart';
 import '../../models/event_model.dart';
 
 /// Abstract interface for social interaction operations.
@@ -13,8 +14,22 @@ abstract class ISocialRepository {
   /// Removes a "Pati" (like) from a post. Returns the updated pati count.
   Future<Result<int>> patiGeri(String postId);
 
-  /// Adds a "Yorum" (comment) to a post. Returns the updated yorum count.
-  Future<Result<int>> addYorum(String postId, String yorum);
+  /// Adds a "Yorum" (comment) to a post. [authorName]/[authorPhoto] are
+  /// denormalized onto the comment document — see [CommentModel]. Returns
+  /// `true` on success; the real, live comment count is read back via
+  /// [watchComments]/[PostModel.commentsCount], not this return value.
+  Future<Result<bool>> addYorum(
+    String postId,
+    String yorum, {
+    required String authorName,
+    required String authorPhoto,
+  });
+
+  /// Real-time stream of a post's comments, oldest first — backs
+  /// [FeedDetailScreen]'s comment list. A malformed document is skipped
+  /// rather than breaking the whole stream, same convention as
+  /// [IPostRepository.getSocialFeed].
+  Stream<List<CommentModel>> watchComments(String postId);
 
   /// Follows a user. Returns true on success.
   Future<Result<bool>> followUser(String userId);
@@ -27,4 +42,46 @@ abstract class ISocialRepository {
 
   /// Joins an event. Returns updated attendee count.
   Future<Result<int>> joinEvent(String eventId);
+
+  /// Toggles bookmark on a post. Returns the new bookmarked state.
+  Future<Result<bool>> toggleBookmark(String postId);
+
+  /// Toggles "kaydet" (save) on an adoption/lost-pet listing. Same
+  /// sub-collection shape as [toggleBookmark], just a separate collection
+  /// (`savedListings` vs. `bookmarks`) since listings and posts are
+  /// different models with no shared identity space. Returns the new
+  /// saved state.
+  Future<Result<bool>> toggleListingBookmark(String listingId);
+
+  /// Returns the set of user IDs that the current user follows.
+  /// Used to seed [SocialViewModel] on startup.
+  Future<Result<Set<String>>> getFollowingIds();
+
+  /// Returns the set of post IDs bookmarked by the current user.
+  /// Used to seed [SocialViewModel] on startup.
+  Future<Result<Set<String>>> getBookmarkedPostIds();
+
+  /// Returns the set of listing IDs saved by the current user.
+  /// Used to seed [SocialViewModel] on startup.
+  Future<Result<Set<String>>> getBookmarkedListingIds();
+
+  /// Real-time stream — emits true whenever the current user follows [targetUid].
+  ///
+  /// Watches the `users/{me}/following/{targetUid}` document existence so the
+  /// button state stays accurate even when a follow/unfollow originates from
+  /// another device or session.
+  Stream<bool> isFollowingStream(String targetUid);
+
+  /// Toggles the current user's membership in a Topluluk group. Same
+  /// paired-subcollection + transaction shape as [followUser]/[unfollowUser]
+  /// (`communityGroups/{groupId}/members/{uid}` +
+  /// `users/{uid}/joinedGroups/{groupId}`, with `communityGroups/{groupId}
+  /// .memberCount` kept in sync via `FieldValue.increment`), exposed as one
+  /// toggle like [toggleBookmark] rather than two separate methods. Returns
+  /// the new membership state.
+  Future<Result<bool>> toggleGroupMembership(String groupId);
+
+  /// Returns the set of group IDs the current user has joined.
+  /// Used to seed [SocialViewModel] on startup.
+  Future<Result<Set<String>>> getJoinedGroupIds();
 }

@@ -1,18 +1,22 @@
+import 'dart:typed_data';
+
 /// A single chat message used in the AI/Vet chat screen.
 ///
-/// Supports JSON serialization for future API/Firebase integration,
-/// immutable updates via [copyWith], and a safe [empty] factory.
+/// [imageBytes] carries an optional photo for user messages that include
+/// a picked image; null for text-only messages and all AI replies.
 class ChatMessage {
   final String id;
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  final Uint8List? imageBytes;
 
   const ChatMessage({
     required this.id,
     required this.text,
     required this.isUser,
     required this.timestamp,
+    this.imageBytes,
   });
 
   /// Creates an empty placeholder [ChatMessage].
@@ -51,12 +55,14 @@ class ChatMessage {
     String? text,
     bool? isUser,
     DateTime? timestamp,
+    Uint8List? imageBytes,
   }) {
     return ChatMessage(
       id: id ?? this.id,
       text: text ?? this.text,
       isUser: isUser ?? this.isUser,
       timestamp: timestamp ?? this.timestamp,
+      imageBytes: imageBytes ?? this.imageBytes,
     );
   }
 

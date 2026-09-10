@@ -24,6 +24,7 @@ class SampleData {
     {
       'id': 'post_001',
       'username': 'luna_the_golden',
+      'petName': 'Luna',
       'avatar': 'https://placekitten.com/50/50',
       'image': 'https://placekitten.com/600/600',
       'caption': 'Morning walk vibes 🐾☀️ Nothing beats a sunny day at the park!',
@@ -34,6 +35,7 @@ class SampleData {
     {
       'id': 'post_002',
       'username': 'max_adventures',
+      'petName': 'Max',
       'avatar': 'https://placekitten.com/51/51',
       'image': 'https://placekitten.com/601/601',
       'caption': 'Found a new pet-friendly cafe! 🐶☕ The staff even gave Max a treat.',
@@ -44,6 +46,7 @@ class SampleData {
     {
       'id': 'post_003',
       'username': 'bella_whiskers',
+      'petName': 'Bella',
       'avatar': 'https://placekitten.com/52/52',
       'image': 'https://placekitten.com/602/602',
       'caption': 'Lazy Sunday with my best friend 😻 Who else has a cat that loves blankets?',
@@ -54,6 +57,7 @@ class SampleData {
     {
       'id': 'post_004',
       'username': 'charlie_paws',
+      'petName': 'Charlie',
       'avatar': 'https://placekitten.com/53/53',
       'image': 'https://placekitten.com/603/603',
       'caption': 'Training session complete ✅🐕 Charlie learned a new trick today!',

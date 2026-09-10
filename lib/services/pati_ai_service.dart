@@ -97,8 +97,9 @@ class PatiAiService implements IAIService {
   // ── Private helpers ────────────────────────────────────────────────────────
 
   /// POSTs the conversation (and optional image) to `/chat` and parses the
-  /// response. Render's free plan spins down when idle, so a cold start can
-  /// take up to ~50s — the timeout below accounts for that.
+  /// response. Render's free plan spins down when idle — measured cold start
+  /// alone at ~54s, before the actual /chat processing time on top — so the
+  /// timeout below has to clear that, not just normal request latency.
   Future<String> _callChat(
     List<Map<String, String>> turns, {
     String? imageBase64,
@@ -117,7 +118,7 @@ class PatiAiService implements IAIService {
               if (imageBase64 != null) 'image_mime_type': 'image/jpeg',
             }),
           )
-          .timeout(const Duration(seconds: 45));
+          .timeout(const Duration(seconds: 90));
 
       return _parseResponse(response);
     } catch (e) {

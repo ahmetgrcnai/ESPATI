@@ -1,7 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+
 import '../../../core/result.dart';
 import '../../models/listing_model.dart';
 import '../../models/chat_group_model.dart';
-import '../../models/direct_message_model.dart';
 import '../interfaces/i_form_repository.dart';
 
 /// Mock implementation of [IFormRepository].
@@ -12,16 +14,21 @@ import '../interfaces/i_form_repository.dart';
 class MockFormRepository implements IFormRepository {
   static const _delay = Duration(milliseconds: 600);
 
+  // Mutable working copy so createListing() can prepend to it and the
+  // broadcast stream can replay the current state to each new subscriber.
+  final List<ListingModel> _listingsState = List.of(_listings);
+  final _listingsController =
+      StreamController<List<ListingModel>>.broadcast();
+
   // ── Listings ──────────────────────────────────────────────────────────────
 
   @override
-  Future<Result<List<ListingModel>>> getListings() async {
-    try {
-      await Future.delayed(_delay);
-      return Success(_listings);
-    } on Exception catch (e) {
-      return Failure('İlanlar yüklenemedi.', exception: e);
-    }
+  Stream<List<ListingModel>> watchListings() async* {
+    // Replay current state immediately to a new subscriber, then forward
+    // every subsequent update — mirrors a Firestore snapshots() listener's
+    // "immediate current value, then live updates" behaviour.
+    yield List.unmodifiable(_listingsState);
+    yield* _listingsController.stream;
   }
 
   // ── Groups ────────────────────────────────────────────────────────────────
@@ -36,29 +43,85 @@ class MockFormRepository implements IFormRepository {
     }
   }
 
-  // ── Direct Messages ───────────────────────────────────────────────────────
-
-  @override
-  Future<Result<List<DirectMessageModel>>> getDirectMessages() async {
-    try {
-      await Future.delayed(_delay);
-      return Success(_dms);
-    } on Exception catch (e) {
-      return Failure('Mesajlar yüklenemedi.', exception: e);
-    }
-  }
-
   // ── Create Listing ────────────────────────────────────────────────────────
 
   @override
-  Future<Result<void>> createListing(ListingModel listing) async {
+  Future<Result<ListingModel>> createListing(
+    ListingModel listing,
+    List<File> images,
+  ) async {
     try {
-      // Simulates a real network write with 1.5s latency.
+      // Simulates a real network + upload latency.
       await Future.delayed(const Duration(milliseconds: 1500));
-      return const Success(null);
+
+      final created = listing.copyWith(
+        id: 'lst_mock_${DateTime.now().millisecondsSinceEpoch}',
+        imageUrls: images.isEmpty
+            ? const ['https://placekitten.com/400/400']
+            : List.generate(images.length, (_) => 'https://placekitten.com/400/400'),
+      );
+      _listingsState.insert(0, created);
+      _listingsController.add(List.unmodifiable(_listingsState));
+
+      return Success(created);
     } on Exception catch (e) {
       return Failure('İlan kaydedilemedi. Lütfen tekrar deneyin.', exception: e);
     }
+  }
+
+  // ── Discovery / search ───────────────────────────────────────────────────
+
+  @override
+  Future<Result<List<ListingModel>>> searchListings({
+    String? species,
+    String? district,
+    ListingStatus? status,
+    String? keyword,
+  }) async {
+    try {
+      await Future.delayed(_delay);
+
+      final normalizedKeyword = keyword?.trim().toLowerCase();
+      final results = _listingsState.where((listing) {
+        if (species != null && species.isNotEmpty && listing.species != species) {
+          return false;
+        }
+        if (district != null && district.isNotEmpty && listing.location != district) {
+          return false;
+        }
+        if (status != null && listing.status != status) return false;
+        if (normalizedKeyword != null && normalizedKeyword.isNotEmpty) {
+          final haystack = '${listing.name} ${listing.species} ${listing.type} '
+                  '${listing.description} ${listing.location}'
+              .toLowerCase();
+          if (!haystack.contains(normalizedKeyword)) return false;
+        }
+        return true;
+      }).toList();
+
+      return Success(results);
+    } on Exception catch (e) {
+      return Failure('Arama başarısız oldu.', exception: e);
+    }
+  }
+
+  // ── Delete listing ───────────────────────────────────────────────────────
+
+  @override
+  Future<Result<void>> deleteListing(String listingId) async {
+    try {
+      await Future.delayed(_delay);
+      _listingsState.removeWhere((l) => l.id == listingId);
+      _listingsController.add(List.unmodifiable(_listingsState));
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure('İlan silinemedi. Lütfen tekrar deneyin.', exception: e);
+    }
+  }
+
+  /// Call when the repository is no longer needed to release the [StreamController].
+  void dispose() {
+    _listingsController.close();
   }
 }
 
@@ -70,98 +133,114 @@ final List<ListingModel> _listings = [
     id: 'lst_001',
     name: 'Rocky',
     type: 'Golden Retriever',
+    species: 'Köpek',
     status: ListingStatus.kayip,
     location: 'Odunpazarı, Eskişehir',
     date: '15 Mar 2026',
-    imageUrl: 'https://placekitten.com/400/400',
-    contact: '0532 555 01 01',
+    imageUrls: ['https://placekitten.com/400/400'],
     description: '3 yaşında erkek, kırmızı tasmalı. Odunpazarı Tarihi Çarşı çevresinde son görüldü.',
     createdAt: DateTime(2026, 3, 15),
+    latitude: 39.7784,
+    longitude: 30.5195,
   ),
   ListingModel(
     id: 'lst_002',
     name: 'Mimi',
     type: 'Tekir Kedi',
+    species: 'Kedi',
     status: ListingStatus.kayip,
     location: 'Tepebaşı, Eskişehir',
     date: '14 Mar 2026',
-    imageUrl: 'https://placekitten.com/401/401',
-    contact: '0533 555 02 02',
+    imageUrls: ['https://placekitten.com/401/401'],
     description: 'Küçük dişi kedi, gri çizgili. Tepebaşı Belediyesi yakınında son görüldü. Çok ürkek.',
     createdAt: DateTime(2026, 3, 14),
+    latitude: 39.7891,
+    longitude: 30.4886,
   ),
   ListingModel(
     id: 'lst_003',
     name: 'Karamel',
     type: 'Fransız Bulldog',
+    species: 'Köpek',
     status: ListingStatus.kayip,
     location: 'Eskişehir Merkez',
     date: '13 Mar 2026',
-    imageUrl: 'https://placekitten.com/402/402',
-    contact: '0534 555 03 03',
+    imageUrls: ['https://placekitten.com/402/402'],
     description: '2 yaşında erkek, kahverengi-bej renkli. Mavi tasmalı, Gar Meydanı çevresinde kayboldu.',
     createdAt: DateTime(2026, 3, 13),
+    latitude: 39.7740,
+    longitude: 30.5245,
   ),
   ListingModel(
     id: 'lst_004',
     name: 'Snowball',
     type: 'Ankara Kedisi',
+    species: 'Kedi',
     status: ListingStatus.kayip,
     location: 'Bağlar, Eskişehir',
     date: '12 Mar 2026',
-    imageUrl: 'https://placekitten.com/403/403',
-    contact: '0535 555 04 04',
+    imageUrls: ['https://placekitten.com/403/403'],
     description: 'Uzun tüylü, mavi gözlü beyaz kedi. Bağlar Parkı yakınında son görüldü.',
     createdAt: DateTime(2026, 3, 12),
+    latitude: 39.7636,
+    longitude: 30.5374,
   ),
   // ── Sahiplendirme ──
   ListingModel(
     id: 'lst_005',
     name: 'Pamuk',
     type: 'Beyaz Kedi',
+    species: 'Kedi',
     status: ListingStatus.sahiplendirme,
     location: 'Tepebaşı, Eskişehir',
     date: '10 Mar 2026',
-    imageUrl: 'https://placekitten.com/404/404',
-    contact: '0536 555 05 05',
+    imageUrls: ['https://placekitten.com/404/404'],
     description: '1,5 yaşında dişi, tüm aşıları tam. Çok uysal ve sevecen, çocuk evlerine uygun.',
     createdAt: DateTime(2026, 3, 10),
+    latitude: 39.7918,
+    longitude: 30.4841,
   ),
   ListingModel(
     id: 'lst_006',
     name: 'Zeytin',
     type: 'Labrador Mix',
+    species: 'Köpek',
     status: ListingStatus.sahiplendirme,
     location: 'Odunpazarı, Eskişehir',
     date: '9 Mar 2026',
-    imageUrl: 'https://placekitten.com/405/405',
-    contact: '0537 555 06 06',
+    imageUrls: ['https://placekitten.com/405/405'],
     description: '4 aylık yavru, ilk aşıları yapıldı. Enerjik, Sazova Parkı gibi geniş alanı olan evlere uygun.',
     createdAt: DateTime(2026, 3, 9),
+    latitude: 39.7749,
+    longitude: 30.5163,
   ),
   ListingModel(
     id: 'lst_007',
     name: 'Fındık',
     type: 'Sarman Kedi',
+    species: 'Kedi',
     status: ListingStatus.sahiplendirme,
     location: 'Porsuk, Eskişehir',
     date: '8 Mar 2026',
-    imageUrl: 'https://placekitten.com/406/406',
-    contact: '0538 555 07 07',
+    imageUrls: ['https://placekitten.com/406/406'],
     description: '2 yaşında erkek, kısırlaştırıldı. Porsuk kıyısındaki veterinerden sağlık raporu mevcut.',
     createdAt: DateTime(2026, 3, 8),
+    latitude: 39.7748,
+    longitude: 30.5119,
   ),
   ListingModel(
     id: 'lst_008',
     name: 'Boncuk',
     type: 'Hollandalı Tavşan',
+    species: 'Tavşan',
     status: ListingStatus.sahiplendirme,
     location: '71 Evler, Eskişehir',
     date: '7 Mar 2026',
-    imageUrl: 'https://placekitten.com/407/407',
-    contact: '0539 555 08 08',
+    imageUrls: ['https://placekitten.com/407/407'],
     description: '1 yaşında dişi. Kafes, suluk ve mama kabı dahil. Sahibi yurt dışına çıkacağı için sahiplendiriliyor.',
     createdAt: DateTime(2026, 3, 7),
+    latitude: 39.7583,
+    longitude: 30.4746,
   ),
 ];
 
@@ -174,9 +253,6 @@ final List<ChatGroupModel> _groups = [
     description: 'Eskişehir kedi severler buluşma noktası',
     petCategory: PetCategory.cat,
     memberCount: 1247,
-    lastMessage: 'Odunpazarı\'nda iyi kedi veterineri bilen var mı?',
-    lastActivityLabel: '3 dk',
-    unreadCount: 5,
     isPinned: true,
   ),
   ChatGroupModel(
@@ -185,9 +261,6 @@ final List<ChatGroupModel> _groups = [
     description: 'Sazova Parkı buluşmaları ve köpek eğitimi',
     petCategory: PetCategory.dog,
     memberCount: 2341,
-    lastMessage: 'Bu cumartesi Sazova\'da buluşuyoruz, kim gelecek?',
-    lastActivityLabel: '12 dk',
-    unreadCount: 3,
     isPinned: true,
   ),
   ChatGroupModel(
@@ -196,9 +269,6 @@ final List<ChatGroupModel> _groups = [
     description: 'Papağan, muhabbet kuşu ve daha fazlası',
     petCategory: PetCategory.bird,
     memberCount: 456,
-    lastMessage: 'Muhabbet kuşumun tüyleri dökülüyor, öneri?',
-    lastActivityLabel: '1 sa',
-    unreadCount: 0,
   ),
   ChatGroupModel(
     id: 'grp_004',
@@ -206,9 +276,6 @@ final List<ChatGroupModel> _groups = [
     description: 'Tavşan, hamster ve kemirgen sahipleri',
     petCategory: PetCategory.rabbit,
     memberCount: 234,
-    lastMessage: 'Yavru tavşan ilk haftasında ne yemeli?',
-    lastActivityLabel: '2 sa',
-    unreadCount: 1,
   ),
   ChatGroupModel(
     id: 'grp_005',
@@ -216,9 +283,6 @@ final List<ChatGroupModel> _groups = [
     description: 'Akvaryum kurulumu ve egzotik hayvan bakımı',
     petCategory: PetCategory.fish,
     memberCount: 89,
-    lastMessage: 'Eskişehir\'de akvaryum malzemesi nerede bulunur?',
-    lastActivityLabel: '5 sa',
-    unreadCount: 0,
   ),
   ChatGroupModel(
     id: 'grp_006',
@@ -226,70 +290,5 @@ final List<ChatGroupModel> _groups = [
     description: 'Duyurular, etkinlikler ve genel sohbet',
     petCategory: PetCategory.all,
     memberCount: 4891,
-    lastMessage: 'Uygulamaya yeni özellikler eklendi! Kontrol edin.',
-    lastActivityLabel: '1 g',
-    unreadCount: 0,
-  ),
-];
-
-// ── Direct Messages ───────────────────────────────────────────────────────────
-
-final List<DirectMessageModel> _dms = [
-  DirectMessageModel(
-    id: 'dm_001',
-    displayName: 'Dr. Ayşe Kaya',
-    avatarUrl: 'https://placekitten.com/70/70',
-    lastMessage: 'Kontrol randevunuz yarın saat 10:00\'da, lütfen erken gelin.',
-    timeLabel: '2 dk',
-    isOnline: true,
-    unreadCount: 1,
-    isVerified: true,
-  ),
-  DirectMessageModel(
-    id: 'dm_002',
-    displayName: 'Odunpazarı Pet Shop',
-    avatarUrl: 'https://placekitten.com/71/71',
-    lastMessage: 'Siparişiniz hazır, uygun bir zamanda gelip alabilirsiniz.',
-    timeLabel: '15 dk',
-    isOnline: true,
-    unreadCount: 2,
-    isVerified: true,
-  ),
-  DirectMessageModel(
-    id: 'dm_003',
-    displayName: 'Zeynep H.',
-    avatarUrl: 'https://placekitten.com/72/72',
-    lastMessage: 'Rocky\'yi bugün Sazova Parkı girişinde gördüm! Koşuyordu.',
-    timeLabel: '1 sa',
-    isOnline: false,
-    unreadCount: 1,
-  ),
-  DirectMessageModel(
-    id: 'dm_004',
-    displayName: 'Kemal Arslan',
-    avatarUrl: 'https://placekitten.com/73/73',
-    lastMessage: 'O tavşanı hâlâ sahiplendirdiniz mi, sormak istedim.',
-    timeLabel: '3 sa',
-    isOnline: false,
-    unreadCount: 0,
-  ),
-  DirectMessageModel(
-    id: 'dm_005',
-    displayName: 'Merve Çelik',
-    avatarUrl: 'https://placekitten.com/74/74',
-    lastMessage: 'Mama tavsiyesi için teşekkürler, çok işe yaradı 🐾',
-    timeLabel: 'Dün',
-    isOnline: false,
-    unreadCount: 0,
-  ),
-  DirectMessageModel(
-    id: 'dm_006',
-    displayName: 'ESPATI Destek',
-    avatarUrl: 'https://placekitten.com/75/75',
-    lastMessage: 'Hoş geldiniz! Herhangi bir sorunuz olursa buradayız.',
-    timeLabel: '1 g',
-    isOnline: true,
-    unreadCount: 0,
-    isVerified: true,
   ),
 ];

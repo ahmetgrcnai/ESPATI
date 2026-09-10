@@ -9,7 +9,16 @@ import '../data/repositories/interfaces/i_social_repository.dart';
 import '../data/repositories/interfaces/i_form_repository.dart';
 import '../data/repositories/interfaces/i_academy_repository.dart';
 import '../data/repositories/interfaces/i_reminder_repository.dart';
+import '../data/repositories/interfaces/i_chat_repository.dart';
 import '../data/repositories/firebase/firebase_auth_repository.dart';
+import '../data/repositories/firebase/firestore_pet_repository.dart';
+import '../data/repositories/firebase/firestore_post_repository.dart';
+import '../data/repositories/firebase/firestore_map_repository.dart';
+import '../data/repositories/firebase/firestore_social_repository.dart';
+import '../data/repositories/firebase/firestore_user_repository.dart';
+import '../data/repositories/firebase/firestore_form_repository.dart';
+import '../data/repositories/firebase/firestore_reminder_repository.dart';
+import '../data/repositories/firebase/firestore_chat_repository.dart';
 import '../data/repositories/mock/mock_auth_repository.dart';
 import '../data/repositories/mock/mock_post_repository.dart';
 import '../data/repositories/mock/mock_user_repository.dart';
@@ -19,6 +28,7 @@ import '../data/repositories/mock/mock_social_repository.dart';
 import '../data/repositories/mock/mock_form_repository.dart';
 import '../data/repositories/mock/mock_academy_repository.dart';
 import '../data/repositories/mock/mock_reminder_repository.dart';
+import '../data/repositories/mock/mock_chat_repository.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../viewmodels/ai_vet_viewmodel.dart';
@@ -28,14 +38,15 @@ import '../viewmodels/map_viewmodel.dart';
 import '../viewmodels/notification_viewmodel.dart';
 import '../viewmodels/social_viewmodel.dart';
 import '../viewmodels/form_viewmodel.dart';
+import '../viewmodels/chat_viewmodel.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AUTH MODE SWITCH
+// MOD ANAHTARI
 // ─────────────────────────────────────────────────────────────────────────────
-// true  → MockAuthRepository  (offline, test@espati.com / password123)
-// false → FirebaseAuthRepository (real Firebase, requires google-services)
+// true  → Tüm mock repository'ler (offline, test@espati.com / password123)
+// false → Firebase repository'ler (gerçek Firestore + Storage + Auth)
 // ─────────────────────────────────────────────────────────────────────────────
-const bool kUseMock = false; // ← CHANGE THIS ONE LINE TO SWITCH
+const bool kUseMock = false; // ← BU TEK SATIRI DEĞİŞTİR
 
 /// Wraps the given [child] widget with all necessary dependency providers.
 ///
@@ -60,28 +71,42 @@ Widget createProviders({required Widget child}) {
         },
       ),
       Provider<IPostRepository>(
-        create: (_) => MockPostRepository(),
+        create: (_) =>
+            kUseMock ? MockPostRepository() : FirestorePostRepository(),
       ),
       Provider<IUserRepository>(
-        create: (_) => MockUserRepository(),
+        create: (_) =>
+            kUseMock ? MockUserRepository() : FirestoreUserRepository(),
       ),
       Provider<IPetRepository>(
-        create: (_) => MockPetRepository(),
+        create: (_) =>
+            kUseMock ? MockPetRepository() : FirestorePetRepository(),
       ),
       Provider<IMapRepository>(
-        create: (_) => MockMapRepository(),
+        create: (_) =>
+            kUseMock ? MockMapRepository() : FirestoreMapRepository(),
       ),
       Provider<ISocialRepository>(
-        create: (_) => MockSocialRepository(),
+        create: (_) =>
+            kUseMock ? MockSocialRepository() : FirestoreSocialRepository(),
       ),
       Provider<IFormRepository>(
-        create: (_) => MockFormRepository(),
+        create: (_) =>
+            kUseMock ? MockFormRepository() : FirestoreFormRepository(),
+        dispose: (_, repo) {
+          if (repo is MockFormRepository) repo.dispose();
+        },
       ),
       Provider<IAcademyRepository>(
         create: (_) => MockAcademyRepository(),
       ),
       Provider<IReminderRepository>(
-        create: (_) => MockReminderRepository(),
+        create: (_) =>
+            kUseMock ? MockReminderRepository() : FirestoreReminderRepository(),
+      ),
+      Provider<IChatRepository>(
+        create: (_) =>
+            kUseMock ? MockChatRepository() : FirestoreChatRepository(),
       ),
 
       // ── ViewModels ──
@@ -120,18 +145,29 @@ Widget createProviders({required Widget child}) {
       ),
       ChangeNotifierProvider<ProfileViewModel>(
         create: (context) => ProfileViewModel(
+          userRepository: context.read<IUserRepository>(),
           reminderRepository: context.read<IReminderRepository>(),
+          petRepository: context.read<IPetRepository>(),
+          postRepository: context.read<IPostRepository>(),
+        ),
+      ),
+      ChangeNotifierProvider<ChatViewModel>(
+        create: (context) => ChatViewModel(
+          userRepository: context.read<IUserRepository>(),
+          chatRepository: context.read<IChatRepository>(),
         ),
       ),
       ChangeNotifierProxyProvider<NotificationViewModel, SocialViewModel>(
         create: (context) => SocialViewModel(
           context.read<ISocialRepository>(),
+          context.read<IPostRepository>(),
           context.read<NotificationViewModel>(),
         ),
         update: (context, notifVM, previous) =>
             previous ??
             SocialViewModel(
               context.read<ISocialRepository>(),
+              context.read<IPostRepository>(),
               notifVM,
             ),
       ),
