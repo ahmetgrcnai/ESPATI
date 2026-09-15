@@ -4,6 +4,9 @@
 # Environment variables (API keys — NEVER commit!)
 .env
 .env.*
+
+# Claude Code — personal/local agent settings (machine-specific, not shared)
+.claude/settings.local.json
 *.lock
 *.log
 *.pyc
