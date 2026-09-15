@@ -77,6 +77,14 @@ class PostModel {
   /// ulaşamadan istemci tarafında reddeder.
   final bool isApproved;
 
+  /// Bir Topluluk grubu duyurusu — sadece grubun kurucusu veya bir
+  /// yöneticisi bu bayrağı `true` yazabilir (bkz. [CreateTopicScreen]'in
+  /// `canAnnounce` kontrolü ve Firestore güvenlik kurallarındaki
+  /// karşılığı). `groupId` boşsa anlamsızdır. Duyuru gönderileri
+  /// [GroupDetailScreen]'in birleşik akışında en üstte, ayrı bir rozetle
+  /// gösterilir.
+  final bool isAnnouncement;
+
   const PostModel({
     required this.id,
     required this.authorId,
@@ -96,6 +104,7 @@ class PostModel {
     this.isBookmarked = false,
     this.groupId,
     this.isApproved = true,
+    this.isAnnouncement = false,
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -148,6 +157,7 @@ class PostModel {
       commentsCount: data['commentsCount'] as int? ?? 0,
       groupId: data['groupId'] as String?,
       isApproved: data['isApproved'] as bool? ?? true,
+      isAnnouncement: data['isAnnouncement'] as bool? ?? false,
     );
   }
 
@@ -176,6 +186,7 @@ class PostModel {
       commentsCount: json['commentsCount'] as int? ?? 0,
       groupId: json['groupId'] as String?,
       isApproved: json['isApproved'] as bool? ?? true,
+      isAnnouncement: json['isAnnouncement'] as bool? ?? false,
     );
   }
 
@@ -206,6 +217,7 @@ class PostModel {
         'commentsCount': commentsCount,
         'groupId': groupId,
         'isApproved': isApproved,
+        'isAnnouncement': isAnnouncement,
       };
 
   /// REST API için JSON Map döner — timestamp ISO-8601 string olarak yazılır.
@@ -227,6 +239,7 @@ class PostModel {
         'commentsCount': commentsCount,
         'groupId': groupId,
         'isApproved': isApproved,
+        'isAnnouncement': isAnnouncement,
       };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -252,6 +265,7 @@ class PostModel {
     bool? isBookmarked,
     String? groupId,
     bool? isApproved,
+    bool? isAnnouncement,
   }) =>
       PostModel(
         id: id ?? this.id,
@@ -272,6 +286,7 @@ class PostModel {
         isBookmarked: isBookmarked ?? this.isBookmarked,
         groupId: groupId ?? this.groupId,
         isApproved: isApproved ?? this.isApproved,
+        isAnnouncement: isAnnouncement ?? this.isAnnouncement,
       );
 
   // ─────────────────────────────────────────────────────────────────────────

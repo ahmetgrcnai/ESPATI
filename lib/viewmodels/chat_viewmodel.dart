@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../core/result.dart';
 import '../data/models/chat_room_model.dart';
 import '../data/models/user_model.dart';
 import '../data/repositories/interfaces/i_chat_repository.dart';
@@ -43,6 +44,16 @@ class ChatViewModel extends ChangeNotifier {
 
   List<ChatRoomModel> _chatRooms = [];
   List<ChatRoomModel> get chatRooms => List.unmodifiable(_chatRooms);
+
+  /// Rooms that belong in the main Inbox list — everything except a
+  /// still-pending request addressed to the current user.
+  List<ChatRoomModel> get acceptedChatRooms => List.unmodifiable(
+      _chatRooms.where((r) => !r.isPendingFor(_currentUserId)));
+
+  /// Rooms someone else started that the current user hasn't accepted yet —
+  /// "Gelen İstekler".
+  List<ChatRoomModel> get pendingRequests => List.unmodifiable(
+      _chatRooms.where((r) => r.isPendingFor(_currentUserId)));
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -90,5 +101,33 @@ class ChatViewModel extends ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  // ── Message requests — accept / decline ──────────────────────────────────
+
+  /// Accepts a pending request — the live [watchUserChatRooms] stream
+  /// reflects the room moving into [acceptedChatRooms] on its own once the
+  /// write lands, same as every other Firestore-backed mutation in this
+  /// ViewModel.
+  ///
+  /// Returns `true` on success, `false` on failure — callers must check this
+  /// before treating the request as accepted (e.g. before navigating into
+  /// the chat thread), since [ChatRoomModel.acceptedByRecipient] stays
+  /// `false` server-side on failure and the room remains pending.
+  Future<bool> acceptRequest(String roomId) async {
+    final result = await _chatRepo.acceptChatRequest(roomId);
+    if (result is Failure) {
+      debugPrint('[ChatViewModel] acceptRequest failure: ${result.message}');
+      return false;
+    }
+    return true;
+  }
+
+  /// Declines (deletes) a pending request.
+  Future<void> declineRequest(String roomId) async {
+    final result = await _chatRepo.declineChatRequest(roomId);
+    if (result is Failure) {
+      debugPrint('[ChatViewModel] declineRequest failure: ${result.message}');
+    }
   }
 }

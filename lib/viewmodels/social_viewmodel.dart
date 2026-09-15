@@ -479,7 +479,14 @@ class SocialViewModel extends ChangeNotifier {
   /// Toggles membership on [groupId] optimistically, confirmed by the
   /// repository — same shape as [toggleBookmark]. Guarded by
   /// [_inFlightGroupMembership] against rapid double-taps.
-  Future<void> toggleGroupMembership(String groupId) async {
+  ///
+  /// [memberName]/[memberPhoto] are only used on join (denormalized onto
+  /// the new `members/{uid}` doc) — see [ISocialRepository.toggleGroupMembership].
+  Future<void> toggleGroupMembership(
+    String groupId, {
+    required String memberName,
+    required String memberPhoto,
+  }) async {
     if (_inFlightGroupMembership.contains(groupId)) return;
 
     final wasMember = _joinedGroupIds.contains(groupId);
@@ -493,7 +500,11 @@ class SocialViewModel extends ChangeNotifier {
     }
     notifyListeners();
 
-    final result = await _socialRepository.toggleGroupMembership(groupId);
+    final result = await _socialRepository.toggleGroupMembership(
+      groupId,
+      memberName: memberName,
+      memberPhoto: memberPhoto,
+    );
     _inFlightGroupMembership.remove(groupId);
 
     switch (result) {

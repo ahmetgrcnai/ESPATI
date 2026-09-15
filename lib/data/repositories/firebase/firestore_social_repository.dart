@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/result.dart';
 import '../../models/comment_model.dart';
 import '../../models/event_model.dart';
+import '../../models/group_member_model.dart';
+import '../../models/notification_model.dart';
 import '../interfaces/i_social_repository.dart';
 
 /// [ISocialRepository]'nin Firestore implementasyonu.
@@ -432,11 +434,17 @@ class FirestoreSocialRepository implements ISocialRepository {
   /// eşleştirilmiş-alt-koleksiyon + transaction şekli, [toggleBookmark]'ın
   /// tek-metotlu "toggle" kolaylığıyla:
   ///   • `communityGroups/{groupId}/members/{uid}` → üyeliğin kendisi
+  ///     (join anında [memberName]/[memberPhoto] denormalize edilir,
+  ///     role='member' — owner rolü sadece grup oluşturulurken verilir)
   ///   • `users/{uid}/joinedGroups/{groupId}` → "gruplarım" için ayna
   ///   • `communityGroups/{groupId}.memberCount` → `FieldValue.increment`
   /// Üçü de tek bir transaction içinde, ya hepsi ya hiçbiri.
   @override
-  Future<Result<bool>> toggleGroupMembership(String groupId) async {
+  Future<Result<bool>> toggleGroupMembership(
+    String groupId, {
+    required String memberName,
+    required String memberPhoto,
+  }) async {
     try {
       final uid = _uid;
       if (uid == null) return const Failure('Giriş yapmanız gerekiyor.');
@@ -463,7 +471,12 @@ class FirestoreSocialRepository implements ISocialRepository {
           return false;
         } else {
           final joinedAt = {'joinedAt': FieldValue.serverTimestamp()};
-          tx.set(memberRef, joinedAt);
+          tx.set(memberRef, {
+            ...joinedAt,
+            'role': 'member',
+            'name': memberName,
+            'photoUrl': memberPhoto,
+          });
           tx.set(joinedRef, joinedAt);
           tx.set(groupRef, {'memberCount': FieldValue.increment(1)},
               SetOptions(merge: true));
@@ -476,6 +489,137 @@ class FirestoreSocialRepository implements ISocialRepository {
       return Failure(_mapError(e), exception: e);
     } on Exception catch (e) {
       return Failure('İşlem başarısız.', exception: e);
+    }
+  }
+
+  /// [groupId]'in üye listesini gerçek zamanlı izler — kurucu en üstte,
+  /// sonra katılım tarihine göre. Bozuk bir doküman atlanır (feed
+  /// stream'lerindeki savunmacı desenle aynı).
+  @override
+  Stream<List<GroupMemberModel>> watchGroupMembers(String groupId) {
+    return _firestore
+        .collection(_kCommunityGroups)
+        .doc(groupId)
+        .collection('members')
+        .orderBy('joinedAt')
+        .snapshots()
+        .map((snap) {
+      final members = <GroupMemberModel>[];
+      for (final doc in snap.docs) {
+        try {
+          members.add(GroupMemberModel.fromFirestore(doc));
+        } catch (_) {
+          // Skip a malformed member document rather than breaking the list.
+        }
+      }
+      members.sort((a, b) {
+        if (a.role == GroupMemberRole.owner) return -1;
+        if (b.role == GroupMemberRole.owner) return 1;
+        return a.joinedAt.compareTo(b.joinedAt);
+      });
+      return members;
+    });
+  }
+
+  /// [targetUid]'i [groupId]'den atar: `members/{targetUid}` dokümanı,
+  /// `users/{targetUid}/joinedGroups/{groupId}` aynası siliniyor,
+  /// `memberCount` düşürülüyor ve [targetUid]'e gerçek, cross-user bir
+  /// [NotificationType.groupKick] bildirimi yazılıyor (bkz.
+  /// [watchMyNotifications]) — dördü de tek bir batch'te. Kimin bu metodu
+  /// çağırabileceği (grup kurucusu veya bir yönetici) güvenlik kurallarında
+  /// zorunlu kılınır, burada değil.
+  @override
+  Future<Result<bool>> kickGroupMember(
+    String groupId,
+    String targetUid, {
+    required String groupName,
+  }) async {
+    try {
+      final memberRef = _firestore
+          .collection(_kCommunityGroups)
+          .doc(groupId)
+          .collection('members')
+          .doc(targetUid);
+      final joinedRef = _firestore
+          .collection(_kUsers)
+          .doc(targetUid)
+          .collection('joinedGroups')
+          .doc(groupId);
+      final groupRef = _firestore.collection(_kCommunityGroups).doc(groupId);
+      final notifRef = _firestore
+          .collection(_kUsers)
+          .doc(targetUid)
+          .collection('notifications')
+          .doc();
+
+      final batch = _firestore.batch()
+        ..delete(memberRef)
+        ..delete(joinedRef)
+        ..set(groupRef, {'memberCount': FieldValue.increment(-1)},
+            SetOptions(merge: true))
+        ..set(notifRef, {
+          'type': 'groupKick',
+          'title': 'Gruptan Çıkarıldın',
+          'message': '"$groupName" grubundan çıkarıldın.',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+      await batch.commit();
+
+      return const Success(true);
+    } on FirebaseException catch (e) {
+      return Failure(_mapError(e), exception: e);
+    } on Exception catch (e) {
+      return Failure('Üye çıkarılamadı.', exception: e);
+    }
+  }
+
+  /// Mevcut kullanıcının `users/{uid}/notifications` alt-koleksiyonunu
+  /// gerçek zamanlı izler, en yeni en üstte. Bozuk bir doküman atlanır.
+  @override
+  Stream<List<NotificationModel>> watchMyNotifications() {
+    final uid = _uid;
+    if (uid == null) return Stream.value(const []);
+    return _firestore
+        .collection(_kUsers)
+        .doc(uid)
+        .collection('notifications')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snap) {
+      final notifications = <NotificationModel>[];
+      for (final doc in snap.docs) {
+        try {
+          notifications.add(NotificationModel.fromFirestore(doc));
+        } catch (_) {
+          // Skip a malformed notification rather than breaking the list.
+        }
+      }
+      return notifications;
+    });
+  }
+
+  /// [targetUid]'e [groupId] içinde [GroupMemberRole.moderator] rolü verir
+  /// veya alır. Sadece grubun kurucusu çağırabilir (güvenlik kuralları).
+  @override
+  Future<Result<bool>> setGroupModerator(
+    String groupId,
+    String targetUid,
+    bool isModerator,
+  ) async {
+    try {
+      await _firestore
+          .collection(_kCommunityGroups)
+          .doc(groupId)
+          .collection('members')
+          .doc(targetUid)
+          .set({'role': isModerator ? 'moderator' : 'member'},
+              SetOptions(merge: true));
+      return const Success(true);
+    } on FirebaseException catch (e) {
+      return Failure(_mapError(e), exception: e);
+    } on Exception catch (e) {
+      return Failure('Yetki güncellenemedi.', exception: e);
     }
   }
 

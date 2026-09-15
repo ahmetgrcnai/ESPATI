@@ -47,7 +47,11 @@ class CreatePostScreen extends StatefulWidget {
   /// swipe the Explore feed's PageView back to its feed page in one go.
   final VoidCallback? onPosted;
 
-  const CreatePostScreen({super.key, this.initialImagePath, this.onPosted});
+  const CreatePostScreen({
+    super.key,
+    this.initialImagePath,
+    this.onPosted,
+  });
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -223,18 +227,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     final vm = _vm;
     if (vm == null) return;
 
-    if (vm.selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        _snackBar('Lütfen bir fotoğraf seçin.', isError: true),
-      );
-      return;
-    }
-    if (vm.selectedPet == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        _snackBar('Lütfen gönderideki patiyi seçin.', isError: true),
-      );
-      return;
-    }
+    // Photo and pet are both optional — this also powers text-only
+    // "sohbet başlat" discussion posts inside a Topluluk group.
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     HapticFeedback.mediumImpact();
@@ -282,7 +276,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  const _SectionLabel(text: 'Gönderideki pati *'),
+                  const _SectionLabel(text: 'Gönderideki pati (isteğe bağlı)'),
                   const SizedBox(height: 8),
                   _HorizontalPetSelector(
                     pets: vm.pets,
@@ -539,7 +533,7 @@ class _ImagePicker extends StatelessWidget {
                       size: 44, color: Colors.black),
                   const SizedBox(height: 8),
                   Text(
-                    'Fotoğraf ekle',
+                    'Fotoğraf ekle (isteğe bağlı)',
                     style: GoogleFonts.baloo2(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -629,7 +623,7 @@ class _HorizontalPetSelector extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Önce profilinden bir pati ekle; ardından gönderi paylaşabilirsin.',
+                'Profilinden bir pati eklersen gönderine etiketleyebilirsin (isteğe bağlı).',
                 style: GoogleFonts.nunitoSans(
                   fontSize: 13,
                   color: Colors.black.withValues(alpha: 0.75),

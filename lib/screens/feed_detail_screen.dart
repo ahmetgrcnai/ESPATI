@@ -139,6 +139,8 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
       otherUserId: listing.authorId,
       otherUserName: listing.authorName.isNotEmpty ? listing.authorName : 'Pati Dostu',
       otherUserPhoto: listing.authorPhoto,
+      // Listing inquiry — contextually known, skips the request queue.
+      autoAccept: true,
     );
 
     if (!mounted) return;
@@ -261,14 +263,19 @@ class _FeedDetailScreenState extends State<FeedDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _HeroImage(
-                      isAd: widget.isAd,
-                      imageUrl: widget.isAd ? null : widget.post!.imageUrl,
-                      imageUrls: widget.isAd ? widget.listing!.imageUrls : null,
-                      statusLabel: widget.isAd ? widget.listing!.status.label.toUpperCase() : null,
-                      statusColor:
-                          widget.isAd ? widget.listing!.status.accentColor : null,
-                    ),
+                    // Text-only posts (empty imageUrl, non-ad) render no hero
+                    // block at all — a Reddit/Facebook-style text post,
+                    // rather than a large placeholder icon with nothing to
+                    // show.
+                    if (widget.isAd || widget.post!.imageUrl.isNotEmpty)
+                      _HeroImage(
+                        isAd: widget.isAd,
+                        imageUrl: widget.isAd ? null : widget.post!.imageUrl,
+                        imageUrls: widget.isAd ? widget.listing!.imageUrls : null,
+                        statusLabel: widget.isAd ? widget.listing!.status.label.toUpperCase() : null,
+                        statusColor:
+                            widget.isAd ? widget.listing!.status.accentColor : null,
+                      ),
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(

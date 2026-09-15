@@ -1,9 +1,19 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Type of notification in the ESPATI app.
 enum NotificationType {
   like,
   comment,
   event,
-  system;
+  system,
+
+  /// A real, cross-user Firestore-backed notification — unlike every other
+  /// value here, which [NotificationViewModel] only ever creates locally
+  /// for the current user's own actions. Written by
+  /// [ISocialRepository.kickGroupMember] into the *kicked* user's own
+  /// `users/{uid}/notifications` subcollection, and streamed back in via
+  /// [ISocialRepository.watchMyNotifications].
+  groupKick;
 
   String get label {
     switch (this) {
@@ -15,6 +25,8 @@ enum NotificationType {
         return 'Event';
       case NotificationType.system:
         return 'System';
+      case NotificationType.groupKick:
+        return 'Gruptan Çıkarıldın';
     }
   }
 
@@ -65,6 +77,25 @@ class NotificationModel {
               DateTime.fromMillisecondsSinceEpoch(0)
           : DateTime.fromMillisecondsSinceEpoch(0),
       isRead: json['isRead'] as bool? ?? false,
+    );
+  }
+
+  /// Builds from a `users/{uid}/notifications/{id}` document — see
+  /// [ISocialRepository.watchMyNotifications]. The only real Firestore
+  /// source this model has; everything else in the app is constructed
+  /// locally by [NotificationViewModel].
+  factory NotificationModel.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data() ?? const {};
+    final timestamp = data['timestamp'];
+    return NotificationModel(
+      id: doc.id,
+      type: NotificationType.fromString(data['type'] as String? ?? ''),
+      title: data['title'] as String? ?? '',
+      message: data['message'] as String? ?? '',
+      timestamp: timestamp is Timestamp ? timestamp.toDate() : DateTime.now(),
+      isRead: data['isRead'] as bool? ?? false,
     );
   }
 

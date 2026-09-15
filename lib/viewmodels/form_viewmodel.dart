@@ -289,4 +289,85 @@ class FormViewModel extends ChangeNotifier {
     _submitError = null;
     notifyListeners();
   }
+
+  // ── Group Creation ────────────────────────────────────────────────────────
+
+  bool _isCreatingGroup = false;
+  bool get isCreatingGroup => _isCreatingGroup;
+
+  String? _createGroupError;
+  String? get createGroupError => _createGroupError;
+
+  /// Creates a new community group — the creator is auto-joined as owner
+  /// in the same repository call (see [IFormRepository.createGroup]), so
+  /// there's no separate membership step here. On success, prepends the
+  /// group to [_chatGroups] immediately — same "don't wait for a full
+  /// reload" pattern as [adjustGroupMemberCount], since [loadAll] is a
+  /// one-time fetch, not a live listener. Returns the new group on success
+  /// so the caller (the Grup Oluştur screen) can navigate straight into
+  /// [GroupDetailScreen].
+  Future<ChatGroupModel?> createGroup({
+    required String name,
+    required String description,
+    required PetCategory petCategory,
+    String? customCategory,
+    required String creatorName,
+    required String creatorPhoto,
+    File? coverImage,
+    List<String> bannedWords = const [],
+  }) async {
+    if (_isCreatingGroup) return null;
+
+    _isCreatingGroup = true;
+    _createGroupError = null;
+    notifyListeners();
+
+    final result = await _repository.createGroup(
+      name: name,
+      description: description,
+      petCategory: petCategory,
+      customCategory: customCategory,
+      creatorName: creatorName,
+      creatorPhoto: creatorPhoto,
+      coverImage: coverImage,
+      bannedWords: bannedWords,
+    );
+
+    switch (result) {
+      case Success(:final data):
+        _chatGroups = [data, ..._chatGroups];
+        _isCreatingGroup = false;
+        notifyListeners();
+        return data;
+      case Failure(:final message):
+        _createGroupError = message;
+        _isCreatingGroup = false;
+        notifyListeners();
+        return null;
+    }
+  }
+
+  void clearCreateGroupError() {
+    if (_createGroupError == null) return;
+    _createGroupError = null;
+    notifyListeners();
+  }
+
+  /// Deletes [groupId] (owner-only — enforced by Firestore rules, not
+  /// here) and drops it from [_chatGroups] immediately on success, same
+  /// "don't wait for a reload" reasoning as [createGroup]. Returns `true`
+  /// on success.
+  Future<bool> deleteGroup(String groupId) async {
+    final result = await _repository.deleteGroup(groupId);
+    switch (result) {
+      case Success():
+        _chatGroups = _chatGroups.where((g) => g.id != groupId).toList();
+        notifyListeners();
+        return true;
+      case Failure(:final message):
+        _createGroupError = message;
+        notifyListeners();
+        return false;
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import '../../../core/result.dart';
 import '../../models/comment_model.dart';
 import '../../models/event_model.dart';
+import '../../models/group_member_model.dart';
+import '../../models/notification_model.dart';
 
 /// Abstract interface for social interaction operations.
 ///
@@ -77,11 +79,59 @@ abstract class ISocialRepository {
   /// (`communityGroups/{groupId}/members/{uid}` +
   /// `users/{uid}/joinedGroups/{groupId}`, with `communityGroups/{groupId}
   /// .memberCount` kept in sync via `FieldValue.increment`), exposed as one
-  /// toggle like [toggleBookmark] rather than two separate methods. Returns
-  /// the new membership state.
-  Future<Result<bool>> toggleGroupMembership(String groupId);
+  /// toggle like [toggleBookmark] rather than two separate methods.
+  ///
+  /// [memberName]/[memberPhoto] are denormalized onto the new
+  /// `members/{uid}` document on join (unused on leave) — see
+  /// [GroupMemberModel]. Joining always sets [GroupMemberRole.member]; the
+  /// owner role is only ever granted once, at group creation
+  /// ([IFormRepository.createGroup]).
+  ///
+  /// Returns the new membership state.
+  Future<Result<bool>> toggleGroupMembership(
+    String groupId, {
+    required String memberName,
+    required String memberPhoto,
+  });
 
   /// Returns the set of group IDs the current user has joined.
   /// Used to seed [SocialViewModel] on startup.
   Future<Result<Set<String>>> getJoinedGroupIds();
+
+  /// Real-time stream of [groupId]'s member list, ordered owner-first then
+  /// by [GroupMemberModel.joinedAt] — backs [GroupMembersScreen].
+  Stream<List<GroupMemberModel>> watchGroupMembers(String groupId);
+
+  /// Removes [targetUid] from [groupId]: deletes their `members/{uid}` doc,
+  /// the `users/{targetUid}/joinedGroups/{groupId}` mirror, decrements
+  /// `memberCount`, and writes a [NotificationType.groupKick] document to
+  /// `users/{targetUid}/notifications/{id}` (naming [groupName] — the
+  /// only real, cross-user notification this app writes; see
+  /// [watchMyNotifications]) — all in one atomic batch. Enforcement of
+  /// *who* may call this (the group's owner or a moderator, never a plain
+  /// member on anyone but themselves) lives in Firestore security rules,
+  /// not here.
+  Future<Result<bool>> kickGroupMember(
+    String groupId,
+    String targetUid, {
+    required String groupName,
+  });
+
+  /// Real-time stream of the current user's own `notifications`
+  /// subcollection, newest first — today this only ever contains
+  /// [NotificationType.groupKick] entries (see [kickGroupMember]); every
+  /// other [NotificationModel] in the app is created locally by
+  /// [NotificationViewModel] for the user's own actions, never through
+  /// this stream. Emits an empty list when signed out.
+  Stream<List<NotificationModel>> watchMyNotifications();
+
+  /// Grants or revokes [GroupMemberRole.moderator] on [targetUid] within
+  /// [groupId]. Owner-only (enforced by security rules) — a moderator
+  /// cannot promote another member, and the owner's own role can never be
+  /// changed this way.
+  Future<Result<bool>> setGroupModerator(
+    String groupId,
+    String targetUid,
+    bool isModerator,
+  );
 }

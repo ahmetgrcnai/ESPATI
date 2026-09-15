@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import '../../viewmodels/search_viewmodel.dart';
 import '../../widgets/common/neo_brutalist_button.dart';
 import '../../widgets/upcoming_reminders_banner.dart';
 import '../search/search_screen.dart';
+import 'create_group_screen.dart';
 import 'group_detail_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,6 +71,24 @@ class CommunityHubScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          NeoBrutalistButton(
+            semanticLabel: 'Grup Oluştur',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: EspatiColors.mintGreen,
+                borderRadius: BorderRadius.zero,
+                border: NeoBrutal.border(2),
+                boxShadow: NeoBrutal.shadow(const Offset(2, 2)),
+              ),
+              child: const Icon(Icons.add_rounded,
+                  color: Colors.black, size: 20),
+            ),
+          ),
+          const SizedBox(width: 8),
           NeoBrutalistButton(
             semanticLabel: 'Kullanıcı Ara',
             onPressed: () {
@@ -185,12 +205,22 @@ class _CommunityGroupCard extends StatelessWidget {
               width: 52,
               height: 52,
               alignment: Alignment.center,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: cat.accentColor,
                 borderRadius: BorderRadius.zero,
                 border: NeoBrutal.border(2),
               ),
-              child: Icon(cat.icon, color: Colors.black, size: 26),
+              child: group.coverImageUrl.isEmpty
+                  ? Icon(cat.icon, color: Colors.black, size: 26)
+                  : CachedNetworkImage(
+                      imageUrl: group.coverImageUrl,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Icon(cat.icon, color: Colors.black, size: 26),
+                      errorWidget: (_, __, ___) => Icon(cat.icon, color: Colors.black, size: 26),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -219,6 +249,20 @@ class _CommunityGroupCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 3),
+                  if (group.customCategory != null &&
+                      group.customCategory!.isNotEmpty) ...[
+                    Text(
+                      '#${group.customCategory}',
+                      style: GoogleFonts.nunitoSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: EspatiColors.sageGreen,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                  ],
                   Text(
                     group.description,
                     style: GoogleFonts.nunitoSans(

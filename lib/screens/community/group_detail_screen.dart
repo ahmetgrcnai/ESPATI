@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,13 +8,21 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/chat_group_model.dart';
+import '../../data/models/group_member_model.dart';
 import '../../data/models/listing_model.dart';
 import '../../data/models/post_model.dart';
+import '../../data/repositories/interfaces/i_pet_repository.dart';
+import '../../data/repositories/interfaces/i_post_repository.dart';
+import '../../data/repositories/interfaces/i_social_repository.dart';
 import '../../services/interaction_tracking_service.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/create_post_viewmodel.dart';
 import '../../viewmodels/form_viewmodel.dart';
 import '../../viewmodels/social_viewmodel.dart';
 import '../../widgets/common/neo_brutalist_button.dart';
 import '../feed_detail_screen.dart';
+import 'create_topic_screen.dart';
+import 'group_members_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GROUP DETAIL SCREEN — Sub-Reddit-style mixed feed for one community group
@@ -79,12 +88,22 @@ class GroupDetailScreen extends StatelessWidget {
               width: 34,
               height: 34,
               alignment: Alignment.center,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: cat.accentColor,
                 borderRadius: BorderRadius.zero,
                 border: NeoBrutal.border(2),
               ),
-              child: Icon(cat.icon, color: Colors.black, size: 18),
+              child: group.coverImageUrl.isEmpty
+                  ? Icon(cat.icon, color: Colors.black, size: 18)
+                  : CachedNetworkImage(
+                      imageUrl: group.coverImageUrl,
+                      width: 34,
+                      height: 34,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Icon(cat.icon, color: Colors.black, size: 18),
+                      errorWidget: (_, __, ___) => Icon(cat.icon, color: Colors.black, size: 18),
+                    ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -125,18 +144,93 @@ class GroupDetailScreen extends StatelessWidget {
           );
         },
       ),
+      floatingActionButton: NeoBrutalistButton(
+        semanticLabel: 'Konu Aç',
+        onPressed: () => _openCreateTopic(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: EspatiColors.mintGreen,
+            borderRadius: BorderRadius.zero,
+            border: NeoBrutal.border(2),
+            boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.forum_rounded, size: 18, color: Colors.black),
+              const SizedBox(width: 8),
+              Text(
+                'Konu Aç',
+                style: GoogleFonts.baloo2(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Screen-scoped CreatePostViewModel, pre-seeded with this group's id — the
+  // group is fixed (the user is already inside it, so there's nothing to
+  // pick) and passed straight to the ViewModel; [CreateTopicScreen] never
+  // shows a group selector.
+  //
+  // [CreateTopicScreen.canAnnounce] needs the *current* user's role in
+  // *this* group, which isn't cached anywhere on this screen — a one-shot
+  // read of [ISocialRepository.watchGroupMembers]' first snapshot answers
+  // that without standing up a whole extra stream subscription just for
+  // this one button press.
+  Future<void> _openCreateTopic(BuildContext context) async {
+    final postRepo = context.read<IPostRepository>();
+    final petRepo = context.read<IPetRepository>();
+    final socialRepo = context.read<ISocialRepository>();
+    final user = context.read<AuthViewModel>().currentUser;
+
+    final members = await socialRepo.watchGroupMembers(group.id).first;
+    final myRole = members
+        .where((m) => m.uid == user?.id)
+        .map((m) => m.role)
+        .firstOrNull;
+    final canAnnounce = myRole == GroupMemberRole.owner ||
+        myRole == GroupMemberRole.moderator;
+
+    if (!context.mounted) return;
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider<CreatePostViewModel>(
+          create: (_) => CreatePostViewModel(
+            postRepository: postRepo,
+            petRepository: petRepo,
+            currentUser: user,
+            initialGroupId: group.id,
+            groupBannedWords: group.bannedWords,
+          ),
+          child: CreateTopicScreen(canAnnounce: canAnnounce),
+        ),
+      ),
     );
   }
 
   /// Interleaves this group's listings + posts by recency, excluding
   /// anything a moderation pass has flagged (Madde 8 safety mandate —
   /// isApproved defaults to true, so legacy records are unaffected).
+  /// Announcement posts ([PostModel.isAnnouncement]) always float above
+  /// everything else, most recent first among themselves.
   List<Object> _mergedFeed(List<ListingModel> listings, List<PostModel> posts) {
     final items = <Object>[
       ...listings.where((l) => l.isApproved && l.groupId == group.id),
       ...posts.where((p) => p.isApproved && p.groupId == group.id),
     ];
     items.sort((a, b) {
+      final aPinned = a is PostModel && a.isAnnouncement;
+      final bPinned = b is PostModel && b.isAnnouncement;
+      if (aPinned != bPinned) return aPinned ? -1 : 1;
       final aDate = a is ListingModel ? a.createdAt : (a as PostModel).timestamp;
       final bDate = b is ListingModel ? b.createdAt : (b as PostModel).timestamp;
       return bDate.compareTo(aDate);
@@ -163,10 +257,21 @@ class _GroupInfoBanner extends StatelessWidget {
 
   void _toggleMembership(BuildContext context, bool wasMember) {
     HapticFeedback.selectionClick();
-    context.read<SocialViewModel>().toggleGroupMembership(group.id);
+    final me = context.read<AuthViewModel>().currentUser;
+    context.read<SocialViewModel>().toggleGroupMembership(
+          group.id,
+          memberName: me == null || me.name.isEmpty ? (me?.email ?? '') : me.name,
+          memberPhoto: me?.profilePicture ?? '',
+        );
     context
         .read<FormViewModel>()
         .adjustGroupMemberCount(group.id, wasMember ? -1 : 1);
+  }
+
+  void _openMembers(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => GroupMembersScreen(group: group)),
+    );
   }
 
   @override
@@ -182,6 +287,26 @@ class _GroupInfoBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (group.customCategory != null &&
+              group.customCategory!.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: EspatiColors.sageGreen.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.zero,
+                border: Border.all(color: Colors.black, width: 1.5),
+              ),
+              child: Text(
+                '#${group.customCategory}',
+                style: GoogleFonts.nunitoSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           Text(
             group.description,
             style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.black),
@@ -189,13 +314,24 @@ class _GroupInfoBanner extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              Icon(Icons.people_alt_rounded,
-                  size: 13, color: Colors.black.withValues(alpha: 0.5)),
-              const SizedBox(width: 4),
-              Text(
-                '${group.memberCount} üye',
-                style: GoogleFonts.nunitoSans(
-                    fontSize: 11, color: Colors.black.withValues(alpha: 0.5)),
+              GestureDetector(
+                onTap: () => _openMembers(context),
+                child: Row(
+                  children: [
+                    Icon(Icons.people_alt_rounded,
+                        size: 13, color: Colors.black.withValues(alpha: 0.5)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${group.memberCount} üye',
+                      style: GoogleFonts.nunitoSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black.withValues(alpha: 0.7),
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const Spacer(),
               Selector<SocialViewModel, bool>(
@@ -392,40 +528,64 @@ class _CommunityPostCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: post.isAnnouncement ? EspatiColors.peach.withValues(alpha: 0.25) : Colors.white,
           borderRadius: BorderRadius.zero,
-          border: NeoBrutal.border(2),
+          border: NeoBrutal.border(post.isAnnouncement ? 2.5 : 2),
           boxShadow: NeoBrutal.shadow(const Offset(3, 3)),
         ),
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRect(
-              child: CachedNetworkImage(
-                imageUrl: post.imageUrl,
-                width: 66,
-                height: 66,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+            // Text-only posts (empty imageUrl) skip the thumbnail entirely
+            // rather than showing a generic paw-icon placeholder for
+            // content that never had an image.
+            if (post.imageUrl.isNotEmpty) ...[
+              ClipRect(
+                child: CachedNetworkImage(
+                  imageUrl: post.imageUrl,
                   width: 66,
                   height: 66,
-                  color: NeoBrutal.inactiveFill,
-                  child: const Icon(Icons.pets, size: 24, color: Colors.black),
-                ),
-                errorWidget: (_, __, ___) => Container(
-                  width: 66,
-                  height: 66,
-                  color: NeoBrutal.inactiveFill,
-                  child: const Icon(Icons.pets, size: 24, color: Colors.black),
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    width: 66,
+                    height: 66,
+                    color: NeoBrutal.inactiveFill,
+                    child: const Icon(Icons.pets, size: 24, color: Colors.black),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    width: 66,
+                    height: 66,
+                    color: NeoBrutal.inactiveFill,
+                    child: const Icon(Icons.pets, size: 24, color: Colors.black),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (post.isAnnouncement) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.push_pin_rounded,
+                            size: 13, color: Colors.black),
+                        const SizedBox(width: 3),
+                        Text(
+                          'DUYURU',
+                          style: GoogleFonts.baloo2(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                  ],
                   Row(
                     children: [
                       Expanded(

@@ -91,6 +91,125 @@ class FirestoreFormRepository implements IFormRepository {
     }
   }
 
+  /// Creates a new `communityGroups` document with a collision-safe
+  /// auto-generated ID (same `.doc()` pattern as [createListing]), and in
+  /// the same batch joins the creator to it as [GroupMemberRole.owner] —
+  /// [ChatGroupModel.memberCount] starts at 1, not 0. Three writes, one
+  /// batch, all-or-nothing:
+  ///   • `communityGroups/{id}`                — the group document
+  ///   • `communityGroups/{id}/members/{uid}`   — owner's membership
+  ///   • `users/{uid}/joinedGroups/{id}`        — "gruplarım" mirror
+  @override
+  Future<Result<ChatGroupModel>> createGroup({
+    required String name,
+    required String description,
+    required PetCategory petCategory,
+    String? customCategory,
+    required String creatorName,
+    required String creatorPhoto,
+    File? coverImage,
+    List<String> bannedWords = const [],
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return const Failure('Grup oluşturmak için giriş yapmanız gerekiyor.');
+      }
+
+      final docRef = _firestore.collection(_kCommunityGroups).doc();
+
+      // Cover photo (if any) is uploaded *before* the batch — Storage
+      // writes can't be part of a Firestore batch/transaction — so the
+      // group document is written with its final download URL in one go,
+      // never a placeholder that needs a follow-up patch.
+      String coverImageUrl = '';
+      if (coverImage != null) {
+        final ref = _storage
+            .ref()
+            .child(_kCommunityGroups)
+            .child(docRef.id)
+            .child('cover.jpg');
+        await ref.putFile(coverImage).timeout(const Duration(seconds: 30));
+        coverImageUrl = await ref.getDownloadURL();
+      }
+
+      final group = ChatGroupModel(
+        id: docRef.id,
+        name: name.trim(),
+        description: description.trim(),
+        petCategory: petCategory,
+        memberCount: 1,
+        isPinned: false,
+        creatorId: user.uid,
+        customCategory: customCategory?.trim(),
+        coverImageUrl: coverImageUrl,
+        bannedWords: bannedWords
+            .map((w) => w.trim())
+            .where((w) => w.isNotEmpty)
+            .toList(),
+      );
+
+      final memberRef = docRef.collection('members').doc(user.uid);
+      final joinedRef = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('joinedGroups')
+          .doc(docRef.id);
+
+      final batch = _firestore.batch()
+        ..set(docRef, group.toJson())
+        ..set(memberRef, {
+          'role': 'owner',
+          'name': creatorName,
+          'photoUrl': creatorPhoto,
+          'joinedAt': FieldValue.serverTimestamp(),
+        })
+        ..set(joinedRef, {'joinedAt': FieldValue.serverTimestamp()});
+
+      await batch.commit().timeout(const Duration(seconds: 15));
+      return Success(group);
+    } on FirebaseException catch (e) {
+      return Failure(_mapFirebaseError(e), exception: e);
+    } on TimeoutException {
+      return const Failure(
+        'İstek zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.',
+      );
+    } on Exception catch (e) {
+      return Failure('Grup oluşturulamadı. Lütfen tekrar deneyin.', exception: e);
+    }
+  }
+
+  /// Deletes [groupId]'s `communityGroups/{groupId}` document and every
+  /// `members/{uid}` sub-document — Firestore doesn't cascade-delete
+  /// subcollections, so the members must be enumerated and removed
+  /// explicitly. A single batch can hold at most 500 writes; real groups
+  /// are nowhere near that, so one batch is used unconditionally rather
+  /// than chunking.
+  @override
+  Future<Result<void>> deleteGroup(String groupId) async {
+    try {
+      final groupRef = _firestore.collection(_kCommunityGroups).doc(groupId);
+      final membersSnap = await groupRef.collection('members').get();
+
+      final batch = _firestore.batch();
+      for (final doc in membersSnap.docs) {
+        batch.delete(doc.reference);
+      }
+      batch.delete(groupRef);
+
+      await batch.commit().timeout(const Duration(seconds: 15));
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(_mapFirebaseError(e), exception: e);
+    } on TimeoutException {
+      return const Failure(
+        'İstek zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.',
+      );
+    } on Exception catch (e) {
+      return Failure('Grup silinemedi. Lütfen tekrar deneyin.', exception: e);
+    }
+  }
+
   // ── Create listing ────────────────────────────────────────────────────────
 
   /// Creates a listing:

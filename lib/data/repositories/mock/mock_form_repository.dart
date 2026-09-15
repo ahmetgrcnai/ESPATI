@@ -43,6 +43,53 @@ class MockFormRepository implements IFormRepository {
     }
   }
 
+  @override
+  Future<Result<ChatGroupModel>> createGroup({
+    required String name,
+    required String description,
+    required PetCategory petCategory,
+    String? customCategory,
+    required String creatorName,
+    required String creatorPhoto,
+    File? coverImage,
+    List<String> bannedWords = const [],
+  }) async {
+    try {
+      await Future.delayed(_delay);
+      // No Storage in mock mode — the picked file's local path can't
+      // become a real download URL, so it's simply not persisted here.
+      // The real (Firebase) path does the actual upload.
+      final created = ChatGroupModel(
+        id: 'grp_mock_${DateTime.now().millisecondsSinceEpoch}',
+        name: name.trim(),
+        description: description.trim(),
+        petCategory: petCategory,
+        memberCount: 1,
+        creatorId: 'current_user',
+        customCategory: customCategory?.trim(),
+        bannedWords: bannedWords
+            .map((w) => w.trim())
+            .where((w) => w.isNotEmpty)
+            .toList(),
+      );
+      _groups.insert(0, created);
+      return Success(created);
+    } on Exception catch (e) {
+      return Failure('Grup oluşturulamadı. Lütfen tekrar deneyin.', exception: e);
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteGroup(String groupId) async {
+    try {
+      await Future.delayed(_delay);
+      _groups.removeWhere((g) => g.id == groupId);
+      return const Success(null);
+    } on Exception catch (e) {
+      return Failure('Grup silinemedi. Lütfen tekrar deneyin.', exception: e);
+    }
+  }
+
   // ── Create Listing ────────────────────────────────────────────────────────
 
   @override

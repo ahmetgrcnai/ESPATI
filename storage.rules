@@ -43,6 +43,12 @@ service firebase.storage {
       allow write: if isOwner(uid) && isImage() && underSizeLimit();
     }
 
+    // `{petId}` is a wildcard for "whatever precedes .jpg" in this path
+    // segment — it already covers Çiftleşme's vaccination card upload too
+    // (`users/{uid}/pets/{petId}_vaccination.jpg`, see
+    // FirestorePetRepository._uploadVaccinationCard) without a separate
+    // rule, since the actual check here (isOwner(uid)) never looks at the
+    // captured `petId` value.
     match /users/{uid}/pets/{petId}.jpg {
       allow read: if isSignedIn();
       allow write: if isOwner(uid) && isImage() && underSizeLimit();
@@ -57,6 +63,19 @@ service firebase.storage {
     match /listings/{authorId}/{listingId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if isOwner(authorId) && isImage() && underSizeLimit();
+    }
+
+    // communityGroups/{groupId}/cover.jpg — Grup Oluştur's optional cover
+    // photo. Unlike the paths above, this one has no uid segment to check
+    // against (a group has no single "authorId" field at the Storage
+    // layer), so this can't restrict writes to the group's creator the
+    // same direct way — that check would need a Firestore lookup
+    // (`firestore.get()`), which this pass didn't verify. Scoped to any
+    // signed-in user for now; tighten with a creator check before this
+    // file is treated as authoritative (see the warning at the top).
+    match /communityGroups/{groupId}/cover.jpg {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isImage() && underSizeLimit();
     }
 
     match /{allPaths=**} {

@@ -1,14 +1,49 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../data/models/notification_model.dart';
+import '../data/repositories/interfaces/i_social_repository.dart';
 
 /// ViewModel for the notification system.
 ///
 /// Manages list of notifications, unread count, and provides
 /// methods to add/read/clear notifications.
+///
+/// Almost every [NotificationModel] here is created locally by
+/// [addLikeNotification]/[addCommentNotification]/[addEventNotification] —
+/// convenience wrappers around the user's own actions, never delivered by a
+/// backend. [ISocialRepository.watchMyNotifications], subscribed to when a
+/// repository is passed to the constructor, is the one exception: a real,
+/// cross-user notification stream (today, only [NotificationType.groupKick]
+/// — see [ISocialRepository.kickGroupMember]), merged into the same list so
+/// [NotificationScreen] doesn't need to know the difference.
 class NotificationViewModel extends ChangeNotifier {
+  NotificationViewModel({ISocialRepository? socialRepository}) {
+    final repo = socialRepository;
+    if (repo != null) {
+      _remoteSub = repo.watchMyNotifications().listen((remote) {
+        // Replace the remote slice, keep every local-only notification —
+        // matched by id so a live update doesn't duplicate entries.
+        final remoteIds = remote.map((n) => n.id).toSet();
+        _notifications.removeWhere((n) => remoteIds.contains(n.id));
+        _notifications.addAll(remote);
+        _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        notifyListeners();
+      });
+    }
+  }
+
+  StreamSubscription<List<NotificationModel>>? _remoteSub;
+
   final List<NotificationModel> _notifications = [];
   List<NotificationModel> get notifications =>
       List.unmodifiable(_notifications);
+
+  @override
+  void dispose() {
+    _remoteSub?.cancel();
+    super.dispose();
+  }
 
   /// Number of unread notifications.
   int get unreadCount => _notifications.where((n) => !n.isRead).length;

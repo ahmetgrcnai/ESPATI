@@ -24,6 +24,39 @@ abstract class IFormRepository {
   /// Returns all community groups, pinned groups first.
   Future<Result<List<ChatGroupModel>>> getChatGroups();
 
+  /// Creates a new, user-owned community group in `communityGroups` and,
+  /// in the same write, joins the creator to it as [GroupMemberRole.owner]
+  /// — [memberCount] starts at 1, not 0. [isPinned] is always false —
+  /// pinning is a manual, admin-curated action, never set by user-facing
+  /// group creation. [petCategory] is always [PetCategory.all] for these
+  /// groups; [customCategory] carries whatever free-text category the
+  /// creator typed themselves (see [ChatGroupModel.categoryLabel]).
+  /// [creatorName]/[creatorPhoto] are denormalized onto the owner's
+  /// `members/{uid}` document, same convention as every other
+  /// author-snapshot field in this codebase. [coverImage], if given, is
+  /// uploaded to Storage before the group document is written — the
+  /// returned [ChatGroupModel.coverImageUrl] is the final download URL.
+  /// [bannedWords] seeds [ChatGroupModel.bannedWords].
+  Future<Result<ChatGroupModel>> createGroup({
+    required String name,
+    required String description,
+    required PetCategory petCategory,
+    String? customCategory,
+    required String creatorName,
+    required String creatorPhoto,
+    File? coverImage,
+    List<String> bannedWords,
+  });
+
+  /// Deletes [groupId] entirely: the group document itself and every
+  /// `members/{uid}` sub-document (Firestore never cascade-deletes a
+  /// subcollection on its own). Posts/listings that carried this
+  /// [groupId] are left as-is — they simply point at a group that no
+  /// longer exists, same as any other stale denormalized reference in
+  /// this codebase; deleting user content isn't this action's job.
+  /// Owner-only — enforced by Firestore security rules, not here.
+  Future<Result<void>> deleteGroup(String groupId);
+
   /// Uploads [images] and persists a new listing derived from [listing].
   ///
   /// The caller does not need to set [ListingModel.id] or

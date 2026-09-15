@@ -56,9 +56,13 @@ class CreatePostViewModel extends ChangeNotifier {
     required IPostRepository postRepository,
     required IPetRepository petRepository,
     required UserModel? currentUser,
+    String? initialGroupId,
+    List<String> groupBannedWords = const [],
   })  : _postRepository = postRepository,
         _petRepository = petRepository,
-        _currentUser = currentUser {
+        _currentUser = currentUser,
+        _groupId = initialGroupId,
+        _groupBannedWords = groupBannedWords {
     // Capture into a local so Dart's null-promotion applies; instance fields
     // aren't promotable even after a null check.
     final user = currentUser;
@@ -72,6 +76,11 @@ class CreatePostViewModel extends ChangeNotifier {
   final IPostRepository _postRepository;
   final IPetRepository _petRepository;
   final UserModel? _currentUser;
+
+  /// The target group's own extra denylist (see [ChatGroupModel.bannedWords])
+  /// — checked alongside [ContentModerationService]'s app-wide list in
+  /// [submit]. Empty for posts with no [groupId] or a group that set none.
+  final List<String> _groupBannedWords;
 
   StreamSubscription<List<PetModel>>? _petsSub;
 
@@ -125,12 +134,11 @@ class CreatePostViewModel extends ChangeNotifier {
   bool _petsLoading = true;
   bool get petsLoading => _petsLoading;
 
-  /// True if the submit button should be enabled right now.
+  /// True if the submit button should be enabled right now. Photo and pet
+  /// are both optional — a group post can be a text-only discussion (the
+  /// Reddit/Facebook-style "start a discussion" flow).
   bool get canSubmit =>
-      _status == CreatePostStatus.idle &&
-      _selectedImage != null &&
-      _selectedPet != null &&
-      _currentUser != null;
+      _status == CreatePostStatus.idle && _currentUser != null;
 
   // ── Pets stream ─────────────────────────────────────────────────────────────
 
@@ -264,19 +272,24 @@ class CreatePostViewModel extends ChangeNotifier {
 
   /// Runs the full compress → upload → save pipeline. Returns `true` iff the
   /// post was persisted. The caller (View) should pop on success.
-  Future<bool> submit({required String description}) async {
+  Future<bool> submit({
+    required String description,
+    bool isAnnouncement = false,
+  }) async {
     if (!canSubmit) return false;
 
     final user = _currentUser!;
-    final pet = _selectedPet!;
-    final source = _selectedImage!;
+    final pet = _selectedPet;
+    final source = _selectedImage;
     final trimmedDescription = description.trim();
 
     // Madde 8 — safety mandate: reject inappropriate text before the
     // compress/upload/save pipeline ever starts, so nothing is written to
-    // Firestore or Storage for flagged content.
+    // Firestore or Storage for flagged content. Groups get their own extra
+    // denylist on top of the app-wide one (see [_groupBannedWords]).
     if (ContentModerationService.containsInappropriateText(
-        trimmedDescription)) {
+        trimmedDescription,
+        extraBannedWords: _groupBannedWords)) {
       _status = CreatePostStatus.error;
       _errorMessage =
           'İçeriğiniz topluluk kurallarımıza uymayan ifadeler içeriyor.';
@@ -286,17 +299,20 @@ class CreatePostViewModel extends ChangeNotifier {
 
     _errorMessage = null;
     _uploadProgress = 0;
-    _status = CreatePostStatus.compressing;
-    notifyListeners();
 
-    File compressed;
-    try {
-      compressed = await _compressToUnder1Mb(source);
-    } catch (e) {
-      _status = CreatePostStatus.error;
-      _errorMessage = 'Fotoğraf hazırlanırken bir hata oluştu.';
+    // Text-only discussion posts (no photo) skip compression entirely.
+    File? compressed;
+    if (source != null) {
+      _status = CreatePostStatus.compressing;
       notifyListeners();
-      return false;
+      try {
+        compressed = await _compressToUnder1Mb(source);
+      } catch (e) {
+        _status = CreatePostStatus.error;
+        _errorMessage = 'Fotoğraf hazırlanırken bir hata oluştu.';
+        notifyListeners();
+        return false;
+      }
     }
 
     // Build the post with denormalized pet metadata, then delegate to the repo.
@@ -305,15 +321,16 @@ class CreatePostViewModel extends ChangeNotifier {
       authorId: user.id,
       authorName: user.name.isEmpty ? user.email : user.name,
       authorImage: user.profilePicture,
-      imageUrl: '', // Repo fills this in after Storage upload completes.
+      imageUrl: '', // Repo fills this in after Storage upload completes (if any).
       description: trimmedDescription,
       location: _location,
       timestamp: DateTime.now(),
-      petId: pet.id,
-      petName: pet.name,
-      petBreed: pet.breed,
-      petType: pet.petType.name,
+      petId: pet?.id ?? '',
+      petName: pet?.name ?? '',
+      petBreed: pet?.breed ?? '',
+      petType: pet?.petType.name ?? '',
       groupId: _groupId,
+      isAnnouncement: isAnnouncement && _groupId != null,
     );
 
     _status = CreatePostStatus.uploading;
@@ -338,9 +355,11 @@ class CreatePostViewModel extends ChangeNotifier {
         },
       );
     } finally {
-      try {
-        await compressed.delete();
-      } catch (_) {}
+      if (compressed != null) {
+        try {
+          await compressed.delete();
+        } catch (_) {}
+      }
     }
 
     switch (result) {

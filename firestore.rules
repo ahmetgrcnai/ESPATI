@@ -47,6 +47,22 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // Group ownership/moderation helpers — see the communityGroups block
+    // below. Each does one `get()`, so keep call sites minimal.
+    function isGroupOwner(groupId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/communityGroups/$(groupId))
+          .data.creatorId == request.auth.uid;
+    }
+    function isGroupModerator(groupId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/communityGroups/$(groupId)/members/$(request.auth.uid))
+          .data.role == 'moderator';
+    }
+    function canModerateGroup(groupId) {
+      return isGroupOwner(groupId) || isGroupModerator(groupId);
+    }
+
     // ── users/{uid} ──────────────────────────────────────────────────────
     // Profiles are readable by any signed-in user (social feed author info,
     // user search, listing author cards all read other users' documents).
@@ -60,6 +76,30 @@ service cloud.firestore {
         allow read: if isSignedIn();
         allow write: if isOwner(uid);
       }
+
+      // users/{uid}/joinedGroups/{groupId} — "gruplarım" mirror of
+      // communityGroups/{groupId}/members/{uid}. Normally only the owning
+      // user writes this (join/leave), but a kick
+      // (FirestoreSocialRepository.kickGroupMember) also needs to delete
+      // *someone else's* mirror doc, so the group's owner/moderator gets
+      // the same write access here.
+      match /joinedGroups/{groupId} {
+        allow read: if isOwner(uid);
+        allow write: if isOwner(uid) || canModerateGroup(groupId);
+      }
+
+      // users/{uid}/notifications/{notifId} — the app's one real,
+      // cross-user notification path (everything else NotificationViewModel
+      // shows is created locally, never written here). Today only
+      // FirestoreSocialRepository.kickGroupMember writes into someone
+      // else's subtree, so `create` can't be restricted to isOwner(uid);
+      // any signed-in user may create one (a mild spam vector — no worse
+      // than any other loosely-scoped rule already in this draft file, see
+      // the warning at the top). Only the owner reads/manages their own.
+      match /notifications/{notifId} {
+        allow read, update, delete: if isOwner(uid);
+        allow create: if isSignedIn();
+      }
     }
 
     // ── posts/{postId} ───────────────────────────────────────────────────
@@ -67,8 +107,15 @@ service cloud.firestore {
     // restricted to the post's own author.
     match /posts/{postId} {
       allow read: if isSignedIn();
+      // A post flagged isAnnouncement:true (CreateTopicScreen's "📌 Duyuru
+      // olarak gönder", Topluluk groups only) additionally requires the
+      // author to be that group's owner or a moderator — everyone else's
+      // create request is rejected outright by the second clause, not
+      // silently written with the flag ignored.
       allow create: if isSignedIn() &&
-        request.resource.data.authorId == request.auth.uid;
+        request.resource.data.authorId == request.auth.uid &&
+        (request.resource.data.isAnnouncement != true ||
+          canModerateGroup(request.resource.data.groupId));
       allow update, delete: if isSignedIn() &&
         resource.data.authorId == request.auth.uid;
 
@@ -90,6 +137,88 @@ service cloud.firestore {
         request.resource.data.authorId == request.auth.uid;
       allow update, delete: if isSignedIn() &&
         resource.data.authorId == request.auth.uid;
+    }
+
+    // ── communityGroups/{groupId} ────────────────────────────────────────
+    // Topluluk groups. Readable by any signed-in user; creation must claim
+    // the caller as creatorId (or be a pre-existing admin-seeded group with
+    // no single owner — those are Console-managed, not client-created).
+    // Broad `update` is intentional: memberCount is incremented/decremented
+    // by any joining/leaving/kicked member via FieldValue.increment, not
+    // just the owner.
+    match /communityGroups/{groupId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.creatorId == request.auth.uid;
+      allow update: if isSignedIn();
+      // Only the group's creator may delete it (Grup Oluştur → Üyeler →
+      // "Grubu Sil"). The client is expected to also delete every
+      // members/{uid} sub-document first (Firestore doesn't cascade), but
+      // that isn't enforced here — a partially-cleaned-up group with an
+      // orphaned members subcollection is a rare, harmless leak, not a
+      // security concern.
+      allow delete: if isGroupOwner(groupId);
+
+      // communityGroups/{groupId}/members/{uid} — the real member list.
+      // Role semantics: 'owner' (set once, at group creation, never
+      // reassigned) / 'moderator' (owner-granted kick rights) / 'member'
+      // (default on join). See GroupMemberModel.
+      match /members/{uid} {
+        allow read: if isSignedIn();
+        // Join: users may only create their own membership doc, and only
+        // as a plain member — 'owner'/'moderator' are never self-granted.
+        allow create: if isOwner(uid) &&
+          request.resource.data.role == 'member';
+        // Leave (self) or kick (owner/moderator removing someone else).
+        allow delete: if isOwner(uid) || canModerateGroup(groupId);
+        // Role changes (grant/revoke moderator) — group owner only.
+        allow update: if isGroupOwner(groupId);
+      }
+    }
+
+    // Çiftleşme (mating) match-integrity helper — true only if BOTH
+    // matingSwipes/{petAId}_{petBId} and its reverse exist with
+    // `liked: true`. Lets `matingMatches` creation actually verify
+    // mutuality server-side instead of trusting the client's word for it.
+    function mutualLikeExists(petAId, petBId) {
+      return
+        exists(/databases/$(database)/documents/matingSwipes/$(petAId + '_' + petBId)) &&
+        get(/databases/$(database)/documents/matingSwipes/$(petAId + '_' + petBId)).data.liked == true &&
+        exists(/databases/$(database)/documents/matingSwipes/$(petBId + '_' + petAId)) &&
+        get(/databases/$(database)/documents/matingSwipes/$(petBId + '_' + petAId)).data.liked == true;
+    }
+
+    // ── matingSwipes/{fromPetId}_{toPetId} ──────────────────────────────
+    // Çiftleşme module — one directional swipe. Only the two owners
+    // involved may read a swipe (it reveals who liked whom); never
+    // updated or deleted once written (a changed mind is a new swipe
+    // doc — passing after liking overwrites the same doc id, which is a
+    // `create`-shaped write in Firestore's rules model since `set()` on a
+    // path with no prior read is still evaluated as create-or-update
+    // together here for simplicity).
+    match /matingSwipes/{swipeId} {
+      allow read: if isSignedIn() &&
+        (isOwner(resource.data.fromOwnerId) || isOwner(resource.data.toOwnerId));
+      allow write: if isSignedIn() &&
+        request.resource.data.fromOwnerId == request.auth.uid;
+    }
+
+    // ── matingMatches/{matchId} ─────────────────────────────────────────
+    // A confirmed mutual match. `create` requires [mutualLikeExists] —
+    // a client can't fabricate a match merely by writing this document;
+    // the two underlying matingSwipes documents have to actually back it
+    // up. `update` (FirestoreMatingRepository.attachChatRoom filling in
+    // chatRoomId) is scoped to the pair's own owners; never deleted.
+    match /matingMatches/{matchId} {
+      allow read: if isSignedIn() &&
+        (isOwner(resource.data.ownerAId) || isOwner(resource.data.ownerBId));
+      allow create: if isSignedIn() &&
+        (request.resource.data.ownerAId == request.auth.uid ||
+          request.resource.data.ownerBId == request.auth.uid) &&
+        mutualLikeExists(request.resource.data.petAId, request.resource.data.petBId);
+      allow update: if isSignedIn() &&
+        (isOwner(resource.data.ownerAId) || isOwner(resource.data.ownerBId));
+      allow delete: if false;
     }
 
     // ── Everything else ──────────────────────────────────────────────────

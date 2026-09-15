@@ -227,6 +227,8 @@ class _NotificationCard extends StatelessWidget {
         return Icons.event_rounded;
       case NotificationType.system:
         return Icons.info_rounded;
+      case NotificationType.groupKick:
+        return Icons.person_remove_rounded;
     }
   }
 
@@ -240,6 +242,8 @@ class _NotificationCard extends StatelessWidget {
         return EspatiColors.sageGreen;
       case NotificationType.system:
         return EspatiColors.terracotta;
+      case NotificationType.groupKick:
+        return EspatiColors.red;
     }
   }
 

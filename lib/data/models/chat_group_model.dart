@@ -63,6 +63,30 @@ class ChatGroupModel {
   final int memberCount;
   final bool isPinned;
 
+  /// UID of the user who created this group via [CreateGroupScreen] —
+  /// empty for every pre-existing/admin-seeded group (they have no single
+  /// owner). Holds permanent kick/moderator-granting authority; never
+  /// reassigned. See [GroupMemberRole.owner].
+  final String creatorId;
+
+  /// Free-text category the creator typed themselves ("Sohbet", "Eğitim
+  /// İpuçları", ...) — `null` for admin-seeded groups, which keep
+  /// [petCategory]'s fixed label/icon/color instead. User-created groups
+  /// always store [petCategory] as [PetCategory.all] under the hood (so
+  /// they still show up under the "Genel" browse filter) and use this
+  /// field for their own display label.
+  final String? customCategory;
+
+  /// Group cover photo — Storage download URL, empty until the creator
+  /// picks one on [CreateGroupScreen]. Falls back to [petCategory]'s icon
+  /// wherever this is empty.
+  final String coverImageUrl;
+
+  /// Extra denylist words the creator set for this group specifically, on
+  /// top of [ContentModerationService]'s app-wide list — checked by every
+  /// post/topic submitted into this group (see [CreatePostViewModel]).
+  final List<String> bannedWords;
+
   const ChatGroupModel({
     required this.id,
     required this.name,
@@ -70,7 +94,18 @@ class ChatGroupModel {
     required this.petCategory,
     required this.memberCount,
     this.isPinned = false,
+    this.creatorId = '',
+    this.customCategory,
+    this.coverImageUrl = '',
+    this.bannedWords = const [],
   });
+
+  /// Display label — the creator's own free-text category if they set one,
+  /// otherwise the fixed [PetCategory.label].
+  String get categoryLabel {
+    final custom = customCategory;
+    return (custom != null && custom.isNotEmpty) ? custom : petCategory.label;
+  }
 
   factory ChatGroupModel.fromJson(Map<String, dynamic> json) {
     return ChatGroupModel(
@@ -83,6 +118,12 @@ class ChatGroupModel {
       ),
       memberCount: json['memberCount'] as int? ?? 0,
       isPinned: json['isPinned'] as bool? ?? false,
+      creatorId: json['creatorId'] as String? ?? '',
+      customCategory: json['customCategory'] as String?,
+      coverImageUrl: json['coverImageUrl'] as String? ?? '',
+      bannedWords: List<String>.from(
+        json['bannedWords'] as List<dynamic>? ?? const [],
+      ),
     );
   }
 
@@ -93,6 +134,10 @@ class ChatGroupModel {
         'petCategory': petCategory.name,
         'memberCount': memberCount,
         'isPinned': isPinned,
+        'creatorId': creatorId,
+        'customCategory': customCategory,
+        'coverImageUrl': coverImageUrl,
+        'bannedWords': bannedWords,
       };
 
   ChatGroupModel copyWith({
@@ -102,6 +147,10 @@ class ChatGroupModel {
     PetCategory? petCategory,
     int? memberCount,
     bool? isPinned,
+    String? creatorId,
+    String? customCategory,
+    String? coverImageUrl,
+    List<String>? bannedWords,
   }) {
     return ChatGroupModel(
       id: id ?? this.id,
@@ -110,6 +159,10 @@ class ChatGroupModel {
       petCategory: petCategory ?? this.petCategory,
       memberCount: memberCount ?? this.memberCount,
       isPinned: isPinned ?? this.isPinned,
+      creatorId: creatorId ?? this.creatorId,
+      customCategory: customCategory ?? this.customCategory,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+      bannedWords: bannedWords ?? this.bannedWords,
     );
   }
 
