@@ -540,9 +540,6 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                             if (v == null || v.trim().isEmpty) {
                               return 'Açıklama zorunludur';
                             }
-                            if (v.trim().length < 20) {
-                              return 'Açıklama en az 20 karakter olmalıdır';
-                            }
                             return null;
                           },
                         ),
