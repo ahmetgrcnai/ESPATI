@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/pet_model.dart';
+import '../../services/content_moderation_service.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../widgets/common/neo_brutalist_button.dart';
 import '../../widgets/common/neo_brutalist_text_field.dart';
@@ -83,6 +84,14 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   File? _newImage;
   bool _submitting = false;
 
+  // ── Çiftleşme (mating) profile — see PetModel's own fields for why
+  // these three are kept in lockstep (isAvailableForMating can't be true
+  // without the other two). ──
+  bool _isAvailableForMating = false;
+  bool _isVaccinated = false;
+  File? _newVaccinationCardImage;
+  late Set<PetCharacterTag> _selectedCharacterTags;
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +109,9 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     // rendering neither segment selected.
     _selectedGender =
         p?.gender == PetGender.female ? PetGender.female : PetGender.male;
+    _isAvailableForMating = p?.isAvailableForMating ?? false;
+    _isVaccinated = p?.isVaccinated ?? false;
+    _selectedCharacterTags = {...(p?.characterTags ?? const [])};
   }
 
   @override
@@ -124,14 +136,64 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     }
   }
 
+  Future<void> _pickVaccinationCard() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+        source: ImageSource.gallery, imageQuality: 85, maxWidth: 1200);
+    if (picked != null && mounted) {
+      setState(() => _newVaccinationCardImage = File(picked.path));
+    }
+  }
+
+  /// Çiftleşme module gate — [PetModel.isEligibleForMating] mirrors this on
+  /// the read side, but the *write* side needs its own check so a user
+  /// can't flip "Eşleşme Arıyor" on without ever having provided the proof
+  /// it depends on. Returns an error string, or `null` if everything the
+  /// flag requires is in place.
+  String? _validateMatingProfile() {
+    if (!_isAvailableForMating) return null;
+    if (!_isVaccinated) {
+      return 'Eşleşme için temel aşıların tam olduğunu beyan etmelisin.';
+    }
+    final hasCard = _newVaccinationCardImage != null ||
+        (widget.existingPet?.vaccinationCardUrl.isNotEmpty ?? false);
+    if (!hasCard) {
+      return 'Eşleşme için aşı karnesi fotoğrafı yüklemelisin.';
+    }
+    // Madde 4 — ethics pass: reject commercial/sale language in the bio
+    // before it ever reaches a profile other users can browse in the
+    // swipe deck. Only checked when the mating flag is on — a plain pet
+    // profile's bio isn't held to this (it's not a breeding listing).
+    if (ContentModerationService.containsCommercialLanguage(
+        _bioController.text)) {
+      return 'Kısa tanıtım ticari satış ifadeleri içeriyor gibi görünüyor. '
+          'Bu bir eşleşme profili, satış ilanı değil.';
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final matingError = _validateMatingProfile();
+    if (matingError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(matingError, style: GoogleFonts.nunitoSans(fontSize: 13)),
+          backgroundColor: EspatiColors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
 
     final vm = context.read<ProfileViewModel>();
     final existingPet = widget.existingPet;
     final parsedWeight = double.tryParse(
         _weightController.text.trim().replaceAll(',', '.'));
+    final characterTags = _selectedCharacterTags.toList();
 
     if (widget.isEditing && existingPet != null) {
       // ── Edit mode ────────────────────────────────────────────────────────
@@ -146,8 +208,15 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         gender: _selectedGender,
         bio: _bioController.text.trim(),
         weight: parsedWeight ?? existingPet.weight,
+        isAvailableForMating: _isAvailableForMating,
+        isVaccinated: _isVaccinated,
+        characterTags: characterTags,
       );
-      await vm.updatePet(updated, newImage: _newImage);
+      await vm.updatePet(
+        updated,
+        newImage: _newImage,
+        newVaccinationCardImage: _newVaccinationCardImage,
+      );
     } else {
       // ── Add mode ─────────────────────────────────────────────────────────
       final pet = PetModel(
@@ -162,8 +231,15 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         photoUrl: '',
         bio: _bioController.text.trim(),
         weight: parsedWeight ?? 0,
+        isAvailableForMating: _isAvailableForMating,
+        isVaccinated: _isVaccinated,
+        characterTags: characterTags,
       );
-      await vm.addPet(pet, image: _newImage);
+      await vm.addPet(
+        pet,
+        image: _newImage,
+        vaccinationCardImage: _newVaccinationCardImage,
+      );
     }
 
     if (!mounted) return;
@@ -375,6 +451,29 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                   maxLines: 2,
                   focusShadowColor: EspatiColors.sageGreen,
                 ),
+                const SizedBox(height: 28),
+
+                // ── Çiftleşme profili ────────────────────────────────────────
+                _MatingProfileSection(
+                  isAvailableForMating: _isAvailableForMating,
+                  onAvailableForMatingChanged: (v) =>
+                      setState(() => _isAvailableForMating = v),
+                  isVaccinated: _isVaccinated,
+                  onVaccinatedChanged: (v) =>
+                      setState(() => _isVaccinated = v),
+                  newVaccinationCardImage: _newVaccinationCardImage,
+                  existingVaccinationCardUrl:
+                      widget.existingPet?.vaccinationCardUrl ?? '',
+                  onPickVaccinationCard: _pickVaccinationCard,
+                  selectedTags: _selectedCharacterTags,
+                  onToggleTag: (tag) => setState(() {
+                    if (_selectedCharacterTags.contains(tag)) {
+                      _selectedCharacterTags.remove(tag);
+                    } else {
+                      _selectedCharacterTags.add(tag);
+                    }
+                  }),
+                ),
                 const SizedBox(height: 32),
 
                 // ── Save ─────────────────────────────────────────────────────
@@ -538,6 +637,206 @@ class _PetPhotoPicker extends StatelessWidget {
                     size: 14, color: Colors.black),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MATING PROFILE SECTION — the Çiftleşme (mating) module's opt-in block.
+// "Eşleşme Arıyor" only ever means anything once the vaccine declaration +
+// card photo are both in place — see [PetModel.isEligibleForMating] and
+// [_AddEditPetScreenState._validateMatingProfile]. Character tags are
+// always editable regardless of the toggle (harmless either way, and
+// keeping them set saves re-picking if the owner re-enables it later).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MatingProfileSection extends StatelessWidget {
+  final bool isAvailableForMating;
+  final ValueChanged<bool> onAvailableForMatingChanged;
+  final bool isVaccinated;
+  final ValueChanged<bool> onVaccinatedChanged;
+  final File? newVaccinationCardImage;
+  final String existingVaccinationCardUrl;
+  final VoidCallback onPickVaccinationCard;
+  final Set<PetCharacterTag> selectedTags;
+  final ValueChanged<PetCharacterTag> onToggleTag;
+
+  const _MatingProfileSection({
+    required this.isAvailableForMating,
+    required this.onAvailableForMatingChanged,
+    required this.isVaccinated,
+    required this.onVaccinatedChanged,
+    required this.newVaccinationCardImage,
+    required this.existingVaccinationCardUrl,
+    required this.onPickVaccinationCard,
+    required this.selectedTags,
+    required this.onToggleTag,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCard =
+        newVaccinationCardImage != null || existingVaccinationCardUrl.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero,
+        border: Border.all(color: Colors.black, width: 2),
+        boxShadow: const [
+          BoxShadow(color: Colors.black, offset: Offset(3, 3), blurRadius: 0),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.favorite_rounded, color: EspatiColors.red, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Çiftleşme Profili',
+                style: GoogleFonts.baloo2(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: () => onAvailableForMatingChanged(!isAvailableForMating),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: isAvailableForMating
+                    ? EspatiColors.red.withValues(alpha: 0.12)
+                    : NeoBrutal.inactiveFill,
+                border: Border.all(color: Colors.black, width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Eşleşme Arıyor',
+                      style: GoogleFonts.baloo2(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    isAvailableForMating
+                        ? Icons.toggle_on_rounded
+                        : Icons.toggle_off_outlined,
+                    size: 30,
+                    color: isAvailableForMating ? EspatiColors.red : Colors.black45,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isAvailableForMating) ...[
+            const SizedBox(height: 14),
+            GestureDetector(
+              onTap: () => onVaccinatedChanged(!isVaccinated),
+              child: Row(
+                children: [
+                  Icon(
+                    isVaccinated
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    color: Colors.black,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Temel aşılarım tam (beyan ederim)',
+                      style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.black),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: onPickVaccinationCard,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasCard ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                      color: hasCard ? EspatiColors.sageGreen : Colors.black,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        hasCard ? 'Aşı karnesi yüklendi (değiştir)' : 'Aşı karnesi fotoğrafı yükle',
+                        style: GoogleFonts.nunitoSans(fontSize: 13, color: Colors.black),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Karakter Etiketleri',
+              style: GoogleFonts.baloo2(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: PetCharacterTag.values.map((tag) {
+                final selected = selectedTags.contains(tag);
+                return GestureDetector(
+                  onTap: () => onToggleTag(tag),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected ? EspatiColors.sageGreen : Colors.white,
+                      border: Border.all(
+                        color: Colors.black,
+                        width: selected ? 2 : 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      tag.label,
+                      style: GoogleFonts.nunitoSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Bu bir satış ilanı değildir — kısa tanıtımda fiyat/satış ifadesi kullanma.',
+              style: GoogleFonts.nunitoSans(
+                fontSize: 11,
+                color: Colors.black.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
         ],
       ),
     );

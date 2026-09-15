@@ -20,15 +20,28 @@ abstract class IPetRepository {
   /// Uploads [image] to `pets/{ownerId}/{petName}_{timestamp}.jpg` (if
   /// provided), then saves [pet] to `users/{ownerId}/pets/{petId}`.
   ///
+  /// [vaccinationCardImage], if given, is uploaded separately (Çiftleşme
+  /// module's aşı karnesi proof — see [PetModel.vaccinationCardUrl]) and
+  /// stored independently of the main pet photo.
+  ///
   /// The repository assigns the Firestore document ID; the returned
-  /// [PetModel] has its [id] and [photoUrl] fields populated.
-  Future<Result<PetModel>> addPet(PetModel pet, {File? image});
+  /// [PetModel] has its [id]/[photoUrl]/[vaccinationCardUrl] fields populated.
+  Future<Result<PetModel>> addPet(
+    PetModel pet, {
+    File? image,
+    File? vaccinationCardImage,
+  });
 
   /// Updates [pet]'s Firestore document.
   ///
   /// If [newImage] is provided, uploads it (replacing the old photo in
   /// Storage via [PetModel.photoUrl]) and stores the new download URL.
-  Future<Result<void>> updatePet(PetModel pet, {File? newImage});
+  /// [newVaccinationCardImage] does the same for [PetModel.vaccinationCardUrl].
+  Future<Result<void>> updatePet(
+    PetModel pet, {
+    File? newImage,
+    File? newVaccinationCardImage,
+  });
 
   /// Removes [pet]'s document from `users/{ownerId}/pets/` and deletes
   /// its Storage photo via the URL stored in [PetModel.photoUrl] (best-effort).

@@ -42,7 +42,11 @@ class FirestorePetRepository implements IPetRepository {
   // ── Write: add ─────────────────────────────────────────────────────────────
 
   @override
-  Future<Result<PetModel>> addPet(PetModel pet, {File? image}) async {
+  Future<Result<PetModel>> addPet(
+    PetModel pet, {
+    File? image,
+    File? vaccinationCardImage,
+  }) async {
     try {
       final uid = _auth.currentUser?.uid;
       if (uid == null) return const Failure('Oturum açık kullanıcı bulunamadı.');
@@ -52,9 +56,16 @@ class FirestorePetRepository implements IPetRepository {
 
       final photoUrl =
           image != null ? await _uploadPhoto(uid, petId, image) : '';
+      final vaccinationCardUrl = vaccinationCardImage != null
+          ? await _uploadVaccinationCard(uid, petId, vaccinationCardImage)
+          : '';
 
-      final finalPet =
-          pet.copyWith(id: petId, ownerId: uid, photoUrl: photoUrl);
+      final finalPet = pet.copyWith(
+        id: petId,
+        ownerId: uid,
+        photoUrl: photoUrl,
+        vaccinationCardUrl: vaccinationCardUrl,
+      );
       await docRef.set(finalPet.toFirestore());
       return Success(finalPet);
     } on FirebaseException catch (e) {
@@ -67,7 +78,11 @@ class FirestorePetRepository implements IPetRepository {
   // ── Write: update ──────────────────────────────────────────────────────────
 
   @override
-  Future<Result<void>> updatePet(PetModel pet, {File? newImage}) async {
+  Future<Result<void>> updatePet(
+    PetModel pet, {
+    File? newImage,
+    File? newVaccinationCardImage,
+  }) async {
     try {
       final uid = _auth.currentUser?.uid;
       if (uid == null) return const Failure('Oturum açık kullanıcı bulunamadı.');
@@ -89,7 +104,16 @@ class FirestorePetRepository implements IPetRepository {
         }
       }
 
-      final updated = pet.copyWith(photoUrl: photoUrl);
+      String vaccinationCardUrl = pet.vaccinationCardUrl;
+      if (newVaccinationCardImage != null) {
+        vaccinationCardUrl =
+            await _uploadVaccinationCard(uid, pet.id, newVaccinationCardImage);
+      }
+
+      final updated = pet.copyWith(
+        photoUrl: photoUrl,
+        vaccinationCardUrl: vaccinationCardUrl,
+      );
       await _petsCol(uid)
           .doc(pet.id)
           .set(updated.toFirestore(), SetOptions(merge: true));
@@ -173,6 +197,19 @@ class FirestorePetRepository implements IPetRepository {
   /// that already grant the owning user read/write access to their own tree.
   Future<String> _uploadPhoto(String uid, String petId, File image) async {
     final ref = _storage.ref().child('users/$uid/pets/$petId.jpg');
+    await ref.putFile(image, SettableMetadata(contentType: 'image/jpeg'));
+    return ref.getDownloadURL();
+  }
+
+  /// Çiftleşme module's aşı karnesi proof photo — same path convention as
+  /// [_uploadPhoto], just a distinct filename so it never collides with the
+  /// main pet photo.
+  ///
+  /// Path: `users/{uid}/pets/{petId}_vaccination.jpg`
+  Future<String> _uploadVaccinationCard(
+      String uid, String petId, File image) async {
+    final ref =
+        _storage.ref().child('users/$uid/pets/${petId}_vaccination.jpg');
     await ref.putFile(image, SettableMetadata(contentType: 'image/jpeg'));
     return ref.getDownloadURL();
   }

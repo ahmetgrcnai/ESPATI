@@ -28,6 +28,21 @@ class FirestoreUserRepository implements IUserRepository {
   final FirebaseStorage _storage;
 
   @override
+  Future<Result<UserModel>> getUserById(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (!doc.exists || doc.data() == null) {
+        return Failure('Kullanıcı bulunamadı: $uid');
+      }
+      return Success(UserModel.fromJson({...doc.data()!, 'id': uid}));
+    } on FirebaseException catch (e) {
+      return Failure(e.message ?? 'Kullanıcı yüklenemedi.', exception: e);
+    } on Exception catch (e) {
+      return Failure('Kullanıcı yüklenemedi.', exception: e);
+    }
+  }
+
+  @override
   Future<Result<UserModel>> getCurrentUser() async {
     try {
       final firebaseUser = _auth.currentUser;

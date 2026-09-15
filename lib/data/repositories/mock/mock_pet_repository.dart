@@ -58,9 +58,16 @@ class MockPetRepository implements IPetRepository {
   // ── Write: add ─────────────────────────────────────────────────────────────
 
   @override
-  Future<Result<PetModel>> addPet(PetModel pet, {File? image}) async {
+  Future<Result<PetModel>> addPet(
+    PetModel pet, {
+    File? image,
+    File? vaccinationCardImage,
+  }) async {
     try {
       await Future.delayed(_delay);
+      // No Storage in mock mode — a picked vaccination card image can't
+      // become a real URL here, so [isEligibleForMating] just relies on
+      // whatever [pet.vaccinationCardUrl] the caller already set.
       final newPet = pet.copyWith(id: 'pet_${_idCounter++}');
       _pets.add(newPet);
       _emit();
@@ -73,7 +80,11 @@ class MockPetRepository implements IPetRepository {
   // ── Write: update ──────────────────────────────────────────────────────────
 
   @override
-  Future<Result<void>> updatePet(PetModel pet, {File? newImage}) async {
+  Future<Result<void>> updatePet(
+    PetModel pet, {
+    File? newImage,
+    File? newVaccinationCardImage,
+  }) async {
     try {
       await Future.delayed(_delay);
       final idx = _pets.indexWhere((p) => p.id == pet.id);

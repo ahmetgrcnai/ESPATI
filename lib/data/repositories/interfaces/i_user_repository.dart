@@ -10,6 +10,14 @@ abstract class IUserRepository {
   /// Fetches the currently logged-in user profile (one-time).
   Future<Result<UserModel>> getCurrentUser();
 
+  /// Fetches any user's profile by [uid] (one-time) — for showing another
+  /// user's name/photo where only their uid is on hand and denormalizing
+  /// it onto yet another document isn't worth it (e.g. the Çiftleşme
+  /// module resolving a match's other owner right before creating the
+  /// chat room). Unlike [getCurrentUser], not tied to the signed-in
+  /// session's own uid.
+  Future<Result<UserModel>> getUserById(String uid);
+
   /// Emits the current user's profile in real-time.
   ///
   /// Useful for keeping follower/following counts live on the ProfileScreen

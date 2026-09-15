@@ -9,9 +9,15 @@ import '../../core/constants/app_colors.dart' show EspatiColors;
 import '../../core/neo_brutalist_tokens.dart';
 import '../../data/models/listing_model.dart';
 import '../../data/models/post_model.dart';
+import '../../data/repositories/interfaces/i_chat_repository.dart';
+import '../../data/repositories/interfaces/i_mating_repository.dart';
+import '../../data/repositories/interfaces/i_pet_repository.dart';
+import '../../data/repositories/interfaces/i_user_repository.dart';
 import '../../services/interaction_tracking_service.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/chat_viewmodel.dart';
 import '../../viewmodels/form_viewmodel.dart';
+import '../../viewmodels/mating_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../../viewmodels/social_viewmodel.dart';
@@ -22,6 +28,7 @@ import '../../widgets/common/story_tray.dart';
 import '../../widgets/discover_post_card.dart';
 import '../inbox/inbox_screen.dart';
 import '../feed_detail_screen.dart';
+import '../mating/mating_swipe_screen.dart';
 import '../notifications/notification_screen.dart';
 import 'story_camera_screen.dart';
 import 'story_viewer_screen.dart';
@@ -114,6 +121,33 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
   /// space, so the FAB needs its own clearance to avoid sitting behind it.
   static const double _bottomNavClearance = EspatiBottomNavBar.height + 24 + 16;
 
+  // Screen-scoped MatingViewModel — same "create fresh per visit" wiring
+  // every other feature-entry-point flow in this app uses (see
+  // GroupDetailScreen._openCreateTopic, CameraPreviewScreen._next).
+  void _openMatingModule(BuildContext context) {
+    final matingRepo = context.read<IMatingRepository>();
+    final chatRepo = context.read<IChatRepository>();
+    final userRepo = context.read<IUserRepository>();
+    final petRepo = context.read<IPetRepository>();
+    final user = context.read<AuthViewModel>().currentUser;
+    if (user == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider<MatingViewModel>(
+          create: (_) => MatingViewModel(
+            matingRepository: matingRepo,
+            chatRepository: chatRepo,
+            userRepository: userRepo,
+            petRepository: petRepo,
+            currentUser: user,
+          ),
+          child: const MatingSwipeScreen(),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -141,6 +175,20 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
         actions: _currentPage == 0
             ? const []
             : [
+                // Çiftleşme (mating) module entry point — a heart, left of
+                // the notification bell. Unambiguous: "Pati" (a paw stamp),
+                // not a heart, is this app's like/beğeni icon everywhere
+                // else, so this is the only heart button in the app.
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _AppBarIconButton(
+                    icon: Icons.favorite_rounded,
+                    background: EspatiColors.peach,
+                    semanticLabel: 'Çiftleşme',
+                    showBadge: false,
+                    onPressed: () => _openMatingModule(context),
+                  ),
+                ),
                 // Step 66 — pop-out Neo-Brutalist bricks (BorderRadius.zero,
                 // thick darkBrown border, hard offset shadow) via
                 // NeoBrutalistButton, replacing the bare transparent

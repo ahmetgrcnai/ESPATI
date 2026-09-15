@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:collection/collection.dart' show IterableExtension;
+
 import '../../../core/result.dart';
 import '../../models/user_model.dart';
 import '../../sample_data.dart';
@@ -38,6 +40,15 @@ class MockUserRepository implements IUserRepository {
     } on Exception catch (e) {
       return Failure('Failed to load user profile', exception: e);
     }
+  }
+
+  @override
+  Future<Result<UserModel>> getUserById(String uid) async {
+    await Future.delayed(_delay);
+    if (uid == 'current_user') return getCurrentUser();
+    final found = _mockUsers.where((u) => u.id == uid).firstOrNull;
+    if (found == null) return Failure('Kullanıcı bulunamadı: $uid');
+    return Success(found);
   }
 
   @override

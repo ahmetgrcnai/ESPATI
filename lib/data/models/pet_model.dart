@@ -33,6 +33,44 @@ enum PetGender {
   }
 }
 
+/// A self-declared character trait for the Çiftleşme (mating) module's
+/// swipe deck — shown as chips on [MatingSwipeScreen]'s cards so a swiper
+/// sees more than a photo before deciding. Purely descriptive; not used
+/// for any automatic compatibility scoring (that's a later phase, see the
+/// module's roadmap discussion).
+enum PetCharacterTag {
+  uysal,
+  enerjik,
+  dominant,
+  sakin,
+  oyuncu,
+  bagimsiz;
+
+  String get label {
+    switch (this) {
+      case PetCharacterTag.uysal:
+        return 'Uysal';
+      case PetCharacterTag.enerjik:
+        return 'Enerjik';
+      case PetCharacterTag.dominant:
+        return 'Dominant';
+      case PetCharacterTag.sakin:
+        return 'Sakin';
+      case PetCharacterTag.oyuncu:
+        return 'Oyuncu';
+      case PetCharacterTag.bagimsiz:
+        return 'Bağımsız';
+    }
+  }
+
+  static PetCharacterTag? fromString(String value) {
+    for (final tag in PetCharacterTag.values) {
+      if (tag.name == value) return tag;
+    }
+    return null;
+  }
+}
+
 /// Pet model representing an animal registered on the ESPATI platform.
 ///
 /// Supports JSON serialization for Firebase/REST API integration,
@@ -50,6 +88,29 @@ class PetModel {
   final String bio;
   final double weight;
 
+  // ── Çiftleşme (mating) module — see MatingSwipeScreen ─────────────────────
+
+  /// Whether this pet's owner has opted it into the mating swipe deck.
+  /// Can only be set `true` alongside [isVaccinated] and a non-empty
+  /// [vaccinationCardUrl] — [AddEditPetScreen] enforces that pairing in the
+  /// UI; a pet missing either is simply never eligible regardless of this
+  /// flag (see [isEligibleForMating]).
+  final bool isAvailableForMating;
+
+  /// Self-declared "core vaccines are up to date" statement — required
+  /// alongside [vaccinationCardUrl] before [isAvailableForMating] means
+  /// anything. Self-declared, not veterinarian-verified; the photo is the
+  /// only check beyond the owner's word.
+  final bool isVaccinated;
+
+  /// Storage download URL for a photo of the pet's vaccination card —
+  /// required proof backing [isVaccinated]. Empty until uploaded.
+  final String vaccinationCardUrl;
+
+  /// Self-selected character traits shown on the pet's swipe card —
+  /// see [PetCharacterTag].
+  final List<PetCharacterTag> characterTags;
+
   const PetModel({
     required this.id,
     required this.ownerId,
@@ -62,7 +123,19 @@ class PetModel {
     this.photoUrl = '',
     this.bio = '',
     this.weight = 0,
+    this.isAvailableForMating = false,
+    this.isVaccinated = false,
+    this.vaccinationCardUrl = '',
+    this.characterTags = const [],
   });
+
+  /// The actual gate [MatingSwipeScreen]'s deck query checks — [PetModel]s
+  /// are only truly discoverable once the vaccine declaration + card are
+  /// both in place, not on [isAvailableForMating] alone (a pet could have
+  /// flipped the flag on before either was set, in theory — this closes
+  /// that gap defensively on the read side too, not just the write side).
+  bool get isEligibleForMating =>
+      isAvailableForMating && isVaccinated && vaccinationCardUrl.isNotEmpty;
 
   /// Creates an empty [PetModel] to avoid null-pointer errors in the UI.
   factory PetModel.empty() {
@@ -95,6 +168,13 @@ class PetModel {
       photoUrl: json['photoUrl'] as String? ?? '',
       bio: json['bio'] as String? ?? '',
       weight: (json['weight'] as num?)?.toDouble() ?? 0,
+      isAvailableForMating: json['isAvailableForMating'] as bool? ?? false,
+      isVaccinated: json['isVaccinated'] as bool? ?? false,
+      vaccinationCardUrl: json['vaccinationCardUrl'] as String? ?? '',
+      characterTags: (json['characterTags'] as List<dynamic>? ?? const [])
+          .map((t) => PetCharacterTag.fromString(t as String))
+          .whereType<PetCharacterTag>()
+          .toList(),
     );
   }
 
@@ -121,6 +201,10 @@ class PetModel {
       'photoUrl': photoUrl,
       'bio': bio,
       'weight': weight,
+      'isAvailableForMating': isAvailableForMating,
+      'isVaccinated': isVaccinated,
+      'vaccinationCardUrl': vaccinationCardUrl,
+      'characterTags': characterTags.map((t) => t.name).toList(),
     };
   }
 
@@ -140,6 +224,10 @@ class PetModel {
     String? photoUrl,
     String? bio,
     double? weight,
+    bool? isAvailableForMating,
+    bool? isVaccinated,
+    String? vaccinationCardUrl,
+    List<PetCharacterTag>? characterTags,
   }) {
     return PetModel(
       id: id ?? this.id,
@@ -154,6 +242,10 @@ class PetModel {
       photoUrl: photoUrl ?? this.photoUrl,
       bio: bio ?? this.bio,
       weight: weight ?? this.weight,
+      isAvailableForMating: isAvailableForMating ?? this.isAvailableForMating,
+      isVaccinated: isVaccinated ?? this.isVaccinated,
+      vaccinationCardUrl: vaccinationCardUrl ?? this.vaccinationCardUrl,
+      characterTags: characterTags ?? this.characterTags,
     );
   }
 

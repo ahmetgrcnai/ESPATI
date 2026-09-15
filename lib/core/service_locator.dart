@@ -10,6 +10,7 @@ import '../data/repositories/interfaces/i_form_repository.dart';
 import '../data/repositories/interfaces/i_academy_repository.dart';
 import '../data/repositories/interfaces/i_reminder_repository.dart';
 import '../data/repositories/interfaces/i_chat_repository.dart';
+import '../data/repositories/interfaces/i_mating_repository.dart';
 import '../data/repositories/firebase/firebase_auth_repository.dart';
 import '../data/repositories/firebase/firestore_pet_repository.dart';
 import '../data/repositories/firebase/firestore_post_repository.dart';
@@ -19,6 +20,7 @@ import '../data/repositories/firebase/firestore_user_repository.dart';
 import '../data/repositories/firebase/firestore_form_repository.dart';
 import '../data/repositories/firebase/firestore_reminder_repository.dart';
 import '../data/repositories/firebase/firestore_chat_repository.dart';
+import '../data/repositories/firebase/firestore_mating_repository.dart';
 import '../data/repositories/mock/mock_auth_repository.dart';
 import '../data/repositories/mock/mock_post_repository.dart';
 import '../data/repositories/mock/mock_user_repository.dart';
@@ -29,6 +31,7 @@ import '../data/repositories/mock/mock_form_repository.dart';
 import '../data/repositories/mock/mock_academy_repository.dart';
 import '../data/repositories/mock/mock_reminder_repository.dart';
 import '../data/repositories/mock/mock_chat_repository.dart';
+import '../data/repositories/mock/mock_mating_repository.dart';
 import '../viewmodels/auth_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import '../viewmodels/ai_vet_viewmodel.dart';
@@ -108,6 +111,10 @@ Widget createProviders({required Widget child}) {
         create: (_) =>
             kUseMock ? MockChatRepository() : FirestoreChatRepository(),
       ),
+      Provider<IMatingRepository>(
+        create: (_) =>
+            kUseMock ? MockMatingRepository() : FirestoreMatingRepository(),
+      ),
 
       // ── ViewModels ──
 
@@ -138,7 +145,9 @@ Widget createProviders({required Widget child}) {
         ),
       ),
       ChangeNotifierProvider<NotificationViewModel>(
-        create: (_) => NotificationViewModel(),
+        create: (context) => NotificationViewModel(
+          socialRepository: context.read<ISocialRepository>(),
+        ),
       ),
       ChangeNotifierProvider<FormViewModel>(
         create: (context) => FormViewModel(context.read<IFormRepository>()),

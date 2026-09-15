@@ -288,12 +288,20 @@ class ProfileViewModel extends ChangeNotifier {
 
   /// Uploads [image] (if any) and saves [pet] to Firestore.
   /// The real-time stream automatically updates [pets] on success.
-  Future<void> addPet(PetModel pet, {File? image}) async {
+  Future<void> addPet(
+    PetModel pet, {
+    File? image,
+    File? vaccinationCardImage,
+  }) async {
     _isAddingPet = true;
     _petError = null;
     notifyListeners();
 
-    final result = await _petRepo.addPet(pet, image: image);
+    final result = await _petRepo.addPet(
+      pet,
+      image: image,
+      vaccinationCardImage: vaccinationCardImage,
+    );
 
     if (result case Failure(:final message)) {
       _petError = message;
@@ -306,12 +314,20 @@ class ProfileViewModel extends ChangeNotifier {
 
   /// Updates [pet] text fields and optionally swaps the photo.
   /// The real-time stream automatically refreshes [pets] on success.
-  Future<void> updatePet(PetModel pet, {File? newImage}) async {
+  Future<void> updatePet(
+    PetModel pet, {
+    File? newImage,
+    File? newVaccinationCardImage,
+  }) async {
     _isAddingPet = true;
     _petError = null;
     notifyListeners();
 
-    final result = await _petRepo.updatePet(pet, newImage: newImage);
+    final result = await _petRepo.updatePet(
+      pet,
+      newImage: newImage,
+      newVaccinationCardImage: newVaccinationCardImage,
+    );
 
     if (result case Failure(:final message)) {
       _petError = message;

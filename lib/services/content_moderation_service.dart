@@ -47,17 +47,65 @@ class ContentModerationService {
     'küfür2',
   ];
 
-  /// Returns `true` if [text] contains any word from [_bannedWords].
+  /// Returns `true` if [text] contains any word from [_bannedWords] or, if
+  /// given, [extraBannedWords] — a per-group denylist a Topluluk group's
+  /// creator can set on top of the app-wide list (see
+  /// [ChatGroupModel.bannedWords]) for topics specific to that group.
   ///
   /// Whole-word match on a lowercased, diacritic-preserving comparison —
   /// e.g. "küfür2" matches "Bu bir küfür2 içerir" but not "küfür20lu".
-  static bool containsInappropriateText(String text) {
+  static bool containsInappropriateText(
+    String text, {
+    List<String> extraBannedWords = const [],
+  }) {
     if (text.trim().isEmpty) return false;
 
     final lower = text.toLowerCase();
-    for (final banned in _bannedWords) {
-      final pattern = RegExp(r'\b' + RegExp.escape(banned) + r'\b');
+    for (final banned in [..._bannedWords, ...extraBannedWords]) {
+      if (banned.trim().isEmpty) continue;
+      final pattern = RegExp(r'\b' + RegExp.escape(banned.toLowerCase()) + r'\b');
       if (pattern.hasMatch(lower)) return true;
+    }
+    return false;
+  }
+
+  /// Çiftleşme (mating) module denylist — Madde 4 of that module's ethics
+  /// pass: a breeding-partner profile is not a storefront. Matched the same
+  /// whole-word way as [_bannedWords]; deliberately separate from that list
+  /// (and from any group's [ChatGroupModel.bannedWords]) since it targets a
+  /// different problem — commercial breeding/selling language, not
+  /// profanity — and only [AddEditPetScreen]'s mating-profile fields need to
+  /// check it, not every text field in the app.
+  static const List<String> _commercialWords = [
+    'satılık',
+    'satış',
+    'fiyat',
+    'ücret',
+    'bedel',
+    'tl',
+    '₺',
+    'para',
+    'pazarlık',
+  ];
+
+  /// Returns `true` if [text] reads like a commercial breeding/sale listing
+  /// (price mentions, "satılık", etc.) rather than a genuine mating-partner
+  /// profile — see [_commercialWords]. Same whole-word matching as
+  /// [containsInappropriateText].
+  static bool containsCommercialLanguage(String text) {
+    if (text.trim().isEmpty) return false;
+
+    final lower = text.toLowerCase();
+    for (final word in _commercialWords) {
+      // '₺' has no letters either side to form a \b word boundary against —
+      // a plain substring check is the right tool for a bare symbol; every
+      // other entry here is an actual word, where whole-word matching still
+      // matters (e.g. "tl" shouldn't flag "atlıyor").
+      final isSymbol = !RegExp(r'[a-zA-Z0-9]').hasMatch(word);
+      final matched = isSymbol
+          ? lower.contains(word)
+          : RegExp(r'\b' + RegExp.escape(word) + r'\b').hasMatch(lower);
+      if (matched) return true;
     }
     return false;
   }
