@@ -38,6 +38,7 @@ class MockMatingRepository implements IMatingRepository {
       isVaccinated: true,
       vaccinationCardUrl: 'mock://vaccination_card',
       characterTags: const [PetCharacterTag.enerjik, PetCharacterTag.oyuncu],
+      matingPurpose: PetMatingPurpose.puppyExcitement,
     ),
     PetModel(
       id: 'mate_pet_2',
@@ -55,6 +56,7 @@ class MockMatingRepository implements IMatingRepository {
       isVaccinated: true,
       vaccinationCardUrl: 'mock://vaccination_card',
       characterTags: const [PetCharacterTag.uysal, PetCharacterTag.sakin],
+      matingPurpose: PetMatingPurpose.familyBuilding,
     ),
     PetModel(
       id: 'mate_pet_3',
@@ -72,6 +74,7 @@ class MockMatingRepository implements IMatingRepository {
       isVaccinated: true,
       vaccinationCardUrl: 'mock://vaccination_card',
       characterTags: const [PetCharacterTag.bagimsiz, PetCharacterTag.sakin],
+      matingPurpose: PetMatingPurpose.lookingForFriend,
     ),
   ];
 

@@ -83,6 +83,7 @@ class MockChatRepository implements IChatRepository {
     required String otherUserId,
     required String otherUserName,
     required String otherUserPhoto,
+    required bool autoAccept,
   }) async {
     await Future.delayed(_delay);
 
@@ -103,6 +104,8 @@ class MockChatRepository implements IChatRepository {
       },
       lastMessage: '',
       lastUpdated: DateTime.now(),
+      initiatorId: currentUserId,
+      acceptedByRecipient: autoAccept,
     );
     _rooms[roomId] = room;
     _messages.putIfAbsent(roomId, () => []);
@@ -142,10 +145,44 @@ class MockChatRepository implements IChatRepository {
         participantPhotos: room.participantPhotos,
         lastMessage: trimmed,
         lastUpdated: message.timestamp,
+        unreadCounts: room.unreadCounts,
+        initiatorId: room.initiatorId,
+        acceptedByRecipient: room.acceptedByRecipient,
       );
       _emitAllRoomSubscribers();
     }
 
+    return const Success(null);
+  }
+
+  // ── Message requests — accept / decline ──────────────────────────────────
+
+  @override
+  Future<Result<void>> acceptChatRequest(String roomId) async {
+    await Future.delayed(_delay);
+    final room = _rooms[roomId];
+    if (room == null) return const Failure('İstek bulunamadı.');
+    _rooms[roomId] = ChatRoomModel(
+      roomId: room.roomId,
+      participantIds: room.participantIds,
+      participantNames: room.participantNames,
+      participantPhotos: room.participantPhotos,
+      lastMessage: room.lastMessage,
+      lastUpdated: room.lastUpdated,
+      unreadCounts: room.unreadCounts,
+      initiatorId: room.initiatorId,
+      acceptedByRecipient: true,
+    );
+    _emitAllRoomSubscribers();
+    return const Success(null);
+  }
+
+  @override
+  Future<Result<void>> declineChatRequest(String roomId) async {
+    await Future.delayed(_delay);
+    _rooms.remove(roomId);
+    _messages.remove(roomId);
+    _emitAllRoomSubscribers();
     return const Success(null);
   }
 }

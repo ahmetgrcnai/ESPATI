@@ -10,13 +10,13 @@ import '../data/repositories/interfaces/i_mating_repository.dart';
 import '../data/repositories/interfaces/i_pet_repository.dart';
 import '../data/repositories/interfaces/i_user_repository.dart';
 
-/// ViewModel powering [MatingSwipeScreen] — the Çiftleşme (mating) module's
-/// Tinder-style discover deck.
+/// ViewModel powering [MatingSwipeScreen] — the Ruh Eşi (mating) module's
+/// Tinder/Bumble-style discover deck.
 ///
 /// Picks the current user's first [PetModel.isEligibleForMating] pet as
-/// "the pet doing the swiping" ([mySwipingPet]) — MVP scope has no
-/// "which of my pets?" picker yet (a real gap once a user has more than
-/// one eligible pet; noted for the next iteration, not silently ignored).
+/// "the pet doing the swiping" ([mySwipingPet]) by default; when the user
+/// has more than one eligible pet, [MatingSwipeScreen] shows a picker and
+/// calls [selectSwipingPet] to switch, which reloads the deck for that pet.
 ///
 /// A completed mutual match doesn't just record data — it creates the real
 /// chat room via [IChatRepository] (same one every other 1-on-1
@@ -54,6 +54,14 @@ class MatingViewModel extends ChangeNotifier {
   PetModel? _mySwipingPet;
   PetModel? get mySwipingPet => _mySwipingPet;
 
+  List<PetModel> _eligiblePets = [];
+
+  /// Every pet of the current user's that [PetModel.isEligibleForMating] —
+  /// powers [MatingSwipeScreen]'s "which pet?" picker. Empty until [_init]
+  /// resolves; a single-entry list means the picker has nothing to offer,
+  /// which the screen treats the same as "no picker at all".
+  List<PetModel> get eligiblePets => _eligiblePets;
+
   List<PetModel> _deck = [];
 
   /// The card on top of the deck — `null` once it's exhausted.
@@ -74,7 +82,8 @@ class MatingViewModel extends ChangeNotifier {
   Future<void> _init() async {
     final petsResult = await _petRepository.getAllPets();
     if (petsResult case Success(:final data)) {
-      _mySwipingPet = data.where((p) => p.isEligibleForMating).firstOrNull;
+      _eligiblePets = data.where((p) => p.isEligibleForMating).toList();
+      _mySwipingPet = _eligiblePets.firstOrNull;
     }
 
     if (_mySwipingPet == null) {
@@ -82,6 +91,19 @@ class MatingViewModel extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    await _loadDeck();
+  }
+
+  /// Switches which of the current user's eligible pets is doing the
+  /// swiping — called from [MatingSwipeScreen]'s pet picker. No-op if
+  /// [pet] is already active; otherwise clears the current deck and
+  /// reloads it for [pet].
+  Future<void> selectSwipingPet(PetModel pet) async {
+    if (pet.id == _mySwipingPet?.id) return;
+    _mySwipingPet = pet;
+    _deck = [];
+    _loading = true;
+    notifyListeners();
     await _loadDeck();
   }
 

@@ -15,6 +15,7 @@ import '../../widgets/common/neo_brutalist_search_bar.dart';
 import '../../widgets/inbox_chat_tile.dart';
 import '../../widgets/message_requests_banner.dart';
 import '../chat/chat_screen.dart';
+import '../community/create_group_screen.dart';
 import 'message_requests_screen.dart';
 import 'new_chat_search_screen.dart';
 
@@ -127,19 +128,25 @@ class _InboxScreenState extends State<InboxScreen> {
               onChanged: (v) => setState(() => _query = v),
             ),
           ),
-          // Step 70 — "Gelen İstekler" banner, just below the search bar.
-          // requestCount is a mock value: ChatRoomModel/IChatRepository have
-          // no pending/known-sender concept yet, see
-          // message_requests_screen.dart's file header for the real gap.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: MessageRequestsBanner(
-              requestCount: 3,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => const MessageRequestsScreen()),
-              ),
-            ),
+          // Step 70/71 — "Gelen İstekler" banner, just below the search bar.
+          // Real, Firestore-backed pending count via ChatRoomModel's
+          // initiatorId/acceptedByRecipient fields — hidden entirely once
+          // there's nothing pending.
+          Consumer<ChatViewModel>(
+            builder: (context, chatVm, _) {
+              final pendingCount = chatVm.pendingRequests.length;
+              if (pendingCount == 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: MessageRequestsBanner(
+                  requestCount: pendingCount,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const MessageRequestsScreen()),
+                  ),
+                ),
+              );
+            },
           ),
           Expanded(
             child: Consumer<ChatViewModel>(
@@ -150,11 +157,12 @@ class _InboxScreenState extends State<InboxScreen> {
                         color: EspatiColors.sageGreen),
                   );
                 }
-                if (chatVm.chatRooms.isEmpty) {
+                if (chatVm.acceptedChatRooms.isEmpty) {
                   return const _EmptyInbox();
                 }
 
-                final rooms = _filtered(chatVm.chatRooms, chatVm.currentUserId);
+                final rooms =
+                    _filtered(chatVm.acceptedChatRooms, chatVm.currentUserId);
                 if (rooms.isEmpty) {
                   return _NoSearchResults(query: _query);
                 }
@@ -190,8 +198,8 @@ class _InboxScreenState extends State<InboxScreen> {
       // the Follow-focused search/search_screen.dart reached from
       // CommunityHubScreen).
       floatingActionButton: NeoBrutalistButton(
-        semanticLabel: 'Yeni Mesaj',
-        onPressed: () => _openNewChatSearch(context),
+        semanticLabel: 'Yeni',
+        onPressed: () => _showNewActionSheet(context),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: const BoxDecoration(
@@ -241,6 +249,72 @@ class _InboxScreenState extends State<InboxScreen> {
     );
   }
 
+  /// The "Yeni" FAB now offers two destinations — a 1-on-1 DM (old
+  /// behaviour) or creating a new Topluluk group, so group creation is
+  /// reachable from the messaging surface too, not just Topluluk's own tab.
+  void _showNewActionSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.zero,
+            border: Border.all(color: Colors.black, width: 3),
+            boxShadow: const [
+              BoxShadow(color: Colors.black, offset: Offset(4, 4), blurRadius: 0),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _NewActionOption(
+                  icon: Icons.edit_rounded,
+                  label: 'Yeni Sohbet',
+                  color: EspatiColors.terracotta,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    _openNewChatSearch(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+                _NewActionOption(
+                  icon: Icons.groups_rounded,
+                  label: 'Yeni Grup Oluştur',
+                  color: EspatiColors.mintGreen,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const CreateGroupScreen()),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openChat(
       BuildContext context, ChatRoomModel room, String currentUserId) {
     final chatRepo = context.read<IChatRepository>();
@@ -256,6 +330,53 @@ class _InboxScreenState extends State<InboxScreen> {
             chatTitle: room.otherParticipantName(currentUserId),
             otherUserPhoto: room.otherParticipantPhoto(currentUserId),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewActionOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _NewActionOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.zero,
+          border: Border.all(color: Colors.black, width: 2),
+          boxShadow: const [
+            BoxShadow(color: Colors.black, offset: Offset(3, 3), blurRadius: 0),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.black, size: 22),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: GoogleFonts.baloo2(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
     );

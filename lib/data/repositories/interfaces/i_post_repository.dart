@@ -58,20 +58,23 @@ abstract class IPostRepository {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Yeni gönderi oluşturur:
-  /// 1. [imageFile]'ı Firebase Storage'a yükler
-  ///    (`posts/{authorId}/{timestamp_ms}.jpg`).
-  /// 2. İndirme URL'sini alır.
-  /// 3. [post] dokümanını Firestore'a kaydeder.
+  /// 1. [imageFile] verilmişse Firebase Storage'a yükler
+  ///    (`posts/{authorId}/{timestamp_ms}.jpg`) ve indirme URL'sini alır.
+  ///    [imageFile] `null` ise (metin-only tartışma gönderisi — bir Topluluk
+  ///    grubu içinde fotoğrafsız sohbet başlatma), Storage adımı tamamen
+  ///    atlanır ve [post.imageUrl] boş string olarak yazılır.
+  /// 2. [post] dokümanını Firestore'a kaydeder.
   ///
   /// [onProgress] sağlanmışsa, Storage yükleme aşamasının ilerlemesi 0..1
   /// aralığında rapor edilir. Compression aşaması bu metoda gelmeden önce
   /// tamamlandığı için progress yalnızca ağ/Storage süresini yansıtır.
+  /// [imageFile] `null` ise [onProgress] hiç çağrılmaz.
   ///
   /// Hata durumunda [Failure] ile Türkçe mesaj döner;
-  /// başarı durumunda Storage download URL'si atanmış [PostModel] döner.
+  /// başarı durumunda (varsa) Storage download URL'si atanmış [PostModel] döner.
   Future<Result<PostModel>> createPost(
     PostModel post,
-    File imageFile, {
+    File? imageFile, {
     void Function(double progress)? onProgress,
   });
 

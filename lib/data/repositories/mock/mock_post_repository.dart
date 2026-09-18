@@ -138,7 +138,7 @@ class MockPostRepository implements IPostRepository {
   @override
   Future<Result<PostModel>> createPost(
     PostModel post,
-    File imageFile, {
+    File? imageFile, {
     void Function(double progress)? onProgress,
   }) async {
     if (onProgress != null) {

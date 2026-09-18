@@ -14,13 +14,16 @@ import '../../viewmodels/mating_viewmodel.dart';
 import '../chat/chat_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MATING SWIPE SCREEN — "Çiftleşme" module, Phase 0/1.
+// MATING SWIPE SCREEN — "Ruh Eşi" module, Phase 0/1.
 //
 // Opened from the heart icon on the Keşfet AppBar (left of the
-// notification bell). Tinder-style deck: [PetCharacterTag]/health-declared
+// notification bell). Bumble-style deck: [PetCharacterTag]/health-declared
 // pets only ([PetModel.isEligibleForMating]), right swipe = interested,
 // left = pas geç. A mutual right-swipe creates a real match + drops both
 // owners straight into the app's real chat system — see [MatingViewModel].
+// A user with more than one eligible pet gets a picker up top to choose
+// which pet is doing the swiping (see [_PetPickerRow]/[MatingViewModel.
+// selectSwipingPet]).
 //
 // Deliberately custom-built (no swipe-card package) — a plain
 // GestureDetector + AnimatedContainer transform is enough for this
@@ -117,7 +120,7 @@ class _MatingSwipeScreenState extends State<MatingSwipeScreen> {
                 const Icon(Icons.favorite_rounded, color: EspatiColors.red, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Çiftleşme',
+                  'Ruh Eşi',
                   style: GoogleFonts.baloo2(
                     fontWeight: FontWeight.w700,
                     fontSize: 19,
@@ -162,17 +165,24 @@ class _MatingSwipeScreenState extends State<MatingSwipeScreen> {
     final card = vm.currentCard;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Text(
-            '${vm.mySwipingPet!.name} adına eşleşme arıyorsun',
-            style: GoogleFonts.nunitoSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black.withValues(alpha: 0.55),
+        if (vm.eligiblePets.length > 1)
+          _PetPickerRow(
+            pets: vm.eligiblePets,
+            activePet: vm.mySwipingPet!,
+            onSelect: vm.selectSwipingPet,
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(
+              '${vm.mySwipingPet!.name} adına eşleşme arıyorsun',
+              style: GoogleFonts.nunitoSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black.withValues(alpha: 0.55),
+              ),
             ),
           ),
-        ),
         Expanded(
           child: card == null
               ? _DeckEmptyState()
@@ -207,6 +217,108 @@ class _MatingSwipeScreenState extends State<MatingSwipeScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PET PICKER ROW — horizontal strip of the user's eligible pets, shown only
+// when there's more than one (see [MatingSwipeScreen._buildBody]). Tapping
+// an avatar calls [MatingViewModel.selectSwipingPet], which reloads the deck.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PetPickerRow extends StatelessWidget {
+  final List<PetModel> pets;
+  final PetModel activePet;
+  final ValueChanged<PetModel> onSelect;
+
+  const _PetPickerRow({
+    required this.pets,
+    required this.activePet,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Hangi patin için bakıyorsun?',
+            style: GoogleFonts.nunitoSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.black.withValues(alpha: 0.55),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 72,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: pets.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, i) {
+                final pet = pets[i];
+                final selected = pet.id == activePet.id;
+                return GestureDetector(
+                  onTap: () => onSelect(pet),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.black,
+                            width: selected ? 2.5 : 1.5,
+                          ),
+                          boxShadow: selected
+                              ? const [
+                                  BoxShadow(
+                                    color: EspatiColors.red,
+                                    offset: Offset(2, 2),
+                                    blurRadius: 0,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: pet.photoUrl.isEmpty
+                            ? const Icon(Icons.pets_rounded,
+                                size: 20, color: Colors.black)
+                            : CachedNetworkImage(
+                                imageUrl: pet.photoUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => const Icon(
+                                    Icons.pets_rounded,
+                                    size: 20,
+                                    color: Colors.black),
+                              ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        pet.name,
+                        style: GoogleFonts.nunitoSans(
+                          fontSize: 10,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -322,6 +434,33 @@ class _SwipeCardState extends State<_SwipeCard> {
                         pet.breed,
                         style: GoogleFonts.nunitoSans(fontSize: 14, color: Colors.white70),
                       ),
+                    if (pet.matingPurpose != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: EspatiColors.peach,
+                          border: Border.all(color: Colors.black, width: 1.5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.favorite_rounded,
+                                size: 12, color: Colors.black),
+                            const SizedBox(width: 4),
+                            Text(
+                              pet.matingPurpose!.label,
+                              style: GoogleFonts.nunitoSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (pet.characterTags.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(

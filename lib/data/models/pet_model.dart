@@ -71,6 +71,47 @@ enum PetCharacterTag {
   }
 }
 
+/// Why this pet's owner is looking for a match — a single-select badge
+/// shown on the Ruh Eşi (mating) module's swipe card and set from
+/// [AddEditPetScreen]'s mating profile section. Purely descriptive intent,
+/// distinct from [PetCharacterTag] (character, not intent); wording is
+/// deliberately soft/positive and steers clear of anything that could read
+/// as a breeding-sale listing.
+enum PetMatingPurpose {
+  familyBuilding,
+  puppyExcitement,
+  lookingForFriend;
+
+  String get label {
+    switch (this) {
+      case PetMatingPurpose.familyBuilding:
+        return 'Aile Kuruyor';
+      case PetMatingPurpose.puppyExcitement:
+        return 'Yavru Heyecanı';
+      case PetMatingPurpose.lookingForFriend:
+        return 'Arkadaş Arıyor';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PetMatingPurpose.familyBuilding:
+        return 'Aile olma vakti geldi, yuvaya yeni bir üye katılsın istiyoruz.';
+      case PetMatingPurpose.puppyExcitement:
+        return 'İleride yavrularının olacağı heyecanını yaşıyoruz.';
+      case PetMatingPurpose.lookingForFriend:
+        return 'Ömür boyu dost olacağı birini arıyoruz.';
+    }
+  }
+
+  static PetMatingPurpose? fromString(String value) {
+    for (final p in PetMatingPurpose.values) {
+      if (p.name == value) return p;
+    }
+    return null;
+  }
+}
+
 /// Pet model representing an animal registered on the ESPATI platform.
 ///
 /// Supports JSON serialization for Firebase/REST API integration,
@@ -111,6 +152,10 @@ class PetModel {
   /// see [PetCharacterTag].
   final List<PetCharacterTag> characterTags;
 
+  /// Why this pet's owner is looking for a match — see [PetMatingPurpose].
+  /// `null` until the owner picks one; not required for [isEligibleForMating].
+  final PetMatingPurpose? matingPurpose;
+
   const PetModel({
     required this.id,
     required this.ownerId,
@@ -127,6 +172,7 @@ class PetModel {
     this.isVaccinated = false,
     this.vaccinationCardUrl = '',
     this.characterTags = const [],
+    this.matingPurpose,
   });
 
   /// The actual gate [MatingSwipeScreen]'s deck query checks — [PetModel]s
@@ -175,6 +221,9 @@ class PetModel {
           .map((t) => PetCharacterTag.fromString(t as String))
           .whereType<PetCharacterTag>()
           .toList(),
+      matingPurpose: json['matingPurpose'] == null
+          ? null
+          : PetMatingPurpose.fromString(json['matingPurpose'] as String),
     );
   }
 
@@ -205,11 +254,18 @@ class PetModel {
       'isVaccinated': isVaccinated,
       'vaccinationCardUrl': vaccinationCardUrl,
       'characterTags': characterTags.map((t) => t.name).toList(),
+      'matingPurpose': matingPurpose?.name,
     };
   }
 
   /// Alias for [toJson] — used at Firestore write call-sites for clarity.
   Map<String, dynamic> toFirestore() => toJson();
+
+  /// Sentinel default for [copyWith]'s [matingPurpose] param — lets callers
+  /// pass an explicit `null` to clear a previously-set purpose, which a
+  /// plain `matingPurpose ?? this.matingPurpose` fallback couldn't
+  /// distinguish from "leave unchanged".
+  static const Object _unset = Object();
 
   /// Returns a copy of this [PetModel] with the given fields replaced.
   PetModel copyWith({
@@ -228,6 +284,7 @@ class PetModel {
     bool? isVaccinated,
     String? vaccinationCardUrl,
     List<PetCharacterTag>? characterTags,
+    Object? matingPurpose = _unset,
   }) {
     return PetModel(
       id: id ?? this.id,
@@ -246,6 +303,9 @@ class PetModel {
       isVaccinated: isVaccinated ?? this.isVaccinated,
       vaccinationCardUrl: vaccinationCardUrl ?? this.vaccinationCardUrl,
       characterTags: characterTags ?? this.characterTags,
+      matingPurpose: identical(matingPurpose, _unset)
+          ? this.matingPurpose
+          : matingPurpose as PetMatingPurpose?,
     );
   }
 

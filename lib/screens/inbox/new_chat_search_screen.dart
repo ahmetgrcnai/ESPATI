@@ -106,6 +106,8 @@ class _NewChatSearchScreenState extends State<NewChatSearchScreen> {
       otherUserId: user.id,
       otherUserName: user.name.isNotEmpty ? user.name : 'Pati Dostu',
       otherUserPhoto: user.profilePicture,
+      // Cold DM to a stranger found via search — goes to Gelen İstekler.
+      autoAccept: false,
     );
 
     if (!mounted) return;

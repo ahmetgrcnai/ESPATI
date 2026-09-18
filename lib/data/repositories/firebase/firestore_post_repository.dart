@@ -227,42 +227,49 @@ class FirestorePostRepository implements IPostRepository {
   @override
   Future<Result<PostModel>> createPost(
     PostModel post,
-    File imageFile, {
+    File? imageFile, {
     void Function(double progress)? onProgress,
   }) async {
     try {
       final docRef = _firestore.collection(_kPosts).doc();
 
-      // Adım 1 — Görseli Storage'a yükle (progress'i stream üzerinden rapor et)
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final storageRef =
-          _storage.ref().child('posts/${post.authorId}/$fileName');
+      // Metin-only tartışma gönderisi (fotoğraf seçilmemiş) — Storage
+      // adımı tamamen atlanır, imageUrl boş string kalır.
+      var downloadUrl = '';
 
-      final uploadTask = storageRef.putFile(
-        imageFile,
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
+      if (imageFile != null) {
+        // Adım 1 — Görseli Storage'a yükle (progress'i stream üzerinden rapor et)
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final storageRef =
+            _storage.ref().child('posts/${post.authorId}/$fileName');
 
-      // [UploadTask.snapshotEvents] bytesTransferred/totalBytes'ı akış olarak
-      // yayınlar; biz 0..1 aralığına normalize edip callback'e iletiyoruz.
-      // totalBytes == 0 olan ilk tick'lerde NaN üretmemek için guard ekliyoruz.
-      final progressSub = onProgress == null
-          ? null
-          : uploadTask.snapshotEvents.listen((snap) {
-              final total = snap.totalBytes;
-              if (total <= 0) return;
-              final ratio = snap.bytesTransferred / total;
-              onProgress(ratio.clamp(0.0, 1.0));
-            });
+        final uploadTask = storageRef.putFile(
+          imageFile,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
 
-      try {
-        await uploadTask;
-      } finally {
-        await progressSub?.cancel();
+        // [UploadTask.snapshotEvents] bytesTransferred/totalBytes'ı akış
+        // olarak yayınlar; biz 0..1 aralığına normalize edip callback'e
+        // iletiyoruz. totalBytes == 0 olan ilk tick'lerde NaN üretmemek için
+        // guard ekliyoruz.
+        final progressSub = onProgress == null
+            ? null
+            : uploadTask.snapshotEvents.listen((snap) {
+                final total = snap.totalBytes;
+                if (total <= 0) return;
+                final ratio = snap.bytesTransferred / total;
+                onProgress(ratio.clamp(0.0, 1.0));
+              });
+
+        try {
+          await uploadTask;
+        } finally {
+          await progressSub?.cancel();
+        }
+
+        // Adım 2 — İndirme URL'sini al
+        downloadUrl = await storageRef.getDownloadURL();
       }
-
-      // Adım 2 — İndirme URL'sini al
-      final downloadUrl = await storageRef.getDownloadURL();
 
       // Adım 3 — URL'yi ve gerçek doküman ID'sini post'a ekle, Firestore'a kaydet
       final postWithImage =

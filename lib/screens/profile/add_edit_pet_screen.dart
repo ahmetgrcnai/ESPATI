@@ -84,13 +84,14 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
   File? _newImage;
   bool _submitting = false;
 
-  // ── Çiftleşme (mating) profile — see PetModel's own fields for why
+  // ── Ruh Eşi (mating) profile — see PetModel's own fields for why
   // these three are kept in lockstep (isAvailableForMating can't be true
   // without the other two). ──
   bool _isAvailableForMating = false;
   bool _isVaccinated = false;
   File? _newVaccinationCardImage;
   late Set<PetCharacterTag> _selectedCharacterTags;
+  PetMatingPurpose? _selectedPurpose;
 
   @override
   void initState() {
@@ -112,6 +113,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
     _isAvailableForMating = p?.isAvailableForMating ?? false;
     _isVaccinated = p?.isVaccinated ?? false;
     _selectedCharacterTags = {...(p?.characterTags ?? const [])};
+    _selectedPurpose = p?.matingPurpose;
   }
 
   @override
@@ -211,6 +213,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         isAvailableForMating: _isAvailableForMating,
         isVaccinated: _isVaccinated,
         characterTags: characterTags,
+        matingPurpose: _selectedPurpose,
       );
       await vm.updatePet(
         updated,
@@ -234,6 +237,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
         isAvailableForMating: _isAvailableForMating,
         isVaccinated: _isVaccinated,
         characterTags: characterTags,
+        matingPurpose: _selectedPurpose,
       );
       await vm.addPet(
         pet,
@@ -453,7 +457,7 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // ── Çiftleşme profili ────────────────────────────────────────
+                // ── Ruh Eşi profili ──────────────────────────────────────────
                 _MatingProfileSection(
                   isAvailableForMating: _isAvailableForMating,
                   onAvailableForMatingChanged: (v) =>
@@ -465,6 +469,11 @@ class _AddEditPetScreenState extends State<AddEditPetScreen> {
                   existingVaccinationCardUrl:
                       widget.existingPet?.vaccinationCardUrl ?? '',
                   onPickVaccinationCard: _pickVaccinationCard,
+                  selectedPurpose: _selectedPurpose,
+                  onSelectPurpose: (purpose) => setState(() {
+                    _selectedPurpose =
+                        _selectedPurpose == purpose ? null : purpose;
+                  }),
                   selectedTags: _selectedCharacterTags,
                   onToggleTag: (tag) => setState(() {
                     if (_selectedCharacterTags.contains(tag)) {
@@ -644,11 +653,11 @@ class _PetPhotoPicker extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MATING PROFILE SECTION — the Çiftleşme (mating) module's opt-in block.
+// MATING PROFILE SECTION — the Ruh Eşi (mating) module's opt-in block.
 // "Eşleşme Arıyor" only ever means anything once the vaccine declaration +
 // card photo are both in place — see [PetModel.isEligibleForMating] and
-// [_AddEditPetScreenState._validateMatingProfile]. Character tags are
-// always editable regardless of the toggle (harmless either way, and
+// [_AddEditPetScreenState._validateMatingProfile]. Purpose + character tags
+// are always editable regardless of the toggle (harmless either way, and
 // keeping them set saves re-picking if the owner re-enables it later).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -660,6 +669,8 @@ class _MatingProfileSection extends StatelessWidget {
   final File? newVaccinationCardImage;
   final String existingVaccinationCardUrl;
   final VoidCallback onPickVaccinationCard;
+  final PetMatingPurpose? selectedPurpose;
+  final ValueChanged<PetMatingPurpose> onSelectPurpose;
   final Set<PetCharacterTag> selectedTags;
   final ValueChanged<PetCharacterTag> onToggleTag;
 
@@ -671,6 +682,8 @@ class _MatingProfileSection extends StatelessWidget {
     required this.newVaccinationCardImage,
     required this.existingVaccinationCardUrl,
     required this.onPickVaccinationCard,
+    required this.selectedPurpose,
+    required this.onSelectPurpose,
     required this.selectedTags,
     required this.onToggleTag,
   });
@@ -698,7 +711,7 @@ class _MatingProfileSection extends StatelessWidget {
               const Icon(Icons.favorite_rounded, color: EspatiColors.red, size: 18),
               const SizedBox(width: 8),
               Text(
-                'Çiftleşme Profili',
+                'Ruh Eşi Profili',
                 style: GoogleFonts.baloo2(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
@@ -791,6 +804,75 @@ class _MatingProfileSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+            Text(
+              'Ne Arıyorsun?',
+              style: GoogleFonts.baloo2(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              children: PetMatingPurpose.values.map((purpose) {
+                final selected = selectedPurpose == purpose;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () => onSelectPurpose(purpose),
+                    child: Container(
+                      width: double.infinity,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? EspatiColors.peach.withValues(alpha: 0.35)
+                            : Colors.white,
+                        border: Border.all(
+                          color: Colors.black,
+                          width: selected ? 2 : 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            selected
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_off_rounded,
+                            size: 18,
+                            color: Colors.black,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  purpose.label,
+                                  style: GoogleFonts.baloo2(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  purpose.description,
+                                  style: GoogleFonts.nunitoSans(
+                                    fontSize: 11,
+                                    color: Colors.black.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 8),
             Text(
               'Karakter Etiketleri',
               style: GoogleFonts.baloo2(

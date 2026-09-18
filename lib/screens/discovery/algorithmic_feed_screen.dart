@@ -175,7 +175,7 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
         actions: _currentPage == 0
             ? const []
             : [
-                // Çiftleşme (mating) module entry point — a heart, left of
+                // Ruh Eşi (mating) module entry point — a heart, left of
                 // the notification bell. Unambiguous: "Pati" (a paw stamp),
                 // not a heart, is this app's like/beğeni icon everywhere
                 // else, so this is the only heart button in the app.
@@ -184,7 +184,7 @@ class _AlgorithmicFeedScreenState extends State<AlgorithmicFeedScreen> {
                   child: _AppBarIconButton(
                     icon: Icons.favorite_rounded,
                     background: EspatiColors.peach,
-                    semanticLabel: 'Çiftleşme',
+                    semanticLabel: 'Ruh Eşi',
                     showBadge: false,
                     onPressed: () => _openMatingModule(context),
                   ),

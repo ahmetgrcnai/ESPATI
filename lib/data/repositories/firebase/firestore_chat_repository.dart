@@ -74,6 +74,7 @@ class FirestoreChatRepository implements IChatRepository {
     required String otherUserId,
     required String otherUserName,
     required String otherUserPhoto,
+    required bool autoAccept,
   }) async {
     try {
       final roomId = ChatRoomModel.idFor(currentUserId, otherUserId);
@@ -81,6 +82,7 @@ class FirestoreChatRepository implements IChatRepository {
       final snap = await docRef.get();
 
       if (snap.exists && snap.data() != null) {
+        // Existing room — its request state is never touched here.
         return Success(ChatRoomModel.fromFirestore(snap.data()!, id: roomId));
       }
 
@@ -97,6 +99,8 @@ class FirestoreChatRepository implements IChatRepository {
         },
         lastMessage: '',
         lastUpdated: DateTime.now(),
+        initiatorId: currentUserId,
+        acceptedByRecipient: autoAccept,
       );
 
       // merge:true — if two devices race to create the same deterministic
@@ -147,6 +151,34 @@ class FirestoreChatRepository implements IChatRepository {
       return Failure(_mapFirebaseError(e), exception: e);
     } on Exception catch (e) {
       return Failure('Mesaj gönderilemedi.', exception: e);
+    }
+  }
+
+  // ── Message requests — accept / decline ──────────────────────────────────
+
+  @override
+  Future<Result<void>> acceptChatRequest(String roomId) async {
+    try {
+      await _chatsCol
+          .doc(roomId)
+          .set({'acceptedByRecipient': true}, SetOptions(merge: true));
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(_mapFirebaseError(e), exception: e);
+    } on Exception catch (e) {
+      return Failure('İstek kabul edilemedi.', exception: e);
+    }
+  }
+
+  @override
+  Future<Result<void>> declineChatRequest(String roomId) async {
+    try {
+      await _chatsCol.doc(roomId).delete();
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(_mapFirebaseError(e), exception: e);
+    } on Exception catch (e) {
+      return Failure('İstek silinemedi.', exception: e);
     }
   }
 

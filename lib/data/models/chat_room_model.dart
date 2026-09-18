@@ -28,6 +28,19 @@ class ChatRoomModel {
   /// before this field existed.
   final Map<String, int> unreadCounts;
 
+  /// UID of whoever's [getOrCreateChatRoom] call actually created this room
+  /// document. Empty for rooms written before this field existed (Step 71) —
+  /// [isPendingFor] treats an empty [initiatorId] as never-pending, so old
+  /// conversations never retroactively appear as a request.
+  final String initiatorId;
+
+  /// Whether the *other* participant (not [initiatorId]) has accepted this
+  /// room into their main inbox. `true` for auto-accepted rooms (e.g. a
+  /// listing inquiry) and for every pre-existing room (see
+  /// [fromFirestore]'s backward-compatible default) — only a cold DM from a
+  /// stranger via search starts out `false`.
+  final bool acceptedByRecipient;
+
   const ChatRoomModel({
     required this.roomId,
     required this.participantIds,
@@ -36,6 +49,8 @@ class ChatRoomModel {
     required this.lastMessage,
     required this.lastUpdated,
     this.unreadCounts = const {},
+    this.initiatorId = '',
+    this.acceptedByRecipient = true,
   });
 
   /// Unread count for [myUid] in this room — 0 for a uid with no entry.
@@ -68,6 +83,11 @@ class ChatRoomModel {
       lastUpdated: _parseTimestamp(data['lastUpdated']),
       unreadCounts: (data['unreadCounts'] as Map<dynamic, dynamic>? ?? const {})
           .map((key, value) => MapEntry(key as String, (value as num).toInt())),
+      initiatorId: data['initiatorId'] as String? ?? '',
+      // Backward compatibility: rooms written before Step 71 have no
+      // 'acceptedByRecipient' field — they must default to true so existing
+      // conversations don't suddenly appear as pending requests.
+      acceptedByRecipient: data['acceptedByRecipient'] as bool? ?? true,
     );
   }
 
@@ -78,6 +98,8 @@ class ChatRoomModel {
         'lastMessage': lastMessage,
         'lastUpdated': Timestamp.fromDate(lastUpdated),
         'unreadCounts': unreadCounts,
+        'initiatorId': initiatorId,
+        'acceptedByRecipient': acceptedByRecipient,
       };
 
   /// Deterministic room id for a pair of UIDs — sorted so the order the
@@ -96,6 +118,13 @@ class ChatRoomModel {
 
   String otherParticipantPhoto(String myUid) =>
       participantPhotos[otherParticipantId(myUid)] ?? '';
+
+  /// True when [uid] is the recipient of a still-pending message request —
+  /// i.e. someone else opened this room and [uid] hasn't accepted it yet.
+  /// The room's own initiator never sees their own outgoing request as
+  /// pending.
+  bool isPendingFor(String uid) =>
+      initiatorId.isNotEmpty && initiatorId != uid && !acceptedByRecipient;
 
   bool get isEmpty => roomId.isEmpty;
 
